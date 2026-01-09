@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { haWebSocket } from '../ha-websocket'
-import type { HAEntity, RoomWithDevices } from '@/types/ha'
+import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
 import { DEFAULT_ORDER } from '../constants'
 
 // Room icons (order is now dynamic from HA labels)
@@ -50,9 +50,10 @@ export function useRooms() {
     return () => { unsubscribe() }
   }, [])
 
-  const rooms = useMemo(() => {
+  const { rooms, floors } = useMemo(() => {
     const roomMap = new Map<string, { entities: HAEntity[]; areaId: string | null }>()
     const areaRegistry = haWebSocket.getAreaRegistry()
+    const floorRegistry = haWebSocket.getFloors()
 
     // Group entities by area (we'll extract area from friendly_name or entity_id patterns)
     for (const entity of entities.values()) {
@@ -108,14 +109,17 @@ export function useRooms() {
         ? Math.round(validHumidities.reduce((a, b) => a + b, 0) / validHumidities.length)
         : undefined
 
-      // Get order and icon from HA
+      // Get order, icon, and floor from HA
       const order = areaId ? haWebSocket.getAreaOrder(areaId) : DEFAULT_ORDER
       const icon = areaId ? haWebSocket.getAreaIcon(areaId) : undefined
+      const areaEntry = areaId ? areaRegistry.get(areaId) : undefined
+      const floorId = areaEntry?.floor_id
 
       result.push({
         id: slugify(name),
         name,
         areaId: areaId || undefined,
+        floorId,
         icon,
         devices,
         lightsOn,
@@ -134,10 +138,17 @@ export function useRooms() {
       return a.name.localeCompare(b.name)
     })
 
-    return result
+    // Get floors sorted by level
+    const floorsArray = Array.from(floorRegistry.values()).sort((a, b) => {
+      const levelA = a.level ?? 0
+      const levelB = b.level ?? 0
+      return levelA - levelB
+    })
+
+    return { rooms: result, floors: floorsArray }
   }, [entities, registryVersion])
 
-  return { rooms, isConnected }
+  return { rooms, floors, isConnected }
 }
 
 // Aliases for matching device names to rooms
@@ -191,7 +202,7 @@ function extractAreaFromEntity(entity: HAEntity): string | null {
 }
 
 export function useRoom(roomId: string) {
-  const { rooms, isConnected } = useRooms()
+  const { rooms, floors, isConnected } = useRooms()
   const room = rooms.find((r) => r.id === roomId)
-  return { room, isConnected }
+  return { room, floors, isConnected }
 }

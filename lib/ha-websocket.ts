@@ -1,4 +1,4 @@
-import type { HAEntity, WebSocketMessage, HALabel, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
+import type { HAEntity, WebSocketMessage, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
 import { ROOM_ORDER_LABEL_PREFIX, DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER, ORDER_GAP } from './constants'
 
 type MessageHandler = (entities: Map<string, HAEntity>) => void
@@ -20,10 +20,12 @@ class HAWebSocket {
   private entityRegistryMessageId = 0
   private areaRegistryMessageId = 0
   private labelRegistryMessageId = 0
+  private floorRegistryMessageId = 0
   private areas = new Map<string, string>() // area_id -> area name
   private areaRegistry = new Map<string, AreaRegistryEntry>() // area_id -> full registry entry
   private entityRegistry = new Map<string, EntityRegistryEntry>() // entity_id -> full registry entry
   private labels = new Map<string, HALabel>() // label_id -> label
+  private floors = new Map<string, HAFloor>() // floor_id -> floor
   private registryHandlers = new Set<RegistryHandler>()
   private pendingCallbacks = new Map<number, (success: boolean, result?: unknown) => void>()
 
@@ -80,6 +82,7 @@ class HAWebSocket {
         this.notifyConnectionHandlers(true)
         this.subscribeToStateChanges()
         this.fetchLabelRegistry()
+        this.fetchFloorRegistry()
         this.fetchAreaRegistry()
         this.fetchEntityRegistry()
         this.fetchAllStates()
@@ -105,6 +108,13 @@ class HAWebSocket {
               this.labels.set(label.label_id, label)
             }
             console.log('[HA WS] Loaded', this.labels.size, 'labels')
+          } else if (message.id === this.floorRegistryMessageId && Array.isArray(message.result)) {
+            // Floor registry response
+            for (const floor of message.result as HAFloor[]) {
+              this.floors.set(floor.floor_id, floor)
+            }
+            console.log('[HA WS] Loaded', this.floors.size, 'floors')
+            this.notifyRegistryHandlers()
           } else if (message.id === this.areaRegistryMessageId && Array.isArray(message.result)) {
             // Area registry response
             for (const area of message.result as AreaRegistryEntry[]) {
@@ -195,6 +205,14 @@ class HAWebSocket {
     this.send({
       id: this.labelRegistryMessageId,
       type: 'config/label_registry/list',
+    })
+  }
+
+  private fetchFloorRegistry() {
+    this.floorRegistryMessageId = this.messageId++
+    this.send({
+      id: this.floorRegistryMessageId,
+      type: 'config/floor_registry/list',
     })
   }
 
@@ -314,6 +332,14 @@ class HAWebSocket {
 
   getLabels() {
     return this.labels
+  }
+
+  getFloors() {
+    return this.floors
+  }
+
+  getFloor(floorId: string) {
+    return this.floors.get(floorId)
   }
 
   // Get icon for an area

@@ -8,6 +8,9 @@ import { t } from '@/lib/i18n'
 interface HeaderProps {
   isConnected: boolean
   onEnterReorderMode: () => void
+  hasFloors?: boolean
+  groupByFloors?: boolean
+  onToggleGroupByFloors?: () => void
 }
 
 function getGreeting(): string {
@@ -19,7 +22,13 @@ function getGreeting(): string {
   return t.greeting.night
 }
 
-export function Header({ isConnected, onEnterReorderMode }: HeaderProps) {
+export function Header({
+  isConnected,
+  onEnterReorderMode,
+  hasFloors = false,
+  groupByFloors = true,
+  onToggleGroupByFloors,
+}: HeaderProps) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const greeting = getGreeting()
 
@@ -53,6 +62,9 @@ export function Header({ isConnected, onEnterReorderMode }: HeaderProps) {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         onEnterReorderMode={onEnterReorderMode}
+        hasFloors={hasFloors}
+        groupByFloors={groupByFloors}
+        onToggleGroupByFloors={onToggleGroupByFloors}
       />
     </>
   )

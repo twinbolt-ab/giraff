@@ -36,6 +36,13 @@ export interface AreaRegistryEntry {
   icon?: string
 }
 
+export interface HAFloor {
+  floor_id: string
+  name: string
+  level?: number
+  icon?: string
+}
+
 export interface EntityRegistryEntry {
   entity_id: string
   area_id?: string
@@ -68,6 +75,7 @@ export interface RoomWithDevices {
   id: string
   name: string
   areaId?: string
+  floorId?: string
   icon?: string
   devices: HAEntity[]
   lightsOn: number

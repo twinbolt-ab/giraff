@@ -26,7 +26,14 @@
     "reorder": {
       "title": "Reorder rooms",
       "description": "Change room order"
+    },
+    "floors": {
+      "title": "Group by floors",
+      "description": "Show rooms under floor headings"
     }
+  },
+  "floors": {
+    "other": "Other"
   },
   "devices": {
     "lightsOn": "{count} on",
