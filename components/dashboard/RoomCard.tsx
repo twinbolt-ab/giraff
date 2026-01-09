@@ -12,6 +12,7 @@ import { t, interpolate } from '@/lib/i18n'
 
 interface RoomCardProps {
   room: RoomWithDevices
+  allRooms?: RoomWithDevices[]
   index: number
   isExpanded: boolean
   isReorderMode?: boolean
@@ -20,6 +21,7 @@ interface RoomCardProps {
   isDragOver?: boolean
   onToggleExpand: () => void
   onExitDeviceReorderMode?: () => void
+  onEdit?: () => void
   onDragStart?: () => void
   onDragOver?: () => void
   onDrop?: () => void
@@ -33,6 +35,7 @@ const DRAG_RANGE = 200
 
 export function RoomCard({
   room,
+  allRooms = [],
   index,
   isExpanded,
   isReorderMode = false,
@@ -41,6 +44,7 @@ export function RoomCard({
   isDragOver = false,
   onToggleExpand,
   onExitDeviceReorderMode,
+  onEdit,
   onDragStart,
   onDragOver,
   onDrop,
@@ -57,7 +61,7 @@ export function RoomCard({
   const [localBrightness, setLocalBrightness] = useState(initialBrightness)
   const [showBrightnessOverlay, setShowBrightnessOverlay] = useState(false)
 
-  const dragStartRef = useRef<{ x: number; brightness: number } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number; brightness: number } | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const didDragRef = useRef(false)
 
@@ -81,6 +85,7 @@ export function RoomCard({
     didDragRef.current = false
     dragStartRef.current = {
       x: e.clientX,
+      y: e.clientY,
       brightness: isBrightnessDragging ? localBrightness : getAverageBrightness(lights),
     }
     setLocalBrightness(dragStartRef.current.brightness)
@@ -92,13 +97,29 @@ export function RoomCard({
     if (!dragStartRef.current || !hasLights) return
 
     const deltaX = e.clientX - dragStartRef.current.x
+    const deltaY = e.clientY - dragStartRef.current.y
 
-    // Check if we've crossed the drag threshold for brightness control
-    if (!isBrightnessDragging && Math.abs(deltaX) > DRAG_THRESHOLD) {
-      didDragRef.current = true
-      setIsBrightnessDragging(true)
-      setShowBrightnessOverlay(true)
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    // If not yet dragging brightness, check gesture direction
+    if (!isBrightnessDragging) {
+      // If vertical movement exceeds threshold first, cancel tracking to allow scroll
+      if (Math.abs(deltaY) > DRAG_THRESHOLD) {
+        dragStartRef.current = null
+        return
+      }
+
+      // Check if we've crossed the drag threshold for brightness control
+      if (Math.abs(deltaX) > DRAG_THRESHOLD) {
+        // Only start brightness drag if horizontal movement is dominant
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          // Vertical movement dominant - cancel drag tracking to allow scroll
+          dragStartRef.current = null
+          return
+        }
+        didDragRef.current = true
+        setIsBrightnessDragging(true)
+        setShowBrightnessOverlay(true)
+        ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      }
     }
 
     if (isBrightnessDragging) {
@@ -146,7 +167,7 @@ export function RoomCard({
 
   const cardClassName = clsx(
     'card w-full text-left relative overflow-hidden',
-    'transition-all duration-200',
+    !isReorderMode && 'transition-all duration-200',
     isExpanded ? 'p-4 col-span-2' : 'px-4 py-1.5',
     isReorderMode && 'cursor-grab active:cursor-grabbing',
     isDragging && 'opacity-50 scale-95',
@@ -265,6 +286,7 @@ export function RoomCard({
           {isExpanded && !isReorderMode && (
             <RoomExpanded
               room={room}
+              allRooms={allRooms}
               isReorderMode={isDeviceReorderMode}
               onExitReorderMode={onExitDeviceReorderMode}
             />
@@ -278,6 +300,10 @@ export function RoomCard({
     return (
       <div
         draggable
+        onClick={(e) => {
+          e.stopPropagation()
+          onEdit?.()
+        }}
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', String(index))
@@ -306,11 +332,8 @@ export function RoomCard({
     <motion.div
       ref={cardRef}
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={false}
       transition={{
-        delay: index * 0.05,
-        duration: 0.3,
         layout: { duration: 0.2 }
       }}
       className={clsx(cardClassName, hasLights && !isExpanded && 'cursor-pointer')}

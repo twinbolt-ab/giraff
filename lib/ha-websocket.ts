@@ -1,5 +1,5 @@
 import type { HAEntity, WebSocketMessage, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
-import { ROOM_ORDER_LABEL_PREFIX, DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER, ORDER_GAP } from './constants'
+import { ROOM_ORDER_LABEL_PREFIX, DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER } from './constants'
 
 type MessageHandler = (entities: Map<string, HAEntity>) => void
 type ConnectionHandler = (connected: boolean) => void
@@ -29,7 +29,7 @@ class HAWebSocket {
   private labels = new Map<string, HALabel>() // label_id -> label
   private floors = new Map<string, HAFloor>() // floor_id -> floor
   private registryHandlers = new Set<RegistryHandler>()
-  private pendingCallbacks = new Map<number, (success: boolean, result?: unknown) => void>()
+  private pendingCallbacks = new Map<number, (success: boolean, result?: unknown, error?: { code: string; message: string }) => void>()
 
   constructor() {
     // Will be set from environment
@@ -101,7 +101,10 @@ class HAWebSocket {
         if (message.id && this.pendingCallbacks.has(message.id)) {
           const callback = this.pendingCallbacks.get(message.id)!
           this.pendingCallbacks.delete(message.id)
-          callback(message.success ?? false, message.result)
+          if (!message.success && message.error) {
+            console.error('[HA WS] Command failed:', message.error.code, message.error.message)
+          }
+          callback(message.success ?? false, message.result, message.error)
         }
 
         if (message.success) {
@@ -388,6 +391,77 @@ class HAWebSocket {
     return this.floors.get(floorId)
   }
 
+  // Update floor properties (name, icon)
+  async updateFloor(floorId: string, updates: { name?: string; icon?: string | null }): Promise<void> {
+    const floor = this.floors.get(floorId)
+    if (!floor) throw new Error('Floor not found')
+
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success, result) => {
+        if (success) {
+          // Update local registry - merge our updates with existing floor
+          const updatedFloor: HAFloor = {
+            ...floor,
+            ...(result as Partial<HAFloor> || {}),
+          }
+          // Explicitly apply our updates in case they're not in the result
+          if (updates.name !== undefined) updatedFloor.name = updates.name
+          if (updates.icon !== undefined) updatedFloor.icon = updates.icon || undefined
+
+          this.floors.set(floorId, updatedFloor)
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to update floor'))
+        }
+      })
+
+      const payload: Record<string, unknown> = {
+        id: msgId,
+        type: 'config/floor_registry/update',
+        floor_id: floorId,
+      }
+
+      if (updates.name !== undefined) payload.name = updates.name
+      if (updates.icon !== undefined) payload.icon = updates.icon
+
+      this.send(payload)
+    })
+  }
+
+  // Get floor order from level
+  getFloorOrder(floorId: string): number {
+    const floor = this.floors.get(floorId)
+    return floor?.level ?? DEFAULT_ORDER
+  }
+
+  // Set floor order using the built-in level field
+  async setFloorOrder(floorId: string, order: number): Promise<void> {
+    const floor = this.floors.get(floorId)
+    if (!floor) return
+
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success, _result, error) => {
+        if (success) {
+          // Update local registry
+          floor.level = order
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error(`Failed to update floor level: ${error?.message || 'Unknown error'}`))
+        }
+      })
+      this.send({
+        id: msgId,
+        type: 'config/floor_registry/update',
+        floor_id: floorId,
+        level: order,
+      })
+    })
+  }
+
   // Get icon for an area
   getAreaIcon(areaId: string): string | undefined {
     return this.areaRegistry.get(areaId)?.icon
@@ -537,6 +611,159 @@ class HAWebSocket {
         type: 'config/entity_registry/update',
         entity_id: entityId,
         labels: [...existingLabels, orderLabelId],
+      })
+    })
+  }
+
+  // Update area properties (name, floor, icon)
+  async updateArea(areaId: string, updates: { name?: string; floor_id?: string | null; icon?: string | null }): Promise<void> {
+    const area = this.areaRegistry.get(areaId)
+    if (!area) throw new Error('Area not found')
+
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success, result) => {
+        if (success) {
+          // Update local registry - merge our updates with existing area
+          // HA may return partial result, so we manually apply our changes
+          const updatedArea: AreaRegistryEntry = {
+            ...area,
+            ...(result as Partial<AreaRegistryEntry> || {}),
+          }
+          // Explicitly apply our updates in case they're not in the result
+          if (updates.name !== undefined) updatedArea.name = updates.name
+          if (updates.floor_id !== undefined) updatedArea.floor_id = updates.floor_id || undefined
+          if (updates.icon !== undefined) updatedArea.icon = updates.icon || undefined
+
+          this.areaRegistry.set(areaId, updatedArea)
+          this.areas.set(areaId, updatedArea.name)
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to update area'))
+        }
+      })
+
+      const payload: Record<string, unknown> = {
+        id: msgId,
+        type: 'config/area_registry/update',
+        area_id: areaId,
+      }
+
+      if (updates.name !== undefined) payload.name = updates.name
+      if (updates.floor_id !== undefined) payload.floor_id = updates.floor_id
+      if (updates.icon !== undefined) payload.icon = updates.icon
+
+      this.send(payload)
+    })
+  }
+
+  // Update entity properties (name, area)
+  async updateEntity(entityId: string, updates: { name?: string | null; area_id?: string | null }): Promise<void> {
+    const entity = this.entityRegistry.get(entityId)
+    // Entity might not be in registry (e.g., YAML-defined scenes), but we can still try to update it
+
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success, result) => {
+        if (success) {
+          // Update local registry - merge our updates with existing entity
+          const baseEntity = entity || { entity_id: entityId } as EntityRegistryEntry
+          const updatedEntity: EntityRegistryEntry = {
+            ...baseEntity,
+            ...(result as Partial<EntityRegistryEntry> || {}),
+          }
+          // Explicitly apply our updates in case they're not in the result
+          if (updates.name !== undefined) updatedEntity.name = updates.name || undefined
+          if (updates.area_id !== undefined) updatedEntity.area_id = updates.area_id || undefined
+
+          this.entityRegistry.set(entityId, updatedEntity)
+
+          // Update entity-to-area mapping
+          if (updatedEntity.area_id) {
+            const areaName = this.areas.get(updatedEntity.area_id)
+            if (areaName) {
+              this.entityAreas.set(entityId, areaName)
+              // Update entity attributes
+              const stateEntity = this.entities.get(entityId)
+              if (stateEntity) {
+                stateEntity.attributes.area = areaName
+              }
+            }
+          } else {
+            this.entityAreas.delete(entityId)
+            // Clear area from entity attributes
+            const stateEntity = this.entities.get(entityId)
+            if (stateEntity) {
+              delete stateEntity.attributes.area
+            }
+          }
+
+          this.notifyMessageHandlers()
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to update entity'))
+        }
+      })
+
+      const payload: Record<string, unknown> = {
+        id: msgId,
+        type: 'config/entity_registry/update',
+        entity_id: entityId,
+      }
+
+      if (updates.name !== undefined) payload.name = updates.name
+      if (updates.area_id !== undefined) payload.area_id = updates.area_id
+
+      this.send(payload)
+    })
+  }
+
+  // Check if an entity is hidden (uses HA's native hidden_by property)
+  isEntityHidden(entityId: string): boolean {
+    const entity = this.entityRegistry.get(entityId)
+    return !!entity?.hidden_by
+  }
+
+  // Get all hidden entity IDs
+  getHiddenEntities(): Set<string> {
+    const hidden = new Set<string>()
+    for (const [entityId, entity] of this.entityRegistry) {
+      if (entity.hidden_by) {
+        hidden.add(entityId)
+      }
+    }
+    return hidden
+  }
+
+  // Set entity hidden state (uses HA's native hidden_by property)
+  async setEntityHidden(entityId: string, hidden: boolean): Promise<void> {
+    const entity = this.entityRegistry.get(entityId)
+
+    // Check if already in desired state
+    const isCurrentlyHidden = !!entity?.hidden_by
+    if (isCurrentlyHidden === hidden) return
+
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success) => {
+        if (success) {
+          // Update local cache
+          if (entity) {
+            entity.hidden_by = hidden ? 'user' : undefined
+          }
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to update entity hidden state'))
+        }
+      })
+      this.send({
+        id: msgId,
+        type: 'config/entity_registry/update',
+        entity_id: entityId,
+        hidden_by: hidden ? 'user' : null,
       })
     })
   }

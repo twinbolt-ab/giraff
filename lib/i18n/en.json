@@ -3,6 +3,11 @@
     "overview": "Overview",
     "settings": "Settings"
   },
+  "editMode": {
+    "title": "Edit Mode",
+    "done": "Done",
+    "info": "Changes made here will also apply to your devices and dashboards in Home Assistant. Reordering creates labels prefixed with \"giraff-\" to store the order."
+  },
   "connection": {
     "connecting": "Connecting..."
   },
@@ -10,7 +15,7 @@
     "title": "Rooms",
     "loading": "Loading rooms...",
     "connectingToHA": "Connecting to Home Assistant...",
-    "reorderHint": "Tap outside to save",
+    "reorderHint": "Drag to reorder, tap to edit",
     "noDevices": "No controllable devices in this room",
     "noRoomsOnFloor": "No rooms on this floor"
   },
@@ -22,9 +27,9 @@
       "dark": "Dark mode",
       "light": "Light mode"
     },
-    "reorder": {
-      "title": "Reorder rooms",
-      "description": "Change room order"
+    "editMode": {
+      "title": "Edit mode",
+      "description": "Reorder and edit rooms & devices"
     },
     "floors": {
       "title": "Group by floors",
@@ -32,7 +37,8 @@
     }
   },
   "floors": {
-    "other": "Other"
+    "other": "Other",
+    "none": "None"
   },
   "devices": {
     "lightsOn": "{count} on",
@@ -40,6 +46,37 @@
     "scenes": "Scenes",
     "lights": "Lights",
     "switches": "Switches",
-    "doneReordering": "Done reordering"
+    "inputs": "Inputs",
+    "doneReordering": "Done"
+  },
+  "edit": {
+    "room": {
+      "title": "Edit Room",
+      "name": "Name",
+      "floor": "Floor",
+      "icon": "Icon"
+    },
+    "device": {
+      "title": "Edit Device",
+      "name": "Name",
+      "room": "Room",
+      "hidden": "Hidden",
+      "hiddenHint": "Hide this device"
+    },
+    "floor": {
+      "title": "Edit Floor",
+      "name": "Name",
+      "icon": "Icon"
+    },
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel"
+  },
+  "iconPicker": {
+    "title": "Select Icon",
+    "search": "Search icons...",
+    "clear": "Clear icon",
+    "noResults": "No icons found",
+    "selectIcon": "Select an icon"
   }
 }

@@ -26,7 +26,7 @@ export function LightSlider({ light, disabled = false }: LightSliderProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [showBrightnessOverlay, setShowBrightnessOverlay] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
-  const dragStartRef = useRef<{ x: number; brightness: number } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number; brightness: number } | null>(null)
 
   const isOn = light.state === 'on'
   const displayName = light.attributes.friendly_name || light.entity_id.split('.')[1]
@@ -38,6 +38,7 @@ export function LightSlider({ light, disabled = false }: LightSliderProps) {
 
     dragStartRef.current = {
       x: e.clientX,
+      y: e.clientY,
       brightness: isDragging ? localBrightness : initialBrightness,
     }
     setLocalBrightness(dragStartRef.current.brightness)
@@ -47,12 +48,27 @@ export function LightSlider({ light, disabled = false }: LightSliderProps) {
     if (!dragStartRef.current || disabled) return
 
     const deltaX = e.clientX - dragStartRef.current.x
+    const deltaY = e.clientY - dragStartRef.current.y
 
-    // Check if we've crossed the drag threshold
-    if (!isDragging && Math.abs(deltaX) > DRAG_THRESHOLD) {
-      setIsDragging(true)
-      setShowBrightnessOverlay(true)
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    // If not yet dragging, check gesture direction
+    if (!isDragging) {
+      // If vertical movement exceeds threshold first, cancel tracking to allow scroll
+      if (Math.abs(deltaY) > DRAG_THRESHOLD) {
+        dragStartRef.current = null
+        return
+      }
+
+      // Check if we've crossed the drag threshold for brightness control
+      if (Math.abs(deltaX) > DRAG_THRESHOLD) {
+        // Only start brightness drag if horizontal movement is dominant
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+          dragStartRef.current = null
+          return
+        }
+        setIsDragging(true)
+        setShowBrightnessOverlay(true)
+        ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      }
     }
 
     if (isDragging) {

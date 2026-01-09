@@ -6,6 +6,7 @@ export const GIRAFF_PREFIX = 'giraff-'
 // Label prefixes for ordering
 export const ROOM_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}room-order-`
 export const DEVICE_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}device-order-`
+export const FLOOR_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}floor-order-`
 
 // Default order value for items without explicit order
 export const DEFAULT_ORDER = 99

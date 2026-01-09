@@ -15,21 +15,9 @@ interface ReorderableGridProps<T> {
   className?: string
 }
 
-// iOS-style wiggle keyframes - angle scales inversely with cell size
-const getWiggleKeyframes = (index: number, cellWidth: number) => {
-  // Scale angle based on cell size: smaller cells = larger angle
-  // Mobile (~150px): 75/150 = 0.5°, Tablet (~300px): 75/300 = 0.25°
-  const baseAngle = Math.min(1.2, Math.max(0.2, 75 / Math.max(cellWidth, 50)))
-  const startPositive = index % 2 === 0
-  return startPositive
-    ? [baseAngle, -baseAngle]
-    : [-baseAngle, baseAngle]
-}
-
-// Each item gets slightly different timing for organic feel
-const getWiggleDuration = (index: number) => {
-  const durations = [0.11, 0.12, 0.13, 0.115] // Different durations
-  return durations[index % durations.length]
+// Get CSS wiggle class for alternating animations
+const getWiggleClass = (index: number) => {
+  return index % 2 === 0 ? 'wiggle' : 'wiggle-alt'
 }
 
 export function ReorderableGrid<T>({
@@ -156,16 +144,30 @@ export function ReorderableGrid<T>({
     handleDragStart(index, touch.clientX, touch.clientY)
   }, [handleDragStart])
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (draggedIndex === null) return
-    e.preventDefault()
-    const touch = e.touches[0]
-    handleDragMove(touch.clientX, touch.clientY)
-  }, [draggedIndex, handleDragMove])
+  // Use native event listener for touchmove to allow preventDefault with passive: false
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
 
-  const handleTouchEnd = useCallback(() => {
-    handleDragEnd()
-  }, [handleDragEnd])
+    const handleTouchMove = (e: TouchEvent) => {
+      if (draggedIndex === null) return
+      e.preventDefault()
+      const touch = e.touches[0]
+      handleDragMove(touch.clientX, touch.clientY)
+    }
+
+    const handleTouchEnd = () => {
+      handleDragEnd()
+    }
+
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd)
+
+    return () => {
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+    }
+  }, [draggedIndex, handleDragMove, handleDragEnd])
 
   // Mouse handlers
   const handleMouseDown = useCallback((index: number) => (e: React.MouseEvent) => {
@@ -224,8 +226,6 @@ export function ReorderableGrid<T>({
     <div
       ref={containerRef}
       className={clsx('relative', className)}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
       style={{
         touchAction: draggedIndex !== null ? 'none' : 'auto',
         height: containerHeight > 0 ? containerHeight : 'auto',
@@ -243,7 +243,8 @@ export function ReorderableGrid<T>({
             data-grid-item
             className={clsx(
               'absolute',
-              isDragging && 'z-50'
+              isDragging && 'z-50',
+              !isDragging && getWiggleClass(index)
             )}
             style={{
               width: cellSize.width > 0 ? cellSize.width : `calc((100% - ${gap * (columns - 1)}px) / ${columns})`,
@@ -252,13 +253,11 @@ export function ReorderableGrid<T>({
               x: position.x,
               y: position.y,
               scale: 1,
-              rotate: 0
             }}
             animate={{
               x: position.x + (isDragging ? dragOffset.x : 0),
               y: position.y + (isDragging ? dragOffset.y : 0),
               scale: isDragging ? 1.05 : 1,
-              rotate: isDragging ? 0 : getWiggleKeyframes(index, cellSize.width),
               boxShadow: isDragging
                 ? '0 20px 40px rgba(0,0,0,0.2)'
                 : '0 0 0 rgba(0,0,0,0)',
@@ -271,14 +270,6 @@ export function ReorderableGrid<T>({
                 ? { duration: 0 }
                 : { type: 'spring', stiffness: 500, damping: 30, mass: 0.8 },
               scale: { duration: 0.15 },
-              rotate: isDragging
-                ? { duration: 0.1 }
-                : {
-                    duration: getWiggleDuration(index),
-                    repeat: Infinity,
-                    repeatType: 'mirror',
-                    ease: 'easeInOut',
-                  },
               boxShadow: { duration: 0.15 },
             }}
             onTouchStart={handleTouchStart(index)}
