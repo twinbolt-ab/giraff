@@ -54,9 +54,13 @@ export function useRooms() {
     const roomMap = new Map<string, { entities: HAEntity[]; areaId: string | null }>()
     const areaRegistry = haWebSocket.getAreaRegistry()
     const floorRegistry = haWebSocket.getFloors()
+    const hiddenEntities = haWebSocket.getHiddenEntities()
 
     // Group entities by area (we'll extract area from friendly_name or entity_id patterns)
     for (const entity of entities.values()) {
+      // Skip hidden entities
+      if (hiddenEntities.has(entity.entity_id)) continue
+
       const areaName = extractAreaFromEntity(entity)
       if (areaName) {
         const existing = roomMap.get(areaName) || { entities: [], areaId: null }

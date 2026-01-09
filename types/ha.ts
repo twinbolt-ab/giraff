@@ -41,6 +41,7 @@ export interface HAFloor {
   name: string
   level?: number
   icon?: string
+  labels?: string[]
 }
 
 export interface EntityRegistryEntry {
@@ -100,6 +101,10 @@ export interface WebSocketMessage {
   result?: unknown
   success?: boolean
   access_token?: string
+  error?: {
+    code: string
+    message: string
+  }
 }
 
 export interface ServiceCallPayload {

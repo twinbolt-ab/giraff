@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, GripVertical, X } from 'lucide-react'
+import { Moon, Sun, Pencil, X } from 'lucide-react'
 import { t } from '@/lib/i18n'
 
 interface SettingsMenuProps {
@@ -106,17 +106,17 @@ export function SettingsMenu({
                 </div>
               </button>
 
-              {/* Reorder Rooms */}
+              {/* Edit Mode */}
               <button
                 onClick={handleReorder}
                 className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
               >
                 <div className="p-2.5 rounded-xl bg-border/50">
-                  <GripVertical className="w-5 h-5 text-foreground" />
+                  <Pencil className="w-5 h-5 text-foreground" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="font-medium text-foreground">{t.settings.reorder.title}</p>
-                  <p className="text-sm text-muted">{t.settings.reorder.description}</p>
+                  <p className="font-medium text-foreground">{t.settings.editMode.title}</p>
+                  <p className="text-sm text-muted">{t.settings.editMode.description}</p>
                 </div>
               </button>
 
