@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # Copy run script
-COPY ha-addon/giraff/run.sh /run.sh
+COPY giraff/run.sh /run.sh
 RUN chmod a+x /run.sh
 
 # Expose the port
