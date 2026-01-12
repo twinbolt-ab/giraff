@@ -1,8 +1,8 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install Node.js and git
-RUN apk add --no-cache nodejs npm git
+# Install Node.js, git, and curl
+RUN apk add --no-cache nodejs npm git curl
 
 # Set working directory
 WORKDIR /app
@@ -10,14 +10,11 @@ WORKDIR /app
 # Clone the repository
 RUN git clone --depth 1 https://github.com/twinbolt-ab/giraff.git .
 
-# Install all dependencies (including dev for build)
+# Install all dependencies (keep dev deps for runtime rebuild)
 RUN npm ci
 
-# Build the Next.js application
+# Build the Next.js application (initial build, will rebuild at startup with correct basePath)
 RUN npm run build
-
-# Remove dev dependencies to reduce image size
-RUN npm prune --omit=dev
 
 # Copy run script from add-on folder
 COPY run.sh /run.sh
