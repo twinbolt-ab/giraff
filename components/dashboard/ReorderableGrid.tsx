@@ -15,8 +15,8 @@ interface ReorderableGridProps<T> {
   className?: string
 }
 
-// Get wiggle rotation direction based on index (alternating)
-const getWiggleDirection = (index: number) => index % 2 === 0 ? 1 : -1
+// Get CSS wiggle class for alternating animations
+const getWiggleClass = (index: number) => index % 2 === 0 ? 'wiggle' : 'wiggle-alt'
 
 export function ReorderableGrid<T>({
   items,
@@ -42,7 +42,7 @@ export function ReorderableGrid<T>({
     setOrderedItems(items)
   }, [items])
 
-  // Measure cell size
+  // Measure cell width
   useLayoutEffect(() => {
     const measure = () => {
       if (!containerRef.current) return
@@ -50,7 +50,7 @@ export function ReorderableGrid<T>({
       if (width === 0) return // Skip if not laid out yet
       setContainerWidth(width)
       const cellWidth = (width - gap * (columns - 1)) / columns
-      setCellSize({ width: cellWidth, height: cellWidth }) // Square cells initially
+      setCellSize(prev => ({ ...prev, width: cellWidth })) // Only set width, height measured from content
     }
 
     // Measure immediately and also after a frame to ensure layout is complete
@@ -63,14 +63,23 @@ export function ReorderableGrid<T>({
     }
   }, [columns, gap])
 
-  // Update cell height after first render
+  // Measure cell height from first rendered item
   useLayoutEffect(() => {
     if (!measureRef.current || cellSize.width === 0) return
-    const actualHeight = measureRef.current.offsetHeight
-    if (actualHeight > 0 && actualHeight !== cellSize.height) {
-      setCellSize(prev => ({ ...prev, height: actualHeight }))
+
+    const measureHeight = () => {
+      if (!measureRef.current) return
+      const actualHeight = measureRef.current.offsetHeight
+      if (actualHeight > 0 && actualHeight !== cellSize.height) {
+        setCellSize(prev => ({ ...prev, height: actualHeight }))
+      }
     }
-  }, [cellSize.width, orderedItems])
+
+    // Measure after a frame to ensure content is rendered
+    measureHeight()
+    const rafId = requestAnimationFrame(measureHeight)
+    return () => cancelAnimationFrame(rafId)
+  }, [cellSize.width, cellSize.height, orderedItems])
 
   // Calculate pixel position from index
   const getPositionFromIndex = useCallback((index: number) => {
@@ -261,7 +270,6 @@ export function ReorderableGrid<T>({
               x: position.x + (isDragging ? dragOffset.x : 0),
               y: position.y + (isDragging ? dragOffset.y : 0),
               scale: isDragging ? 1.05 : 1,
-              rotate: isDragging ? 0 : [getWiggleDirection(index) * -1, getWiggleDirection(index) * 1],
               boxShadow: isDragging
                 ? '0 20px 40px rgba(0,0,0,0.2)'
                 : '0 0 0 rgba(0,0,0,0)',
@@ -275,19 +283,16 @@ export function ReorderableGrid<T>({
                 : { type: 'spring', stiffness: 500, damping: 30, mass: 0.8 },
               scale: { duration: 0.15 },
               boxShadow: { duration: 0.15 },
-              rotate: isDragging
-                ? { duration: 0 }
-                : {
-                    duration: 0.12 + (index % 3) * 0.01,
-                    repeat: Infinity,
-                    repeatType: 'reverse',
-                    ease: 'easeInOut',
-                  },
             }}
             onTouchStart={handleTouchStart(index)}
             onMouseDown={handleMouseDown(index)}
           >
-            {renderItem(item, index, draggedIndex !== null, isDragging)}
+            <div
+              className={!isDragging ? getWiggleClass(index) : undefined}
+              style={{ animationDelay: `${(index * 37) % 120}ms` }}
+            >
+              {renderItem(item, index, draggedIndex !== null, isDragging)}
+            </div>
           </motion.div>
         )
       })}
