@@ -1,6 +1,6 @@
 name: "Giraff Dashboard"
 description: "A mobile-first, Scandinavian-minimal Home Assistant dashboard"
-version: "1.0.8"
+version: "1.0.9"
 slug: "giraff"
 url: "https://github.com/twinbolt-ab/giraff"
 arch:
@@ -10,12 +10,12 @@ arch:
 homeassistant_api: true
 hassio_api: true
 ingress: true
-ingress_port: 3000
+ingress_port: 3001
 panel_icon: "mdi:view-dashboard"
 panel_title: "Giraff"
 panel_admin: false
 startup: "application"
 init: false
 ports:
-  3000/tcp: 3000
+  3001/tcp: 3001
 host_network: true
