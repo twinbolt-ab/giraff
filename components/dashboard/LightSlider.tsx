@@ -11,8 +11,6 @@ import { haWebSocket } from '@/lib/ha-websocket'
 
 // Minimum drag distance to trigger brightness change
 const DRAG_THRESHOLD = 10
-// Pixels to move for full brightness range
-const DRAG_RANGE = 200
 
 interface LightSliderProps {
   light: HAEntity
@@ -72,9 +70,9 @@ export function LightSlider({ light, disabled = false }: LightSliderProps) {
     }
 
     if (isDragging) {
-      // Calculate new brightness based on drag distance
-      const brightnessChange = (deltaX / DRAG_RANGE) * 100
-      const newBrightness = Math.max(0, Math.min(100, dragStartRef.current.brightness + brightnessChange))
+      // Map screen position to brightness: left edge = 0%, right edge = 100%
+      const screenWidth = window.innerWidth
+      const newBrightness = Math.max(0, Math.min(100, (e.clientX / screenWidth) * 100))
       setLocalBrightness(Math.round(newBrightness))
       setLightBrightness(light.entity_id, Math.round(newBrightness))
     }

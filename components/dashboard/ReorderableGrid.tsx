@@ -13,11 +13,8 @@ interface ReorderableGridProps<T> {
   columns?: number
   gap?: number
   className?: string
-  wiggle?: boolean  // Whether items should wiggle (default: true)
 }
 
-// Get CSS wiggle class for alternating animations
-const getWiggleClass = (index: number) => index % 2 === 0 ? 'wiggle' : 'wiggle-alt'
 
 export function ReorderableGrid<T>({
   items,
@@ -28,7 +25,6 @@ export function ReorderableGrid<T>({
   columns = 2,
   gap = 12,
   className,
-  wiggle = true,
 }: ReorderableGridProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
@@ -289,10 +285,7 @@ export function ReorderableGrid<T>({
             onTouchStart={handleTouchStart(index)}
             onMouseDown={handleMouseDown(index)}
           >
-            <div
-              className={wiggle && !isDragging ? getWiggleClass(index) : undefined}
-              style={wiggle ? { animationDelay: `${(index * 37) % 120}ms` } : undefined}
-            >
+            <div>
               {renderItem(item, index, draggedIndex !== null, isDragging)}
             </div>
           </motion.div>

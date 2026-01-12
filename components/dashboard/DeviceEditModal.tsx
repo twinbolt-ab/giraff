@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { Trash2 } from 'lucide-react'
 import { EditModal } from '@/components/ui/EditModal'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { Select } from '@/components/ui/Select'
 import { Toggle } from '@/components/ui/Toggle'
-import { t } from '@/lib/i18n'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 
@@ -21,6 +23,17 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   const [roomId, setRoomId] = useState('')
   const [hidden, setHidden] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Determine if this is a scene
+  const isScene = useMemo(() => {
+    return device?.entity_id.startsWith('scene.') ?? false
+  }, [device])
+
+  // Get the appropriate translations
+  const labels = isScene ? t.edit.scene : t.edit.device
+  const deleteLabels = t.delete.scene
 
   // Reset form only when a different device is selected
   const deviceId = device?.entity_id
@@ -71,53 +84,91 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
 
   const deviceName = device?.attributes.friendly_name || device?.entity_id || ''
 
+  const handleDelete = async () => {
+    if (!device || !isScene) return
+
+    setIsDeleting(true)
+    try {
+      await haWebSocket.deleteScene(device.entity_id)
+      setShowDeleteConfirm(false)
+      onClose()
+    } catch (error) {
+      console.error('Failed to delete scene:', error)
+      setIsDeleting(false)
+    }
+  }
+
   return (
-    <EditModal
-      isOpen={!!device}
-      onClose={onClose}
-      title={t.edit.device.title}
-    >
-      <div className="space-y-4">
-        <FormField label={t.edit.device.name}>
-          <TextInput
-            value={name}
-            onChange={setName}
-            placeholder={deviceName}
-          />
-        </FormField>
+    <>
+      <EditModal
+        isOpen={!!device}
+        onClose={onClose}
+        title={labels.title}
+      >
+        <div className="space-y-4">
+          <FormField label={labels.name}>
+            <TextInput
+              value={name}
+              onChange={setName}
+              placeholder={deviceName}
+            />
+          </FormField>
 
-        <FormField label={t.edit.device.room}>
-          <Select
-            value={roomId}
-            onChange={setRoomId}
-            options={roomOptions}
-            placeholder="Select room..."
-          />
-        </FormField>
+          <FormField label={labels.room}>
+            <Select
+              value={roomId}
+              onChange={setRoomId}
+              options={roomOptions}
+              placeholder="Select room..."
+            />
+          </FormField>
 
-        <FormField label={t.edit.device.hidden} hint={t.edit.device.hiddenHint}>
-          <Toggle
-            checked={hidden}
-            onChange={setHidden}
-          />
-        </FormField>
+          <FormField label={labels.hidden} hint={labels.hiddenHint}>
+            <Toggle
+              checked={hidden}
+              onChange={setHidden}
+            />
+          </FormField>
 
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
-          >
-            {t.edit.cancel}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? t.edit.saving : t.edit.save}
-          </button>
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={onClose}
+              className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
+            >
+              {t.edit.cancel}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? t.edit.saving : t.edit.save}
+            </button>
+          </div>
+
+          {/* Delete button for scenes */}
+          {isScene && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full mt-4 py-3 px-4 rounded-xl border border-red-500/30 text-red-500 font-medium hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleteLabels.button}
+            </button>
+          )}
         </div>
-      </div>
-    </EditModal>
+      </EditModal>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title={deleteLabels.title}
+        message={interpolate(deleteLabels.confirm, { name: deviceName })}
+        confirmLabel={deleteLabels.button}
+        variant="destructive"
+        isLoading={isDeleting}
+      />
+    </>
   )
 }

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
-import { Lightbulb, Thermometer, ChevronDown, Home, Check, Pencil } from 'lucide-react'
+import { Lightbulb, Thermometer, ChevronDown, Home, Check, Pencil, GripVertical } from 'lucide-react'
 import type { RoomWithDevices } from '@/types/ha'
 import { RoomExpanded } from './RoomExpanded'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -28,8 +28,6 @@ interface RoomCardProps {
 
 // Minimum drag distance to trigger brightness change (prevents accidental drags)
 const DRAG_THRESHOLD = 10
-// Pixels to move for full brightness range
-const DRAG_RANGE = 200
 
 export function RoomCard({
   room,
@@ -128,8 +126,9 @@ export function RoomCard({
     }
 
     if (isBrightnessDragging) {
-      const brightnessChange = (deltaX / DRAG_RANGE) * 100
-      const newBrightness = Math.max(0, Math.min(100, dragStartRef.current.brightness + brightnessChange))
+      // Map screen position to brightness: left edge = 0%, right edge = 100%
+      const screenWidth = window.innerWidth
+      const newBrightness = Math.max(0, Math.min(100, (e.clientX / screenWidth) * 100))
       setLocalBrightness(Math.round(newBrightness))
       setRoomBrightness(lights, Math.round(newBrightness))
     }
@@ -230,10 +229,10 @@ export function RoomCard({
                 onTouchStart={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
                 className={clsx(
-                  'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+                  'w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
                   isThisRoomSelected
-                    ? 'bg-accent border-accent text-white'
-                    : 'border-border bg-transparent'
+                    ? 'bg-accent text-white'
+                    : 'bg-accent/20 ring-1 ring-inset ring-accent/40'
                 )}
               >
                 {isThisRoomSelected && <Check className="w-3 h-3" />}
@@ -250,6 +249,7 @@ export function RoomCard({
               >
                 <Pencil className="w-3.5 h-3.5" />
               </button>
+              <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
             </div>
           )}
           <div

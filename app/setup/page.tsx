@@ -2,17 +2,17 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Dashboard } from '@/components/dashboard/Dashboard'
+import { SetupWizard } from '@/components/setup/SetupWizard'
 import { isSetupComplete } from '@/lib/config'
 
-export default function HomePage() {
+export default function SetupPage() {
   const router = useRouter()
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    // Check if setup is complete
-    if (!isSetupComplete()) {
-      router.replace('/setup')
+    // If already set up, redirect to dashboard
+    if (isSetupComplete()) {
+      router.replace('/')
     } else {
       setIsReady(true)
     }
@@ -22,5 +22,5 @@ export default function HomePage() {
     return <div className="min-h-screen bg-background" />
   }
 
-  return <Dashboard />
+  return <SetupWizard />
 }

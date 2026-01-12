@@ -3,12 +3,12 @@ import { Providers } from './providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Hem',
-  description: 'Smart home dashboard',
+  title: 'Giraff',
+  description: 'A beautiful Home Assistant dashboard',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Hem',
+    title: 'Giraff',
   },
 }
 
@@ -17,6 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover', // Enable safe area insets on iOS
   themeColor: [
     { media: '(prefers-color-scheme: light)', color: '#FAFAF9' },
     { media: '(prefers-color-scheme: dark)', color: '#0D0D0C' },
@@ -29,10 +30,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="sv" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen">
         <Providers>
-          <main className="min-h-screen pb-20">
+          <main className="min-h-screen">
             {children}
           </main>
         </Providers>

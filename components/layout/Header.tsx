@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { motion, Reorder } from 'framer-motion'
+import { Reorder } from 'framer-motion'
 import { Settings } from 'lucide-react'
 import { SettingsMenu } from './SettingsMenu'
 import { FloorEditModal } from '@/components/dashboard/FloorEditModal'
@@ -17,18 +17,6 @@ interface BottomNavProps {
   onSelectFloor: (floorId: string | null) => void
   hasUnassignedRooms: boolean
   isEditMode?: boolean
-}
-
-// Wiggle animation settings
-const getWiggleKeyframes = (index: number) => {
-  const baseAngle = 1.5
-  const startPositive = index % 2 === 0
-  return startPositive ? [baseAngle, -baseAngle] : [-baseAngle, baseAngle]
-}
-
-const getWiggleDuration = (index: number) => {
-  const durations = [0.11, 0.12, 0.13, 0.115]
-  return durations[index % durations.length]
 }
 
 export function BottomNav({
@@ -103,21 +91,10 @@ export function BottomNav({
                     style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
                     whileDrag={{ scale: 1.1, zIndex: 50 }}
                   >
-                    <motion.div
+                    <div
                       className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] transition-colors ${
                         isActive ? 'text-accent' : 'text-muted'
                       }`}
-                      animate={{
-                        rotate: getWiggleKeyframes(index),
-                      }}
-                      transition={{
-                        rotate: {
-                          duration: getWiggleDuration(index),
-                          repeat: Infinity,
-                          repeatType: 'mirror',
-                          ease: 'easeInOut',
-                        },
-                      }}
                       onClick={() => handleFloorClick(floor, floor.floor_id)}
                     >
                       {floor.icon ? (
@@ -128,7 +105,7 @@ export function BottomNav({
                         </div>
                       )}
                       <span className="text-xs font-medium truncate max-w-[64px]">{floor.name}</span>
-                    </motion.div>
+                    </div>
                   </Reorder.Item>
                 )
               })}

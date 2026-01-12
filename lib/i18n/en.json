@@ -1,13 +1,54 @@
 {
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "loading": "Loading..."
+  },
   "nav": {
     "overview": "Overview",
     "settings": "Settings"
   },
+  "setup": {
+    "welcome": {
+      "title": "Welcome to Giraff",
+      "subtitle": "A beautiful dashboard for Home Assistant",
+      "getStarted": "Get Started"
+    },
+    "url": {
+      "title": "Connect to Home Assistant",
+      "label": "Home Assistant URL",
+      "placeholder": "http://homeassistant.local:8123",
+      "hint": "Enter the URL you use to access Home Assistant",
+      "testConnection": "Continue",
+      "testing": "Testing...",
+      "success": "Connected!",
+      "error": "Could not connect. Check the URL and try again.",
+      "scanning": "Scanning network...",
+      "commonUrls": "Common addresses"
+    },
+    "token": {
+      "title": "Authentication",
+      "label": "Long-lived Access Token",
+      "placeholder": "Paste your token here",
+      "goToProfile": "Go to your HA Profile",
+      "hint": "and create a Long-Lived Access Token",
+      "authenticate": "Connect",
+      "authenticating": "Connecting...",
+      "success": "Authentication successful!",
+      "error": "Invalid token. Please check and try again."
+    },
+    "complete": {
+      "title": "You're all set!",
+      "subtitle": "Your dashboard is ready",
+      "goToDashboard": "Open Dashboard"
+    }
+  },
   "editMode": {
     "title": "Edit Mode",
-    "badge": "Edit",
+    "badge": "Edit mode",
     "done": "Done",
-    "instructions": "Drag to reorder, tap to select"
+    "instructions": "Changes are updated in HA.",
+    "instructionsTooltip": "All changes you make here are immediately saved to Home Assistant."
   },
   "connection": {
     "connecting": "Connecting..."
@@ -35,7 +76,37 @@
     "floors": {
       "title": "Group by floors",
       "description": "Show rooms under floor headings"
+    },
+    "domains": {
+      "title": "Device types",
+      "description": "Choose which device types to show",
+      "reset": "Reset to defaults"
+    },
+    "connection": {
+      "title": "Connection",
+      "description": "Manage Home Assistant connection",
+      "urlLabel": "Home Assistant URL",
+      "tokenLabel": "Access Token",
+      "disconnect": "Disconnect",
+      "reconnect": "Reconnect",
+      "save": "Save Changes",
+      "saved": "Saved!",
+      "testing": "Testing...",
+      "success": "Connection updated",
+      "error": "Connection failed. Check your settings."
     }
+  },
+  "domains": {
+    "light": "Lights",
+    "switch": "Switches",
+    "scene": "Scenes",
+    "input_boolean": "Toggles",
+    "input_number": "Sliders",
+    "climate": "Climate",
+    "cover": "Covers",
+    "fan": "Fans",
+    "vacuum": "Vacuums",
+    "media_player": "Media"
   },
   "floors": {
     "other": "Other",
@@ -63,6 +134,13 @@
       "room": "Room",
       "hidden": "Hidden",
       "hiddenHint": "Hide this device"
+    },
+    "scene": {
+      "title": "Edit Scene",
+      "name": "Name",
+      "room": "Room",
+      "hidden": "Hidden",
+      "hiddenHint": "Hide this scene"
     },
     "floor": {
       "title": "Edit Floor",
@@ -94,6 +172,24 @@
       "moveToRoom": "Move to room",
       "hide": "Hide all",
       "unhide": "Unhide all"
+    }
+  },
+  "delete": {
+    "room": {
+      "button": "Delete Room",
+      "title": "Delete Room",
+      "confirm": "Are you sure you want to delete \"{name}\"? This will also remove it from Home Assistant.",
+      "hasDevices": "This room contains {count} devices. Where should they be moved?",
+      "moveToRoom": "Move to room",
+      "uncategorized": "Leave uncategorized",
+      "deleting": "Deleting...",
+      "willMove": "{count} devices will be moved to {destination}"
+    },
+    "scene": {
+      "button": "Delete Scene",
+      "title": "Delete Scene",
+      "confirm": "Are you sure you want to delete \"{name}\"? This will permanently remove it from Home Assistant.",
+      "deleting": "Deleting..."
     }
   }
 }
