@@ -42,6 +42,9 @@ Home Assistant is powerful, but its dashboard requires YAML and card configurati
 1. Go to **Settings → Add-ons → Add-on Store**
 2. Click ⋮ → **Repositories** → Add: `https://github.com/twinbolt-ab/giraff`
 3. Find "Giraff Dashboard" and click **Install**
+4. After installation, open **http://homeassistant.local:3001** (or your HA IP with port 3001)
+
+> **Note:** The sidebar link is currently not functional due to ingress limitations. Access Giraff directly via the URL above.
 
 ### Docker
 

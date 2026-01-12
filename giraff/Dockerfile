@@ -24,6 +24,6 @@ COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
 # Expose the port
-EXPOSE 3000
+EXPOSE 3001
 
 CMD [ "/run.sh" ]
