@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
 import { RoomCard } from '@/components/dashboard/RoomCard'
 import { ReorderableGrid } from '@/components/dashboard/ReorderableGrid'
@@ -11,6 +11,7 @@ import { BulkEditRoomsModal, BulkEditDevicesModal } from '@/components/dashboard
 import { EditModeProvider, useEditMode } from '@/lib/contexts/EditModeContext'
 import { useRooms } from '@/lib/hooks/useRooms'
 import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
+import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { ORDER_GAP } from '@/lib/constants'
 import { t, interpolate } from '@/lib/i18n'
 import type { RoomWithDevices } from '@/types/ha'
@@ -19,6 +20,7 @@ import type { RoomWithDevices } from '@/types/ha'
 function DashboardContent() {
   const { rooms, floors, isConnected } = useRooms()
   const { setAreaOrder } = useRoomOrder()
+  const { isEntityVisible } = useEnabledDomains()
 
   // Edit mode from context
   const {
@@ -50,16 +52,10 @@ function DashboardContent() {
   const hasUnassignedRooms = useMemo(() => {
     return rooms.some((room) => {
       if (room.floorId) return false
-      const hasControllableDevices = room.devices.some((d) =>
-        d.entity_id.startsWith('light.') ||
-        d.entity_id.startsWith('switch.') ||
-        d.entity_id.startsWith('scene.') ||
-        d.entity_id.startsWith('input_boolean.') ||
-        d.entity_id.startsWith('input_number.')
-      )
+      const hasControllableDevices = room.devices.some((d) => isEntityVisible(d.entity_id))
       return hasControllableDevices
     })
-  }, [rooms])
+  }, [rooms, isEntityVisible])
 
   // Auto-select first floor when floors load (only on initial load)
   useEffect(() => {
@@ -74,17 +70,11 @@ function DashboardContent() {
     if (selectedFloorId === null) {
       return rooms.filter((room) => {
         if (room.floorId) return false
-        return room.devices.some((d) =>
-          d.entity_id.startsWith('light.') ||
-          d.entity_id.startsWith('switch.') ||
-          d.entity_id.startsWith('scene.') ||
-          d.entity_id.startsWith('input_boolean.') ||
-          d.entity_id.startsWith('input_number.')
-        )
+        return room.devices.some((d) => isEntityVisible(d.entity_id))
       })
     }
     return rooms.filter((room) => room.floorId === selectedFloorId)
-  }, [rooms, selectedFloorId])
+  }, [rooms, selectedFloorId, isEntityVisible])
 
   // Save room order when exiting room edit mode
   useEffect(() => {
@@ -102,6 +92,26 @@ function DashboardContent() {
 
     prevModeTypeRef.current = mode.type
   }, [mode.type, orderedRooms, setAreaOrder])
+
+  // Sync orderedRooms with filteredRooms data while preserving order
+  // This ensures edits (name, icon changes) are reflected immediately
+  useEffect(() => {
+    if (!isRoomEditMode || orderedRooms.length === 0) return
+
+    // Use areaId for matching since room.id is derived from name and changes when renamed
+    const roomDataByAreaId = new Map(filteredRooms.map(r => [r.areaId, r]))
+    const needsUpdate = orderedRooms.some(ordered => {
+      const fresh = roomDataByAreaId.get(ordered.areaId)
+      return fresh && (fresh.name !== ordered.name || fresh.icon !== ordered.icon || fresh.id !== ordered.id)
+    })
+
+    if (needsUpdate) {
+      setOrderedRooms(prev => prev.map(ordered => {
+        const fresh = roomDataByAreaId.get(ordered.areaId)
+        return fresh || ordered
+      }).filter(r => roomDataByAreaId.has(r.areaId)))
+    }
+  }, [isRoomEditMode, filteredRooms, orderedRooms])
 
   // Display rooms
   const displayRooms = isRoomEditMode ? orderedRooms : filteredRooms
@@ -149,7 +159,7 @@ function DashboardContent() {
   const gridRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-nav">
       {/* Edit mode header bar */}
       <AnimatePresence>
         {isEditMode && (
@@ -182,7 +192,10 @@ function DashboardContent() {
                     </span>
                   </>
                 ) : (
-                  <span className="text-sm text-muted">
+                  <span className="flex items-center gap-1.5 text-sm text-muted">
+                    <span title={t.editMode.instructionsTooltip} className="flex-shrink-0 cursor-help">
+                      <Info className="w-4 h-4 text-accent/70" />
+                    </span>
                     {t.editMode.instructions}
                   </span>
                 )}
@@ -270,6 +283,7 @@ function DashboardContent() {
 
       <RoomEditModal
         room={editingRoom}
+        allRooms={rooms}
         floors={floors}
         onClose={() => setEditingRoom(null)}
       />

@@ -6,27 +6,6 @@ import { haWebSocket } from '../ha-websocket'
 import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
 import { DEFAULT_ORDER } from '../constants'
 
-// Room icons (order is now dynamic from HA labels)
-const ROOM_ICONS: Record<string, string> = {
-  'Hall': 'door-open',
-  'Kök': 'utensils',
-  'Matbord och vardagsrum': 'sofa',
-  'Sovrum vuxna': 'bed',
-  'Cleos rum': 'star',
-  'Noras rum': 'star',
-  'Stora badrummet': 'bath',
-  'Lilla badrummet': 'droplet',
-  'Korridor uppe': 'arrow-right',
-  'Kontor': 'briefcase',
-  'Garage ': 'car',
-  'Förråd trappa': 'archive',
-  'Källare': 'layers',
-  'Pool': 'waves',
-  'Trädgård': 'trees',
-  'Groventré': 'door-closed',
-  'Trappa': 'stairs',
-}
-
 function slugify(name: string): string {
   return name
     .toLowerCase()
@@ -155,53 +134,12 @@ export function useRooms() {
   return { rooms, floors, isConnected }
 }
 
-// Aliases for matching device names to rooms
-const ROOM_ALIASES: Record<string, string[]> = {
-  'Sovrum vuxna': ['sovrum vuxna', 'sovrum spot', 'sovrum tak'],
-  'Cleos rum': ['cleos rum', 'cleo tak', 'cleo spot', 'cleos spot', 'cleos tak'],
-  'Noras rum': ['noras rum', 'nora tak', 'nora spot', 'noras tak', 'noras spot', 'nora taklampa'],
-  'Stora badrummet': ['stora badrummet', 'stora toaletten', 'badrumssk'],
-  'Lilla badrummet': ['lilla badrummet', 'lilla toaletten'],
-  'Matbord och vardagsrum': ['matbord', 'vardagsrum', 'soffbord', 'över soffbordet'],
-  'Kök': ['kök', 'köks', 'grovkök'],
-  'Kontor': ['kontor', 'skrivbord', 'elgato'],
-  'Pool': ['pool', 'bastu'],
-  'Trädgård': ['trädgård', 'lily outdoor', 'spa temp', 'spa ', 'ute'],
-  'Garage ': ['garage'],
-  'Förråd trappa': ['förråd'],
-  'Källare': ['källare'],
-  'Groventré': ['grovent', 'grovkök'],
-  'Hall': ['hall', 'entre', 'långben'],
-  'Korridor uppe': ['korridor uppe'],
-  'Trappa': ['trappa'],
-}
-
-// Helper to extract area from entity attributes or name patterns
+// Helper to extract area from entity attributes (populated by ha-websocket.ts from HA registry)
 function extractAreaFromEntity(entity: HAEntity): string | null {
-  // First check if there's an explicit area attribute
   const area = entity.attributes.area
   if (typeof area === 'string' && area.length > 0) {
     return area
   }
-
-  const friendlyName = (entity.attributes.friendly_name || '').toLowerCase()
-
-  // Try to match using aliases first (more specific)
-  for (const [roomName, aliases] of Object.entries(ROOM_ALIASES)) {
-    for (const alias of aliases) {
-      if (friendlyName.includes(alias)) {
-        return roomName
-      }
-    }
-  }
-
-  // Fallback: Try to match known room names in the friendly_name
-  for (const roomName of Object.keys(ROOM_ICONS)) {
-    if (friendlyName.includes(roomName.toLowerCase())) {
-      return roomName
-    }
-  }
-
   return null
 }
 

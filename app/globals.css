@@ -166,3 +166,18 @@ input[type="range"]::-moz-range-thumb {
   transform-origin: center center;
 }
 
+/* Safe area insets for iOS notch/home indicator */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Combined padding with safe area */
+.pb-nav {
+  /* Bottom nav height (~60px) + safe area */
+  padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+}
+

@@ -2,23 +2,26 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { haWebSocket } from '@/lib/ha-websocket'
+import { getStoredCredentials } from '@/lib/config'
 import type { HAEntity } from '@/types/ha'
 
 export function useHAConnection() {
   const [isConnected, setIsConnected] = useState(() => haWebSocket.isConnected())
   const [entities, setEntities] = useState<Map<string, HAEntity>>(new Map())
+  const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
-    // Configure with environment variables
-    const url = process.env.NEXT_PUBLIC_HA_URL || ''
-    const token = process.env.NEXT_PUBLIC_HA_TOKEN || ''
+    // Get credentials from localStorage
+    const credentials = getStoredCredentials()
 
-    if (!url || !token) {
-      console.error('[useHAConnection] Missing HA_URL or HA_TOKEN')
+    if (!credentials) {
+      console.log('[useHAConnection] No stored credentials')
+      setIsConfigured(false)
       return
     }
 
-    haWebSocket.configure(url, token)
+    setIsConfigured(true)
+    haWebSocket.configure(credentials.url, credentials.token)
     haWebSocket.connect()
 
     const unsubMessage = haWebSocket.onMessage((newEntities) => {
@@ -58,11 +61,36 @@ export function useHAConnection() {
     [entities]
   )
 
+  // Reconnect with new credentials
+  const reconnect = useCallback(() => {
+    const credentials = getStoredCredentials()
+    if (!credentials) {
+      setIsConfigured(false)
+      return
+    }
+
+    setIsConfigured(true)
+    haWebSocket.disconnect()
+    haWebSocket.configure(credentials.url, credentials.token)
+    haWebSocket.connect()
+  }, [])
+
+  // Disconnect and clear state
+  const disconnect = useCallback(() => {
+    haWebSocket.disconnect()
+    setIsConnected(false)
+    setIsConfigured(false)
+    setEntities(new Map())
+  }, [])
+
   return {
     isConnected,
+    isConfigured,
     entities,
     callService,
     getEntity,
     getEntitiesByDomain,
+    reconnect,
+    disconnect,
   }
 }

@@ -1,26 +1,30 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Trash2 } from 'lucide-react'
 import { EditModal } from '@/components/ui/EditModal'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { Select } from '@/components/ui/Select'
 import { IconPickerField } from '@/components/ui/IconPickerField'
+import { RoomDeleteDialog } from '@/components/dashboard/RoomDeleteDialog'
 import { t } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
 interface RoomEditModalProps {
   room: RoomWithDevices | null
+  allRooms?: RoomWithDevices[]
   floors: HAFloor[]
   onClose: () => void
 }
 
-export function RoomEditModal({ room, floors, onClose }: RoomEditModalProps) {
+export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEditModalProps) {
   const [name, setName] = useState('')
   const [floorId, setFloorId] = useState('')
   const [icon, setIcon] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   // Reset form only when a different room is selected
   const roomId = room?.areaId
@@ -101,7 +105,24 @@ export function RoomEditModal({ room, floors, onClose }: RoomEditModalProps) {
             {isSaving ? t.edit.saving : t.edit.save}
           </button>
         </div>
+
+        {/* Delete button */}
+        <button
+          onClick={() => setShowDeleteDialog(true)}
+          className="w-full mt-4 py-3 px-4 rounded-xl border border-red-500/30 text-red-500 font-medium hover:bg-red-500/10 transition-colors flex items-center justify-center gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          {t.delete.room.button}
+        </button>
       </div>
+
+      <RoomDeleteDialog
+        room={showDeleteDialog ? room : null}
+        allRooms={allRooms}
+        floors={floors}
+        onClose={() => setShowDeleteDialog(false)}
+        onDeleted={onClose}
+      />
     </EditModal>
   )
 }

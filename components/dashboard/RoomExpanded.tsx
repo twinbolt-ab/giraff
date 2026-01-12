@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { motion, Reorder } from 'framer-motion'
-import { Thermometer, Droplets, Sparkles, GripVertical, Power, Pencil, ToggleLeft, SlidersHorizontal, Check } from 'lucide-react'
+import { Thermometer, Droplets, Sparkles, GripVertical, Power, Pencil, ToggleLeft, SlidersHorizontal, Check, Fan, Blinds, ChevronUp, ChevronDown, Square } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { LightSlider } from './LightSlider'
@@ -11,6 +11,7 @@ import { DeviceEditModal } from './DeviceEditModal'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
 import { useDeviceOrder } from '@/lib/hooks/useDeviceOrder'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
+import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { haWebSocket } from '@/lib/ha-websocket'
 import { t } from '@/lib/i18n'
 
@@ -42,10 +43,10 @@ function SelectionCheckbox({ isSelected, onToggle }: SelectionCheckboxProps) {
         onToggle()
       }}
       className={clsx(
-        'w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
+        'w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors',
         isSelected
-          ? 'bg-accent border-accent text-white'
-          : 'border-border bg-transparent'
+          ? 'bg-accent text-white'
+          : 'bg-accent/20 ring-1 ring-inset ring-accent/40'
       )}
     >
       {isSelected && <Check className="w-3 h-3" />}
@@ -71,35 +72,48 @@ function ToggleButton({ entity, isInEditMode, isSelected, onToggle, onEdit, onTo
   return (
     <div
       className={clsx(
-        'w-full flex items-center gap-3 px-2 py-2 rounded-lg',
+        'w-full flex items-center gap-2 px-2 py-2 rounded-lg',
         'transition-colors',
         isOn ? 'bg-accent/20' : 'bg-border/30',
         isInEditMode && 'ring-1 ring-accent/30',
         isSelected && 'ring-2 ring-accent'
       )}
     >
-      {/* Selection checkbox in edit mode */}
+      {/* Edit mode controls: checkbox, pencil, grip */}
       {isInEditMode && (
-        <SelectionCheckbox isSelected={isSelected} onToggle={onToggleSelection} />
+        <>
+          <SelectionCheckbox isSelected={isSelected} onToggle={onToggleSelection} />
+          <button
+            onClick={onEdit}
+            className="p-1 rounded-lg hover:bg-border/50 transition-colors"
+          >
+            <Pencil className="w-4 h-4 text-muted" />
+          </button>
+          <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
+        </>
       )}
       {/* Clickable area */}
       <button
-        onClick={isInEditMode ? onEdit : onToggle}
-        className="flex-1 flex items-center gap-3 touch-feedback"
+        onClick={isInEditMode ? undefined : onToggle}
+        disabled={isInEditMode}
+        className={clsx(
+          'flex-1 flex items-center gap-3',
+          !isInEditMode && 'touch-feedback'
+        )}
       >
         {/* Icon on left */}
-        <div className={clsx(
-          'p-2 rounded-lg transition-colors flex-shrink-0',
-          isOn ? 'bg-accent/20 text-accent' : 'bg-border/50 text-muted'
-        )}>
-          {isInEditMode ? (
-            <Pencil className="w-5 h-5" />
-          ) : entityIcon ? (
-            <MdiIcon icon={entityIcon} className="w-5 h-5" />
-          ) : (
-            fallbackIcon
-          )}
-        </div>
+        {!isInEditMode && (
+          <div className={clsx(
+            'p-2 rounded-lg transition-colors flex-shrink-0',
+            isOn ? 'bg-accent/20 text-accent' : 'bg-border/50 text-muted'
+          )}>
+            {entityIcon ? (
+              <MdiIcon icon={entityIcon} className="w-5 h-5" />
+            ) : (
+              fallbackIcon
+            )}
+          </div>
+        )}
         {/* Name */}
         <span className={clsx(
           'flex-1 text-sm font-medium truncate text-left',
@@ -124,6 +138,7 @@ interface RoomExpandedProps {
 export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
   const { callService } = useHAConnection()
   const { sortDevicesByOrder, reorderDevices } = useDeviceOrder()
+  const { enabledDomains } = useEnabledDomains()
 
   // Get edit mode state from context
   const {
@@ -135,35 +150,93 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
   // This room is in device edit mode
   const isInEditMode = isDeviceEditMode
 
-  // Filter and sort devices by type and order
+  // Filter and sort devices by type and order (only show enabled domains)
   const lights = useMemo(
-    () => sortDevicesByOrder(room.devices.filter((d) => d.entity_id.startsWith('light.'))),
-    [room.devices, sortDevicesByOrder]
+    () => enabledDomains.includes('light')
+      ? sortDevicesByOrder(room.devices.filter((d) => d.entity_id.startsWith('light.')))
+      : [],
+    [room.devices, sortDevicesByOrder, enabledDomains]
   )
   const switches = useMemo(
-    () => room.devices.filter((d) => d.entity_id.startsWith('switch.')),
-    [room.devices]
+    () => enabledDomains.includes('switch')
+      ? room.devices.filter((d) => d.entity_id.startsWith('switch.'))
+      : [],
+    [room.devices, enabledDomains]
   )
   const scenes = useMemo(
-    () => room.devices.filter((d) => d.entity_id.startsWith('scene.')),
-    [room.devices]
+    () => enabledDomains.includes('scene')
+      ? room.devices.filter((d) => d.entity_id.startsWith('scene.'))
+      : [],
+    [room.devices, enabledDomains]
   )
   const inputBooleans = useMemo(
-    () => room.devices.filter((d) => d.entity_id.startsWith('input_boolean.')),
-    [room.devices]
+    () => enabledDomains.includes('input_boolean')
+      ? room.devices.filter((d) => d.entity_id.startsWith('input_boolean.'))
+      : [],
+    [room.devices, enabledDomains]
   )
   const inputNumbers = useMemo(
-    () => room.devices.filter((d) => d.entity_id.startsWith('input_number.')),
-    [room.devices]
+    () => enabledDomains.includes('input_number')
+      ? room.devices.filter((d) => d.entity_id.startsWith('input_number.'))
+      : [],
+    [room.devices, enabledDomains]
+  )
+  const climates = useMemo(
+    () => enabledDomains.includes('climate')
+      ? room.devices.filter((d) => d.entity_id.startsWith('climate.'))
+      : [],
+    [room.devices, enabledDomains]
+  )
+  const covers = useMemo(
+    () => enabledDomains.includes('cover')
+      ? room.devices.filter((d) => d.entity_id.startsWith('cover.'))
+      : [],
+    [room.devices, enabledDomains]
+  )
+  const fans = useMemo(
+    () => enabledDomains.includes('fan')
+      ? room.devices.filter((d) => d.entity_id.startsWith('fan.'))
+      : [],
+    [room.devices, enabledDomains]
   )
 
   const [orderedLights, setOrderedLights] = useState<HAEntity[]>(lights)
+  const [orderedSwitches, setOrderedSwitches] = useState<HAEntity[]>(switches)
+  const [orderedInputBooleans, setOrderedInputBooleans] = useState<HAEntity[]>(inputBooleans)
+  const [orderedInputNumbers, setOrderedInputNumbers] = useState<HAEntity[]>(inputNumbers)
+  const [orderedClimates, setOrderedClimates] = useState<HAEntity[]>(climates)
+  const [orderedCovers, setOrderedCovers] = useState<HAEntity[]>(covers)
+  const [orderedFans, setOrderedFans] = useState<HAEntity[]>(fans)
   const [editingDevice, setEditingDevice] = useState<HAEntity | null>(null)
 
-  // Sync orderedLights when lights change or reorder mode changes
+  // Sync ordered devices when devices change or edit mode changes
   useEffect(() => {
     setOrderedLights(lights)
   }, [lights, isInEditMode])
+
+  useEffect(() => {
+    setOrderedSwitches(switches)
+  }, [switches, isInEditMode])
+
+  useEffect(() => {
+    setOrderedInputBooleans(inputBooleans)
+  }, [inputBooleans, isInEditMode])
+
+  useEffect(() => {
+    setOrderedInputNumbers(inputNumbers)
+  }, [inputNumbers, isInEditMode])
+
+  useEffect(() => {
+    setOrderedClimates(climates)
+  }, [climates, isInEditMode])
+
+  useEffect(() => {
+    setOrderedCovers(covers)
+  }, [covers, isInEditMode])
+
+  useEffect(() => {
+    setOrderedFans(fans)
+  }, [fans, isInEditMode])
 
   const handleDeviceEdit = (device: HAEntity) => {
     if (isInEditMode) {
@@ -171,20 +244,58 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
     }
   }
 
-  // Save order when reorder mode exits
-  const handleReorder = useCallback(async (newOrder: HAEntity[]) => {
-    setOrderedLights(newOrder)
+  // Generic reorder handler factory
+  const createReorderHandler = useCallback((
+    originalDevices: HAEntity[],
+    setOrdered: React.Dispatch<React.SetStateAction<HAEntity[]>>
+  ) => async (newOrder: HAEntity[]) => {
+    setOrdered(newOrder)
 
     // Find which item moved and save
-    const originalOrder = lights.map((l, i) => ({ entity_id: l.entity_id, index: i }))
+    const originalOrder = originalDevices.map((d, i) => ({ entity_id: d.entity_id, index: i }))
     for (let i = 0; i < newOrder.length; i++) {
       const original = originalOrder.find(o => o.entity_id === newOrder[i].entity_id)
       if (original && original.index !== i) {
-        await reorderDevices(lights, original.index, i)
+        await reorderDevices(originalDevices, original.index, i)
         break
       }
     }
-  }, [lights, reorderDevices])
+  }, [reorderDevices])
+
+  const handleLightsReorder = useMemo(
+    () => createReorderHandler(lights, setOrderedLights),
+    [lights, createReorderHandler]
+  )
+
+  const handleSwitchesReorder = useMemo(
+    () => createReorderHandler(switches, setOrderedSwitches),
+    [switches, createReorderHandler]
+  )
+
+  const handleInputBooleansReorder = useMemo(
+    () => createReorderHandler(inputBooleans, setOrderedInputBooleans),
+    [inputBooleans, createReorderHandler]
+  )
+
+  const handleInputNumbersReorder = useMemo(
+    () => createReorderHandler(inputNumbers, setOrderedInputNumbers),
+    [inputNumbers, createReorderHandler]
+  )
+
+  const handleClimatesReorder = useMemo(
+    () => createReorderHandler(climates, setOrderedClimates),
+    [climates, createReorderHandler]
+  )
+
+  const handleCoversReorder = useMemo(
+    () => createReorderHandler(covers, setOrderedCovers),
+    [covers, createReorderHandler]
+  )
+
+  const handleFansReorder = useMemo(
+    () => createReorderHandler(fans, setOrderedFans),
+    [fans, createReorderHandler]
+  )
 
   const handleSceneActivate = (scene: HAEntity) => {
     callService('scene', 'turn_on', { entity_id: scene.entity_id })
@@ -202,6 +313,28 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
 
   const handleInputNumberChange = (input: HAEntity, value: number) => {
     callService('input_number', 'set_value', { entity_id: input.entity_id, value })
+  }
+
+  const handleClimateToggle = (climate: HAEntity) => {
+    const service = climate.state === 'off' ? 'turn_on' : 'turn_off'
+    callService('climate', service, { entity_id: climate.entity_id })
+  }
+
+  const handleCoverOpen = (cover: HAEntity) => {
+    callService('cover', 'open_cover', { entity_id: cover.entity_id })
+  }
+
+  const handleCoverClose = (cover: HAEntity) => {
+    callService('cover', 'close_cover', { entity_id: cover.entity_id })
+  }
+
+  const handleCoverStop = (cover: HAEntity) => {
+    callService('cover', 'stop_cover', { entity_id: cover.entity_id })
+  }
+
+  const handleFanToggle = (fan: HAEntity) => {
+    const service = fan.state === 'on' ? 'turn_off' : 'turn_on'
+    callService('fan', service, { entity_id: fan.entity_id })
   }
 
   // Remove room name from scene name if present
@@ -251,25 +384,34 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
                       sceneSelected && 'ring-2 ring-accent'
                     )}
                   >
-                    {isInEditMode && (
-                      <SelectionCheckbox
-                        isSelected={sceneSelected}
-                        onToggle={() => toggleSelection(scene.entity_id)}
-                      />
+                    {isInEditMode ? (
+                      <>
+                        <SelectionCheckbox
+                          isSelected={sceneSelected}
+                          onToggle={() => toggleSelection(scene.entity_id)}
+                        />
+                        <button
+                          onClick={() => handleDeviceEdit(scene)}
+                          className="touch-feedback"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <GripVertical className="w-3.5 h-3.5 text-muted" />
+                        <span>{getSceneDisplayName(scene)}</span>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => handleSceneActivate(scene)}
+                        className="flex items-center gap-1.5 touch-feedback"
+                      >
+                        {sceneIcon ? (
+                          <MdiIcon icon={sceneIcon} className="w-3.5 h-3.5" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5" />
+                        )}
+                        {getSceneDisplayName(scene)}
+                      </button>
                     )}
-                    <button
-                      onClick={() => isInEditMode ? handleDeviceEdit(scene) : handleSceneActivate(scene)}
-                      className="flex items-center gap-1.5 touch-feedback"
-                    >
-                      {isInEditMode ? (
-                        <Pencil className="w-3.5 h-3.5" />
-                      ) : sceneIcon ? (
-                        <MdiIcon icon={sceneIcon} className="w-3.5 h-3.5" />
-                      ) : (
-                        <Sparkles className="w-3.5 h-3.5" />
-                      )}
-                      {getSceneDisplayName(scene)}
-                    </button>
                   </div>
                 )
               })}
@@ -285,7 +427,7 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
               <Reorder.Group
                 axis="y"
                 values={orderedLights}
-                onReorder={handleReorder}
+                onReorder={handleLightsReorder}
                 className="space-y-1"
               >
                 {orderedLights.map((light) => {
@@ -295,7 +437,7 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
                       key={light.entity_id}
                       value={light}
                       className={clsx(
-                        'flex items-center gap-2 cursor-grab active:cursor-grabbing bg-card rounded-lg pl-2 ring-1 ring-accent/30',
+                        'flex items-center gap-2 cursor-grab active:cursor-grabbing bg-card rounded-lg pl-2 pr-1 ring-1 ring-accent/30',
                         lightSelected && 'ring-2 ring-accent'
                       )}
                       whileDrag={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
@@ -304,19 +446,19 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
                         isSelected={lightSelected}
                         onToggle={() => toggleSelection(light.entity_id)}
                       />
-                      <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <LightSlider light={light} disabled />
-                      </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           handleDeviceEdit(light)
                         }}
-                        className="p-2 mr-1 rounded-lg hover:bg-border/50 transition-colors"
+                        className="p-1 rounded-lg hover:bg-border/50 transition-colors"
                       >
                         <Pencil className="w-4 h-4 text-muted" />
                       </button>
+                      <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <LightSlider light={light} disabled />
+                      </div>
                     </Reorder.Item>
                   )
                 })}
@@ -335,20 +477,48 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
         {switches.length > 0 && (
           <div className="mb-4">
             <SectionHeader>{t.devices.switches}</SectionHeader>
-            <div className="space-y-1">
-              {switches.map((sw) => (
-                <ToggleButton
-                  key={sw.entity_id}
-                  entity={sw}
-                  isInEditMode={isInEditMode}
-                  isSelected={isSelected(sw.entity_id)}
-                  onToggle={() => handleSwitchToggle(sw)}
-                  onEdit={() => handleDeviceEdit(sw)}
-                  onToggleSelection={() => toggleSelection(sw.entity_id)}
-                  fallbackIcon={<Power className="w-5 h-5" />}
-                />
-              ))}
-            </div>
+            {isInEditMode ? (
+              <Reorder.Group
+                axis="y"
+                values={orderedSwitches}
+                onReorder={handleSwitchesReorder}
+                className="space-y-1"
+              >
+                {orderedSwitches.map((sw) => (
+                  <Reorder.Item
+                    key={sw.entity_id}
+                    value={sw}
+                    className="cursor-grab active:cursor-grabbing"
+                    whileDrag={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  >
+                    <ToggleButton
+                      entity={sw}
+                      isInEditMode={isInEditMode}
+                      isSelected={isSelected(sw.entity_id)}
+                      onToggle={() => handleSwitchToggle(sw)}
+                      onEdit={() => handleDeviceEdit(sw)}
+                      onToggleSelection={() => toggleSelection(sw.entity_id)}
+                      fallbackIcon={<Power className="w-5 h-5" />}
+                    />
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
+            ) : (
+              <div className="space-y-1">
+                {switches.map((sw) => (
+                  <ToggleButton
+                    key={sw.entity_id}
+                    entity={sw}
+                    isInEditMode={isInEditMode}
+                    isSelected={isSelected(sw.entity_id)}
+                    onToggle={() => handleSwitchToggle(sw)}
+                    onEdit={() => handleDeviceEdit(sw)}
+                    onToggleSelection={() => toggleSelection(sw.entity_id)}
+                    fallbackIcon={<Power className="w-5 h-5" />}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -358,84 +528,141 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
             <SectionHeader>{t.devices.inputs}</SectionHeader>
             <div className="space-y-1">
               {/* Input Booleans (toggles) */}
-              {inputBooleans.map((input) => (
-                <ToggleButton
-                  key={input.entity_id}
-                  entity={input}
-                  isInEditMode={isInEditMode}
-                  isSelected={isSelected(input.entity_id)}
-                  onToggle={() => handleInputBooleanToggle(input)}
-                  onEdit={() => handleDeviceEdit(input)}
-                  onToggleSelection={() => toggleSelection(input.entity_id)}
-                  fallbackIcon={<ToggleLeft className="w-5 h-5" />}
-                />
-              ))}
+              {inputBooleans.length > 0 && (
+                isInEditMode ? (
+                  <Reorder.Group
+                    axis="y"
+                    values={orderedInputBooleans}
+                    onReorder={handleInputBooleansReorder}
+                    className="space-y-1"
+                  >
+                    {orderedInputBooleans.map((input) => (
+                      <Reorder.Item
+                        key={input.entity_id}
+                        value={input}
+                        className="cursor-grab active:cursor-grabbing"
+                        whileDrag={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      >
+                        <ToggleButton
+                          entity={input}
+                          isInEditMode={isInEditMode}
+                          isSelected={isSelected(input.entity_id)}
+                          onToggle={() => handleInputBooleanToggle(input)}
+                          onEdit={() => handleDeviceEdit(input)}
+                          onToggleSelection={() => toggleSelection(input.entity_id)}
+                          fallbackIcon={<ToggleLeft className="w-5 h-5" />}
+                        />
+                      </Reorder.Item>
+                    ))}
+                  </Reorder.Group>
+                ) : (
+                  <>
+                    {inputBooleans.map((input) => (
+                      <ToggleButton
+                        key={input.entity_id}
+                        entity={input}
+                        isInEditMode={isInEditMode}
+                        isSelected={isSelected(input.entity_id)}
+                        onToggle={() => handleInputBooleanToggle(input)}
+                        onEdit={() => handleDeviceEdit(input)}
+                        onToggleSelection={() => toggleSelection(input.entity_id)}
+                        fallbackIcon={<ToggleLeft className="w-5 h-5" />}
+                      />
+                    ))}
+                  </>
+                )
+              )}
 
               {/* Input Numbers (sliders) */}
-              {inputNumbers.map((input) => {
-                const value = parseFloat(input.state) || 0
-                const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
-                const max = typeof input.attributes.max === 'number' ? input.attributes.max : 100
-                const step = typeof input.attributes.step === 'number' ? input.attributes.step : 1
-                const unit = typeof input.attributes.unit_of_measurement === 'string' ? input.attributes.unit_of_measurement : ''
-                const inputIcon = haWebSocket.getEntityIcon(input.entity_id)
-                const inputSelected = isSelected(input.entity_id)
-                return (
-                  <div
-                    key={input.entity_id}
-                    className={clsx(
-                      'px-2 py-2 rounded-lg bg-border/30',
-                      isInEditMode && 'ring-1 ring-accent/30',
-                      inputSelected && 'ring-2 ring-accent'
-                    )}
+              {inputNumbers.length > 0 && (
+                isInEditMode ? (
+                  <Reorder.Group
+                    axis="y"
+                    values={orderedInputNumbers}
+                    onReorder={handleInputNumbersReorder}
+                    className="space-y-1"
                   >
-                    <div className="flex items-center gap-3">
-                      {/* Selection checkbox in multi-select mode */}
-                      {isInEditMode && (
-                        <SelectionCheckbox
-                          isSelected={inputSelected}
-                          onToggle={() => toggleSelection(input.entity_id)}
-                        />
-                      )}
-                      {/* Icon on left */}
-                      <div
-                        className="p-2 rounded-lg bg-border/50 text-muted flex-shrink-0 cursor-pointer"
-                        onClick={isInEditMode ? () => handleDeviceEdit(input) : undefined}
-                      >
-                        {isInEditMode ? (
-                          <Pencil className="w-5 h-5" />
-                        ) : inputIcon ? (
-                          <MdiIcon icon={inputIcon} className="w-5 h-5" />
-                        ) : (
-                          <SlidersHorizontal className="w-5 h-5" />
-                        )}
-                      </div>
-                      {/* Name and slider */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-foreground truncate">
-                            {getEntityDisplayName(input)}
-                          </span>
-                          <span className="text-xs text-muted tabular-nums ml-2">
-                            {value}{unit}
-                          </span>
+                    {orderedInputNumbers.map((input) => {
+                      const inputSelected = isSelected(input.entity_id)
+                      return (
+                        <Reorder.Item
+                          key={input.entity_id}
+                          value={input}
+                          className={clsx(
+                            'px-2 py-2 rounded-lg bg-border/30 cursor-grab active:cursor-grabbing',
+                            'ring-1 ring-accent/30',
+                            inputSelected && 'ring-2 ring-accent'
+                          )}
+                          whileDrag={{ scale: 1.02, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        >
+                          <div className="flex items-center gap-2">
+                            <SelectionCheckbox
+                              isSelected={inputSelected}
+                              onToggle={() => toggleSelection(input.entity_id)}
+                            />
+                            <button
+                              onClick={() => handleDeviceEdit(input)}
+                              className="p-1 rounded-lg hover:bg-border/50 transition-colors"
+                            >
+                              <Pencil className="w-4 h-4 text-muted" />
+                            </button>
+                            <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
+                            <span className="flex-1 text-sm font-medium text-foreground truncate">
+                              {getEntityDisplayName(input)}
+                            </span>
+                          </div>
+                        </Reorder.Item>
+                      )
+                    })}
+                  </Reorder.Group>
+                ) : (
+                  <>
+                    {inputNumbers.map((input) => {
+                      const value = parseFloat(input.state) || 0
+                      const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
+                      const max = typeof input.attributes.max === 'number' ? input.attributes.max : 100
+                      const step = typeof input.attributes.step === 'number' ? input.attributes.step : 1
+                      const unit = typeof input.attributes.unit_of_measurement === 'string' ? input.attributes.unit_of_measurement : ''
+                      const inputIcon = haWebSocket.getEntityIcon(input.entity_id)
+                      return (
+                        <div
+                          key={input.entity_id}
+                          className="px-2 py-2 rounded-lg bg-border/30"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-border/50 text-muted flex-shrink-0">
+                              {inputIcon ? (
+                                <MdiIcon icon={inputIcon} className="w-5 h-5" />
+                              ) : (
+                                <SlidersHorizontal className="w-5 h-5" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-foreground truncate">
+                                  {getEntityDisplayName(input)}
+                                </span>
+                                <span className="text-xs text-muted tabular-nums ml-2">
+                                  {value}{unit}
+                                </span>
+                              </div>
+                              <input
+                                type="range"
+                                min={min}
+                                max={max}
+                                step={step}
+                                value={value}
+                                onChange={(e) => handleInputNumberChange(input, parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-accent"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        {!isInEditMode && (
-                          <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            step={step}
-                            value={value}
-                            onChange={(e) => handleInputNumberChange(input, parseFloat(e.target.value))}
-                            className="w-full h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-accent"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                      )
+                    })}
+                  </>
                 )
-              })}
+              )}
             </div>
           </div>
         )}

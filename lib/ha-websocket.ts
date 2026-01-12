@@ -620,6 +620,8 @@ class HAWebSocket {
     const area = this.areaRegistry.get(areaId)
     if (!area) throw new Error('Area not found')
 
+    const oldName = area.name
+
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
       this.pendingCallbacks.set(msgId, (success, result) => {
@@ -637,6 +639,19 @@ class HAWebSocket {
 
           this.areaRegistry.set(areaId, updatedArea)
           this.areas.set(areaId, updatedArea.name)
+
+          // If name changed, update entityAreas to use the new name
+          if (updates.name && updates.name !== oldName) {
+            for (const [entityId, areaName] of this.entityAreas) {
+              if (areaName === oldName) {
+                this.entityAreas.set(entityId, updates.name)
+              }
+            }
+            // Re-apply area names to entity attributes
+            this.applyAreasToEntities()
+            this.notifyMessageHandlers()
+          }
+
           this.notifyRegistryHandlers()
           resolve()
         } else {
@@ -655,6 +670,60 @@ class HAWebSocket {
       if (updates.icon !== undefined) payload.icon = updates.icon
 
       this.send(payload)
+    })
+  }
+
+  // Delete an area
+  async deleteArea(areaId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success) => {
+        if (success) {
+          // Remove from local registries
+          this.areaRegistry.delete(areaId)
+          this.areas.delete(areaId)
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to delete area'))
+        }
+      })
+
+      this.send({
+        id: msgId,
+        type: 'config/area_registry/delete',
+        area_id: areaId,
+      })
+    })
+  }
+
+  // Delete a scene
+  async deleteScene(entityId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const msgId = this.messageId++
+      this.pendingCallbacks.set(msgId, (success) => {
+        if (success) {
+          // Remove from local registries
+          this.entities.delete(entityId)
+          this.entityRegistry.delete(entityId)
+          this.entityAreas.delete(entityId)
+          this.notifyMessageHandlers()
+          this.notifyRegistryHandlers()
+          resolve()
+        } else {
+          reject(new Error('Failed to delete scene'))
+        }
+      })
+
+      this.send({
+        id: msgId,
+        type: 'call_service',
+        domain: 'scene',
+        service: 'delete',
+        service_data: {
+          entity_id: entityId,
+        },
+      })
     })
   }
 

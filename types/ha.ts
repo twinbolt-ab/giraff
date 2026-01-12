@@ -117,3 +117,37 @@ export interface ServiceCallPayload {
     [key: string]: unknown
   }
 }
+
+// Configurable domains that can be shown in the dashboard
+export type ConfigurableDomain =
+  | 'light'
+  | 'switch'
+  | 'scene'
+  | 'input_boolean'
+  | 'input_number'
+  | 'climate'
+  | 'cover'
+  | 'fan'
+  | 'vacuum'
+  | 'media_player'
+
+export const DEFAULT_ENABLED_DOMAINS: ConfigurableDomain[] = [
+  'light',
+  'switch',
+  'scene',
+  'input_boolean',
+  'input_number',
+]
+
+export const ALL_CONFIGURABLE_DOMAINS: ConfigurableDomain[] = [
+  'light',
+  'switch',
+  'scene',
+  'input_boolean',
+  'input_number',
+  'climate',
+  'cover',
+  'fan',
+  // 'vacuum',      // TODO: Not yet implemented
+  // 'media_player', // TODO: Not yet implemented
+]

@@ -1,10 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Pencil, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Moon, Sun, Pencil, X, Wifi, Layers, LogOut } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
+import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
+import { clearCredentials } from '@/lib/config'
+import { haWebSocket } from '@/lib/ha-websocket'
 
 interface SettingsMenuProps {
   isOpen: boolean
@@ -17,8 +22,11 @@ export function SettingsMenu({
   onClose,
   onEnterEditMode,
 }: SettingsMenuProps) {
+  const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
+  const [showConnectionSettings, setShowConnectionSettings] = useState(false)
+  const [showDomainConfig, setShowDomainConfig] = useState(false)
 
   // Close on escape key
   useEffect(() => {
@@ -43,6 +51,13 @@ export function SettingsMenu({
 
   const handleThemeToggle = () => {
     setTheme(isDark ? 'light' : 'dark')
+  }
+
+  const handleDisconnect = () => {
+    haWebSocket.disconnect()
+    clearCredentials()
+    onClose()
+    router.push('/setup')
   }
 
   return (
@@ -120,10 +135,63 @@ export function SettingsMenu({
                 </div>
               </button>
 
+              {/* Device Types */}
+              <button
+                onClick={() => setShowDomainConfig(true)}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+              >
+                <div className="p-2.5 rounded-xl bg-border/50">
+                  <Layers className="w-5 h-5 text-foreground" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-foreground">{t.settings.domains.title}</p>
+                  <p className="text-sm text-muted">{t.settings.domains.description}</p>
+                </div>
+              </button>
+
+              {/* Connection Settings */}
+              <button
+                onClick={() => setShowConnectionSettings(true)}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+              >
+                <div className="p-2.5 rounded-xl bg-border/50">
+                  <Wifi className="w-5 h-5 text-foreground" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-foreground">{t.settings.connection.title}</p>
+                  <p className="text-sm text-muted">{t.settings.connection.description}</p>
+                </div>
+              </button>
+
+              {/* Disconnect */}
+              <button
+                onClick={handleDisconnect}
+                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+              >
+                <div className="p-2.5 rounded-xl bg-red-500/10">
+                  <LogOut className="w-5 h-5 text-red-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-red-500">{t.settings.connection.disconnect}</p>
+                </div>
+              </button>
+
               {/* Bottom padding for safe area */}
               <div className="h-4" />
             </div>
           </motion.div>
+
+          {/* Connection Settings Modal */}
+          <ConnectionSettingsModal
+            isOpen={showConnectionSettings}
+            onClose={() => setShowConnectionSettings(false)}
+          />
+
+          {/* Domain Config Modal */}
+          <DomainConfigModal
+            isOpen={showDomainConfig}
+            onClose={() => setShowDomainConfig(false)}
+          />
         </>
       )}
     </AnimatePresence>
