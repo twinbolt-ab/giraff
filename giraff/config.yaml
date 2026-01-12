@@ -15,4 +15,3 @@ panel_icon: "mdi:view-dashboard"
 panel_title: "Giraff"
 startup: "application"
 init: false
-image: "ghcr.io/twinbolt-ab/giraff-addon-{arch}"
