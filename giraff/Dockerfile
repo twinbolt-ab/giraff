@@ -1,26 +1,23 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install Node.js 20
-RUN apk add --no-cache nodejs npm
+# Install Node.js and git
+RUN apk add --no-cache nodejs npm git
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY package*.json ./
+# Clone the repository
+RUN git clone --depth 1 https://github.com/twinbolt-ab/giraff.git .
 
 # Install dependencies
 RUN npm ci --omit=dev
 
-# Copy application source
-COPY . .
-
 # Build the Next.js application
 RUN npm run build
 
-# Copy run script
-COPY giraff/run.sh /run.sh
+# Copy run script from add-on folder
+COPY run.sh /run.sh
 RUN chmod a+x /run.sh
 
 # Expose the port
