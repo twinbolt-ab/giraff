@@ -2,6 +2,23 @@
 
 A mobile-first, Scandinavian-minimal Home Assistant dashboard built with Next.js 14 and Tailwind CSS.
 
+## Project Rationale
+
+1. **Opinionated UX**: Provide a refined interface for devices, areas, floors, and scenes that reads/writes to Home Assistant via the REST API
+2. **In-place editing**: Make it easy to edit Areas, Floors, and Devices directly from the dashboard UI—no need to hunt through HA settings
+3. **HA-native persistence**: All edits (names, icons, etc.) are saved directly to Home Assistant, keeping it as the single source of truth
+
+## License
+
+Copyright (c) Twinbolt AB
+
+This project uses a source-available license. The code is viewable and contributions are welcome, but commercial use is restricted to Twinbolt AB. Recommended licenses for this model:
+
+- **Elastic License 2.0 (ELv2)** - Simple, allows viewing/modification but prohibits providing the software as a managed service
+- **BSL 1.1 (Business Source License)** - Restricts commercial use until a specified change date
+
+See LICENSE file for terms.
+
 ## Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
