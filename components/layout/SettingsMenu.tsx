@@ -3,14 +3,12 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from 'next-themes'
-import { useRouter } from 'next/navigation'
-import { Moon, Sun, Pencil, X, Wifi, Layers, LogOut, Package, Eye, EyeOff } from 'lucide-react'
+import { Moon, Sun, Pencil, X, Wifi, Layers, Package, Eye, EyeOff } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
-import { clearCredentials } from '@/lib/config'
-import { haWebSocket } from '@/lib/ha-websocket'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
+import { isHAAddon } from '@/lib/config'
 
 interface SettingsMenuProps {
   isOpen: boolean
@@ -25,7 +23,6 @@ export function SettingsMenu({
   onEnterEditMode,
   onViewUncategorized,
 }: SettingsMenuProps) {
-  const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const [showConnectionSettings, setShowConnectionSettings] = useState(false)
@@ -60,13 +57,6 @@ export function SettingsMenu({
 
   const handleThemeToggle = () => {
     setTheme(isDark ? 'light' : 'dark')
-  }
-
-  const handleDisconnect = () => {
-    haWebSocket.disconnect()
-    clearCredentials()
-    onClose()
-    router.push('/setup')
   }
 
   return (
@@ -130,20 +120,6 @@ export function SettingsMenu({
                 </div>
               </button>
 
-              {/* Edit Mode */}
-              <button
-                onClick={handleEdit}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
-              >
-                <div className="p-2.5 rounded-xl bg-border/50">
-                  <Pencil className="w-5 h-5 text-foreground" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-foreground">{t.settings.editMode.title}</p>
-                  <p className="text-sm text-muted">{t.settings.editMode.description}</p>
-                </div>
-              </button>
-
               {/* Device Types */}
               <button
                 onClick={() => setShowDomainConfig(true)}
@@ -194,31 +170,29 @@ export function SettingsMenu({
                 </div>
               </button>
 
-              {/* Connection Settings */}
-              <button
-                onClick={() => setShowConnectionSettings(true)}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
-              >
-                <div className="p-2.5 rounded-xl bg-border/50">
-                  <Wifi className="w-5 h-5 text-foreground" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-foreground">{t.settings.connection.title}</p>
-                  <p className="text-sm text-muted">{t.settings.connection.description}</p>
-                </div>
-              </button>
+              {/* Connection Settings - hidden in add-on mode */}
+              {!isHAAddon() && (
+                <button
+                  onClick={() => setShowConnectionSettings(true)}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+                >
+                  <div className="p-2.5 rounded-xl bg-border/50">
+                    <Wifi className="w-5 h-5 text-foreground" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-foreground">{t.settings.connection.title}</p>
+                    <p className="text-sm text-muted">{t.settings.connection.description}</p>
+                  </div>
+                </button>
+              )}
 
-              {/* Disconnect */}
+              {/* Edit Mode - prominent at bottom */}
               <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+                onClick={handleEdit}
+                className="w-full flex items-center justify-center gap-3 px-4 py-4 mt-2 rounded-xl bg-accent hover:bg-accent-hover transition-colors touch-feedback"
               >
-                <div className="p-2.5 rounded-xl bg-red-500/10">
-                  <LogOut className="w-5 h-5 text-red-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-red-500">{t.settings.connection.disconnect}</p>
-                </div>
+                <Pencil className="w-5 h-5 text-white" />
+                <p className="font-medium text-white">{t.settings.editMode.title}</p>
               </button>
 
               {/* Bottom padding for safe area */}

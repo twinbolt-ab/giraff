@@ -24,6 +24,14 @@ export const viewport: Viewport = {
   ],
 }
 
+// Check if running as a Home Assistant add-on
+const isHAAddon = !!process.env.SUPERVISOR_TOKEN
+
+// Script to inject add-on credentials into the page
+const addonScript = isHAAddon
+  ? `window.__HA_ADDON__=true;window.__HA_URL__="http://supervisor/core";window.__HA_TOKEN__="${process.env.SUPERVISOR_TOKEN}";`
+  : ''
+
 export default function RootLayout({
   children,
 }: {
@@ -31,6 +39,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {isHAAddon && (
+          <script dangerouslySetInnerHTML={{ __html: addonScript }} />
+        )}
+      </head>
       <body className="min-h-screen">
         <Providers>
           <main className="min-h-screen">

@@ -9,19 +9,58 @@ export interface StoredCredentials {
   token: string
 }
 
+// Extend Window interface for add-on mode
+declare global {
+  interface Window {
+    __HA_ADDON__?: boolean
+    __HA_URL__?: string
+    __HA_TOKEN__?: string
+  }
+}
+
+/**
+ * Check if running as a Home Assistant add-on
+ */
+export function isHAAddon(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.__HA_ADDON__ === true
+}
+
+/**
+ * Get credentials from add-on environment (injected by server)
+ */
+export function getAddonCredentials(): StoredCredentials | null {
+  if (typeof window === 'undefined') return null
+  if (!window.__HA_ADDON__) return null
+
+  const url = window.__HA_URL__
+  const token = window.__HA_TOKEN__
+
+  if (!url || !token) return null
+  return { url, token }
+}
+
 /**
  * Check if initial setup has been completed
+ * Returns true if in add-on mode (no setup needed)
  */
 export function isSetupComplete(): boolean {
   if (typeof window === 'undefined') return false
+  // Add-on mode is always "setup complete"
+  if (isHAAddon()) return true
   return localStorage.getItem(STORAGE_KEYS.SETUP_COMPLETE) === 'true'
 }
 
 /**
  * Get stored Home Assistant credentials
+ * Returns add-on credentials if in add-on mode, otherwise localStorage
  */
 export function getStoredCredentials(): StoredCredentials | null {
   if (typeof window === 'undefined') return null
+
+  // Check add-on credentials first
+  const addonCreds = getAddonCredentials()
+  if (addonCreds) return addonCreds
 
   const url = localStorage.getItem(STORAGE_KEYS.HA_URL)
   const token = localStorage.getItem(STORAGE_KEYS.HA_TOKEN)
