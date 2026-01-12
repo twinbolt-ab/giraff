@@ -144,21 +144,25 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* iOS-style wiggle animation for edit mode */
+/* Using 'rotate' property instead of 'transform: rotate()' to avoid
+   overriding Framer Motion's transform positioning */
 @keyframes wiggle {
-  0%, 100% { transform: rotate(-1deg); }
-  50% { transform: rotate(1deg); }
+  0%, 100% { rotate: -1deg; }
+  50% { rotate: 1deg; }
 }
 
 @keyframes wiggle-alt {
-  0%, 100% { transform: rotate(1deg); }
-  50% { transform: rotate(-1deg); }
+  0%, 100% { rotate: 1deg; }
+  50% { rotate: -1deg; }
 }
 
 .wiggle {
   animation: wiggle 0.12s ease-in-out infinite;
+  transform-origin: center center;
 }
 
 .wiggle-alt {
   animation: wiggle-alt 0.11s ease-in-out infinite;
+  transform-origin: center center;
 }
 

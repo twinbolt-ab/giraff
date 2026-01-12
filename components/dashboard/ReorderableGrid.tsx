@@ -15,10 +15,8 @@ interface ReorderableGridProps<T> {
   className?: string
 }
 
-// Get CSS wiggle class for alternating animations
-const getWiggleClass = (index: number) => {
-  return index % 2 === 0 ? 'wiggle' : 'wiggle-alt'
-}
+// Get wiggle rotation direction based on index (alternating)
+const getWiggleDirection = (index: number) => index % 2 === 0 ? 1 : -1
 
 export function ReorderableGrid<T>({
   items,
@@ -49,14 +47,20 @@ export function ReorderableGrid<T>({
     const measure = () => {
       if (!containerRef.current) return
       const width = containerRef.current.offsetWidth
+      if (width === 0) return // Skip if not laid out yet
       setContainerWidth(width)
       const cellWidth = (width - gap * (columns - 1)) / columns
       setCellSize({ width: cellWidth, height: cellWidth }) // Square cells initially
     }
 
+    // Measure immediately and also after a frame to ensure layout is complete
     measure()
+    const rafId = requestAnimationFrame(measure)
     window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    return () => {
+      cancelAnimationFrame(rafId)
+      window.removeEventListener('resize', measure)
+    }
   }, [columns, gap])
 
   // Update cell height after first render
@@ -221,6 +225,7 @@ export function ReorderableGrid<T>({
   // Calculate container height
   const rows = Math.ceil(orderedItems.length / columns)
   const containerHeight = rows * cellSize.height + (rows - 1) * gap
+  const isReady = cellSize.width > 0 && cellSize.height > 0
 
   return (
     <div
@@ -232,6 +237,8 @@ export function ReorderableGrid<T>({
       }}
     >
       {orderedItems.map((item, index) => {
+        // First item always renders for measurement, others wait until ready
+        if (index > 0 && !isReady) return null
         const key = getKey(item)
         const isDragging = draggedIndex === index
         const position = getPositionFromIndex(index)
@@ -244,20 +251,17 @@ export function ReorderableGrid<T>({
             className={clsx(
               'absolute',
               isDragging && 'z-50',
-              !isDragging && getWiggleClass(index)
             )}
             style={{
               width: cellSize.width > 0 ? cellSize.width : `calc((100% - ${gap * (columns - 1)}px) / ${columns})`,
+              visibility: isReady ? 'visible' : 'hidden',
             }}
-            initial={{
-              x: position.x,
-              y: position.y,
-              scale: 1,
-            }}
+            initial={false}
             animate={{
               x: position.x + (isDragging ? dragOffset.x : 0),
               y: position.y + (isDragging ? dragOffset.y : 0),
               scale: isDragging ? 1.05 : 1,
+              rotate: isDragging ? 0 : [getWiggleDirection(index) * -1, getWiggleDirection(index) * 1],
               boxShadow: isDragging
                 ? '0 20px 40px rgba(0,0,0,0.2)'
                 : '0 0 0 rgba(0,0,0,0)',
@@ -271,6 +275,14 @@ export function ReorderableGrid<T>({
                 : { type: 'spring', stiffness: 500, damping: 30, mass: 0.8 },
               scale: { duration: 0.15 },
               boxShadow: { duration: 0.15 },
+              rotate: isDragging
+                ? { duration: 0 }
+                : {
+                    duration: 0.12 + (index % 3) * 0.01,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                    ease: 'easeInOut',
+                  },
             }}
             onTouchStart={handleTouchStart(index)}
             onMouseDown={handleMouseDown(index)}
