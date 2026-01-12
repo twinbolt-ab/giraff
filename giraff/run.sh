@@ -1,4 +1,4 @@
-#!/usr/bin/with-contenv bashio
+#!/bin/sh
 
 # Export environment variables for the app
 export HA_ADDON=true
