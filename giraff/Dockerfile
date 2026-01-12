@@ -1,8 +1,8 @@
 ARG BUILD_FROM
 FROM ${BUILD_FROM}
 
-# Install Node.js, git, and curl
-RUN apk add --no-cache nodejs npm git curl
+# Install Node.js, git, curl, and nginx
+RUN apk add --no-cache nodejs npm git curl nginx
 
 # Set working directory
 WORKDIR /app
@@ -16,9 +16,13 @@ RUN npm ci
 # Build the Next.js application (initial build, will rebuild at startup with correct basePath)
 RUN npm run build
 
-# Copy run script from add-on folder
+# Copy run script and nginx config
 COPY run.sh /run.sh
+COPY nginx.conf /etc/nginx/nginx.conf
 RUN chmod a+x /run.sh
+
+# Create nginx directories
+RUN mkdir -p /run/nginx /var/log/nginx
 
 # Expose the port
 EXPOSE 3001
