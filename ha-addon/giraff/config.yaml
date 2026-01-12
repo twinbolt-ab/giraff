@@ -1,0 +1,18 @@
+name: "Giraff Dashboard"
+description: "A mobile-first, Scandinavian-minimal Home Assistant dashboard"
+version: "1.0.0"
+slug: "giraff"
+url: "https://github.com/twinbolt/giraff"
+arch:
+  - aarch64
+  - amd64
+  - armv7
+homeassistant_api: true
+ingress: true
+ingress_port: 3000
+ingress_entry: /
+panel_icon: "mdi:view-dashboard"
+panel_title: "Giraff"
+startup: "application"
+init: false
+image: "ghcr.io/twinbolt/giraff-addon-{arch}"
