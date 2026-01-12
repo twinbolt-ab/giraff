@@ -10,11 +10,14 @@ WORKDIR /app
 # Clone the repository
 RUN git clone --depth 1 https://github.com/twinbolt-ab/giraff.git .
 
-# Install dependencies
-RUN npm ci --omit=dev
+# Install all dependencies (including dev for build)
+RUN npm ci
 
 # Build the Next.js application
 RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --omit=dev
 
 # Copy run script from add-on folder
 COPY run.sh /run.sh
