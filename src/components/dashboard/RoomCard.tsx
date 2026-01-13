@@ -69,10 +69,9 @@ export function RoomCard({
 
   // Scene activation handler
   const handleSceneActivate = useCallback((scene: HAEntity, e: React.MouseEvent) => {
-    if (isInEditMode) return // Don't activate scenes in edit mode
     e.stopPropagation()
     callService('scene', 'turn_on', { entity_id: scene.entity_id })
-  }, [callService, isInEditMode])
+  }, [callService])
 
   // Get scene display name (strip room name prefix if present)
   const getSceneDisplayName = useCallback((scene: HAEntity) => {
@@ -274,7 +273,7 @@ export function RoomCard({
 
         {/* Scenes row - shows for all cards when enabled to maintain consistent height */}
         {showScenesRow && (
-          <div className="flex gap-1.5 mb-1 min-h-[32px] items-center">
+          <div className={clsx('flex gap-1.5 mb-1 min-h-[32px] items-center', isInEditMode && 'pointer-events-none')}>
             {hasScenes && scenes.map((scene) => {
               const sceneIcon = haWebSocket.getEntityIcon(scene.entity_id)
               return (

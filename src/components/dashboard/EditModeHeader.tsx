@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
-import { useTheme } from '@/providers/ThemeProvider'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t, interpolate } from '@/lib/i18n'
 
@@ -10,7 +9,6 @@ interface EditModeHeaderProps {
 }
 
 export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
-  const { resolvedTheme } = useTheme()
   const {
     isDeviceEditMode,
     isUncategorizedEditMode,
@@ -18,7 +16,11 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
     clearSelection,
   } = useEditMode()
 
-  const isDark = resolvedTheme === 'dark'
+  const editButtonLabel = selectedCount === 1
+    ? (isDeviceEditMode || isUncategorizedEditMode)
+      ? t.bulkEdit.editDevice
+      : t.bulkEdit.editRoom
+    : t.bulkEdit.editSelected
 
   return (
     <motion.div
@@ -26,18 +28,10 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 60, opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 400 }}
-      className="fixed left-4 right-4 z-20 rounded-2xl shadow-lg"
-      style={{
-        bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px) + 10px)',
-        background: isDark ? 'rgba(38, 38, 36, 0.75)' : 'rgba(255, 255, 255, 0.75)',
-        backdropFilter: 'saturate(180%) blur(20px)',
-        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
-        border: `1px solid ${isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'}`,
-      }}
+      className="fixed left-4 right-4 z-20 floating-bar rounded-2xl shadow-lg glass"
     >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
-          {/* Selection count */}
           {selectedCount > 0 && (
             <>
               <button
@@ -60,19 +54,12 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
               onClick={onEditClick}
               className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
             >
-              {selectedCount === 1
-                ? (isDeviceEditMode || isUncategorizedEditMode)
-                  ? t.bulkEdit.editDevice
-                  : t.bulkEdit.editRoom
-                : t.bulkEdit.editSelected}
+              {editButtonLabel}
             </button>
           )}
           <button
             onClick={onDone}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full text-foreground text-sm font-medium transition-colors"
-            style={{
-              background: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.08)',
-            }}
+            className="px-3 py-1.5 rounded-full btn-glass text-foreground text-sm font-medium transition-colors"
           >
             {t.editMode.done}
           </button>
