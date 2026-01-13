@@ -147,6 +147,8 @@ export async function storeOAuthCredentials(
   haUrl: string,
   tokens: OAuthTokens
 ): Promise<void> {
+  console.log('[OAuth] storeOAuthCredentials called with URL:', haUrl)
+  console.log('[OAuth] Token expires_in:', tokens.expires_in)
   const storage = getStorage()
   const credentials: StoredOAuthCredentials = {
     access_token: tokens.access_token,
@@ -154,11 +156,15 @@ export async function storeOAuthCredentials(
     expires_at: Date.now() + tokens.expires_in * 1000,
     ha_url: haUrl,
   }
+  console.log('[OAuth] Storing credentials, expires_at:', new Date(credentials.expires_at).toISOString())
   await storage.setItem(OAUTH_STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
+  console.log('[OAuth] Credentials stored')
   // Mark setup as complete
   await storage.setItem(STORAGE_KEYS.SETUP_COMPLETE, 'true')
+  console.log('[OAuth] Setup marked complete')
   // Also store URL in standard location for compatibility
   await storage.setItem(STORAGE_KEYS.HA_URL, haUrl)
+  console.log('[OAuth] URL stored')
 }
 
 // Get stored OAuth credentials
@@ -242,8 +248,11 @@ export async function getValidAccessToken(): Promise<{
     return { token: newTokens.access_token, haUrl: creds.ha_url }
   } catch (error) {
     console.error('[OAuth] Token refresh failed:', error)
-    // Clear invalid credentials
+    // Clear invalid credentials AND setup complete flag so user gets redirected to setup
+    const storage = getStorage()
     await clearOAuthCredentials()
+    await storage.removeItem(STORAGE_KEYS.SETUP_COMPLETE)
+    console.log('[OAuth] Cleared credentials and setup flag due to refresh failure')
     return null
   }
 }

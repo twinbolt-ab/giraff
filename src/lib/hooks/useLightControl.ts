@@ -57,10 +57,14 @@ export function useLightControl(options: UseLightControlOptions = {}) {
   }, [callService])
 
   // Set brightness for multiple lights at once
+  // Can accept either a single brightness value (absolute) or a Map of per-light values (relative)
   const setRoomBrightness = useCallback(
-    (lights: HAEntity[], brightnessPct: number, immediate = false) => {
+    (lights: HAEntity[], brightnessValues: number | Map<string, number>, immediate = false) => {
       for (const light of lights) {
-        pendingCallsRef.current.set(light.entity_id, brightnessPct)
+        const brightness = typeof brightnessValues === 'number'
+          ? brightnessValues
+          : (brightnessValues.get(light.entity_id) ?? 0)
+        pendingCallsRef.current.set(light.entity_id, Math.round(Math.max(0, Math.min(100, brightness))))
       }
 
       if (immediate) {
@@ -127,6 +131,45 @@ export function useLightControl(options: UseLightControlOptions = {}) {
     return Math.round((brightness / 255) * 100)
   }, [])
 
+  // Get brightness values for all lights as a Map
+  const getLightBrightnessMap = useCallback((lights: HAEntity[]): Map<string, number> => {
+    const map = new Map<string, number>()
+    for (const light of lights) {
+      if (light.state !== 'on') {
+        map.set(light.entity_id, 0)
+      } else {
+        const brightness = light.attributes.brightness
+        map.set(light.entity_id, typeof brightness === 'number' ? Math.round((brightness / 255) * 100) : 100)
+      }
+    }
+    return map
+  }, [])
+
+  // Calculate relative brightness values based on a ratio change from starting average
+  const calculateRelativeBrightness = useCallback((
+    startingBrightnessMap: Map<string, number>,
+    startingAverage: number,
+    newAverage: number
+  ): Map<string, number> => {
+    const result = new Map<string, number>()
+
+    // If starting average is 0, just set all lights to the new value
+    if (startingAverage === 0) {
+      for (const [entityId] of startingBrightnessMap) {
+        result.set(entityId, newAverage)
+      }
+      return result
+    }
+
+    // Calculate ratio and apply to each light
+    const ratio = newAverage / startingAverage
+    for (const [entityId, startBrightness] of startingBrightnessMap) {
+      const newBrightness = startBrightness * ratio
+      result.set(entityId, Math.max(0, Math.min(100, newBrightness)))
+    }
+    return result
+  }, [])
+
   return {
     setLightBrightness,
     setRoomBrightness,
@@ -134,5 +177,7 @@ export function useLightControl(options: UseLightControlOptions = {}) {
     toggleRoomLights,
     getAverageBrightness,
     getLightBrightness,
+    getLightBrightnessMap,
+    calculateRelativeBrightness,
   }
 }
