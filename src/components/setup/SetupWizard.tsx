@@ -1,11 +1,19 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Loader2, ExternalLink, AlertCircle, X, Wifi } from 'lucide-react'
+import { ArrowRight, Check, Loader2, ExternalLink, AlertCircle, X, Wifi, LogIn, Key } from 'lucide-react'
 import { saveCredentials } from '@/lib/config'
 import { t } from '@/lib/i18n'
+import {
+  storePendingOAuth,
+  storeOAuthCredentials,
+  isNativeApp,
+  getClientId,
+  getRedirectUri,
+} from '@/lib/ha-oauth'
+import { OAuth2Client } from '@byteowls/capacitor-oauth2'
 
-type Step = 'welcome' | 'url' | 'token' | 'complete'
+type Step = 'welcome' | 'url' | 'auth-method' | 'token' | 'complete'
 
 type UrlStatus = 'idle' | 'checking' | 'success' | 'failed'
 
@@ -34,6 +42,7 @@ export function SetupWizard() {
   const [isProbing, setIsProbing] = useState(false)
   const hasProbed = useRef(false)
 
+  
   // Test WebSocket connection to HA (with shorter timeout for probing)
   const testConnection = useCallback(async (testUrl: string, testToken?: string, timeout = 10000): Promise<boolean> => {
     return new Promise((resolve) => {
@@ -159,9 +168,177 @@ export function SetupWizard() {
 
     if (success) {
       setUrl(normalizedUrl)
-      setStep('token')
+      setStep('auth-method')
     } else {
       setError(t.setup.url.error)
+    }
+  }
+
+  const handleOAuthLogin = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      if (isNativeApp()) {
+        // On native, use OAuth2Client plugin which handles the browser + deep link
+        // client_id must be the website with <link rel="redirect_uri"> tag
+        const clientId = 'https://twinbolt.se/giraff'
+
+        // Check if using HTTPS - AppAuth library requires HTTPS for token endpoint
+        const isHttps = url.startsWith('https://')
+
+        if (isHttps) {
+          // Use OAuth2Client plugin for HTTPS (handles everything automatically)
+          const response = await OAuth2Client.authenticate({
+            authorizationBaseUrl: `${url}/auth/authorize`,
+            accessTokenEndpoint: `${url}/auth/token`,
+            scope: '',
+            pkceEnabled: true,
+            logsEnabled: true,
+            web: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: `${window.location.origin}/auth/callback`,
+            },
+            android: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.giraff:/',
+              handleResultOnNewIntent: true,
+              handleResultOnActivityResult: true,
+            },
+            ios: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.giraff:/',
+            },
+          })
+
+          // Store the tokens
+          if (response.access_token) {
+            await storeOAuthCredentials(url, {
+              access_token: response.access_token as string,
+              refresh_token: response.refresh_token as string,
+              expires_in: (response.expires_in as number) || 1800,
+              token_type: 'Bearer',
+            })
+
+            // Navigate to home
+            navigate('/', { replace: true })
+          } else {
+            throw new Error('No access token received')
+          }
+        } else {
+          // For HTTP (local HA), use OAuth2Client for auth only, then manual token exchange
+          // AppAuth doesn't support HTTP token endpoints, so we handle that ourselves
+          const response = await OAuth2Client.authenticate({
+            authorizationBaseUrl: `${url}/auth/authorize`,
+            // Don't set accessTokenEndpoint - we'll do the token exchange manually
+            scope: '',
+            pkceEnabled: true,
+            logsEnabled: true,
+            web: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: `${window.location.origin}/auth/callback`,
+            },
+            android: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.giraff:/',
+              handleResultOnNewIntent: true,
+              handleResultOnActivityResult: true,
+            },
+            ios: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.giraff:/',
+            },
+          })
+
+          // We should get back the authorization code
+          const authCode = response.authorization_response?.code as string
+          const codeVerifier = response.authorization_response?.code_verifier as string
+
+          if (!authCode) {
+            throw new Error('No authorization code received')
+          }
+
+          // Manually exchange the code for tokens via fetch (works with HTTP)
+          const tokenBody = new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: authCode,
+            client_id: clientId,
+          })
+          if (codeVerifier) {
+            tokenBody.set('code_verifier', codeVerifier)
+          }
+
+          const tokenResponse = await fetch(`${url}/auth/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: tokenBody.toString(),
+          })
+
+          if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text()
+            throw new Error(`Token exchange failed: ${errorText}`)
+          }
+
+          const tokens = await tokenResponse.json()
+
+          await storeOAuthCredentials(url, {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_in: tokens.expires_in || 1800,
+            token_type: 'Bearer',
+          })
+
+          // Navigate to home
+          navigate('/', { replace: true })
+        }
+      } else {
+        // On web, use manual redirect flow
+        // Generate PKCE values manually for web
+        const array = new Uint8Array(32)
+        crypto.getRandomValues(array)
+        const verifier = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+        const encoder = new TextEncoder()
+        const data = encoder.encode(verifier)
+        const hashed = await crypto.subtle.digest('SHA-256', data)
+        const bytes = new Uint8Array(hashed)
+        let binary = ''
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte)
+        }
+        const challenge = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+        const stateArray = new Uint8Array(16)
+        crypto.getRandomValues(stateArray)
+        const state = Array.from(stateArray, (byte) => byte.toString(16).padStart(2, '0')).join('')
+
+        // Store pending OAuth data for validation after redirect
+        await storePendingOAuth(state, verifier, url)
+
+        // Build and redirect to authorization URL
+        const params = new URLSearchParams({
+          client_id: getClientId(url),
+          redirect_uri: getRedirectUri(url),
+          state,
+          response_type: 'code',
+          code_challenge: challenge,
+          code_challenge_method: 'S256',
+        })
+
+        window.location.href = `${url}/auth/authorize?${params.toString()}`
+      }
+    } catch (err) {
+      console.error('[OAuth] Failed:', err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage || t.setup.oauth?.startError || 'Failed to start authentication')
+      setIsLoading(false)
     }
   }
 
@@ -343,6 +520,81 @@ export function SetupWizard() {
                     </>
                   )}
                 </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Auth Method Step */}
+          {step === 'auth-method' && (
+            <motion.div
+              key="auth-method"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.2 }}
+            >
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                {t.setup.authMethod?.title || 'Choose login method'}
+              </h2>
+              <p className="text-muted mb-6">
+                {t.setup.authMethod?.subtitle || 'How would you like to authenticate?'}
+              </p>
+
+              <div className="space-y-3">
+                {/* OAuth Login - Recommended */}
+                <button
+                  onClick={handleOAuthLogin}
+                  disabled={isLoading}
+                  className="w-full p-4 bg-accent text-white rounded-xl flex items-start gap-4 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <LogIn className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium flex items-center gap-2">
+                      {t.setup.authMethod?.oauth || 'Login with Home Assistant'}
+                      <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
+                        {t.setup.authMethod?.recommended || 'Recommended'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-white/80 mt-1">
+                      {t.setup.authMethod?.oauthHint || 'Use your existing Home Assistant account'}
+                    </p>
+                  </div>
+                  {isLoading ? (
+                    <Loader2 className="w-5 h-5 animate-spin ml-auto flex-shrink-0" />
+                  ) : (
+                    <ArrowRight className="w-5 h-5 ml-auto flex-shrink-0" />
+                  )}
+                </button>
+
+                {/* Manual Token - Alternative */}
+                <button
+                  onClick={() => setStep('token')}
+                  disabled={isLoading}
+                  className="w-full p-4 bg-card border border-border rounded-xl flex items-start gap-4 hover:bg-card/80 transition-colors touch-feedback disabled:opacity-50"
+                >
+                  <div className="w-10 h-10 bg-border rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Key className="w-5 h-5 text-muted" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium text-foreground">
+                      {t.setup.authMethod?.token || 'Use access token'}
+                    </div>
+                    <p className="text-sm text-muted mt-1">
+                      {t.setup.authMethod?.tokenHint || 'Enter a long-lived access token manually'}
+                    </p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 ml-auto flex-shrink-0 text-muted" />
+                </button>
+
+                {error && (
+                  <div className="flex items-center gap-2 text-red-500 text-sm mt-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}

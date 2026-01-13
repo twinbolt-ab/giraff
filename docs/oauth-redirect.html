@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Giraff - Home Assistant Dashboard</title>
+  <!-- This tag allows the native app to use a custom URL scheme for OAuth -->
+  <link rel="redirect_uri" href="com.twinbolt.giraff://oauth">
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+    h1 { color: #C4A77D; }
+  </style>
+</head>
+<body>
+  <h1>Giraff</h1>
+  <p>A beautiful Home Assistant dashboard.</p>
+  <p>If you're seeing this page, you may be trying to authenticate the Giraff app.</p>
+  <script>
+    // If we receive an OAuth callback on web, redirect to the app
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state) {
+      // Try to open the native app
+      window.location.href = 'com.twinbolt.giraff:/?code=' + encodeURIComponent(code) + '&state=' + encodeURIComponent(state);
+    }
+  </script>
+</body>
+</html>
