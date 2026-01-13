@@ -199,6 +199,7 @@ function DashboardContent() {
             shouldShowScenes={shouldShowScenes}
             onReorder={handleReorder}
             onToggleExpand={handleToggleExpand}
+            onClickOutside={exitEditMode}
           />
         </section>
       </div>

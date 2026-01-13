@@ -63,15 +63,16 @@ export function RoomCard({
     () => room.devices.filter((d) => d.entity_id.startsWith('scene.')),
     [room.devices]
   )
-  // Show scenes row when shouldShowScenes is enabled, not expanded, and not in edit mode
-  const showScenesRow = shouldShowScenes && !isExpanded && !isInEditMode
+  // Show scenes row when shouldShowScenes is enabled and not expanded
+  const showScenesRow = shouldShowScenes && !isExpanded
   const hasScenes = scenes.length > 0
 
   // Scene activation handler
   const handleSceneActivate = useCallback((scene: HAEntity, e: React.MouseEvent) => {
+    if (isInEditMode) return // Don't activate scenes in edit mode
     e.stopPropagation()
     callService('scene', 'turn_on', { entity_id: scene.entity_id })
-  }, [callService])
+  }, [callService, isInEditMode])
 
   // Get scene display name (strip room name prefix if present)
   const getSceneDisplayName = useCallback((scene: HAEntity) => {
