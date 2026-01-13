@@ -41,6 +41,22 @@
       "title": "You're all set!",
       "subtitle": "Your dashboard is ready",
       "goToDashboard": "Open Dashboard"
+    },
+    "authMethod": {
+      "title": "Choose login method",
+      "subtitle": "How would you like to authenticate?",
+      "oauth": "Login with Home Assistant",
+      "oauthHint": "Use your existing Home Assistant account",
+      "token": "Use access token",
+      "tokenHint": "Enter a long-lived access token manually",
+      "recommended": "Recommended"
+    },
+    "oauth": {
+      "completing": "Completing authentication...",
+      "redirecting": "Redirecting to dashboard...",
+      "failed": "Authentication failed",
+      "tryAgain": "Try again",
+      "startError": "Failed to start authentication"
     }
   },
   "editMode": {

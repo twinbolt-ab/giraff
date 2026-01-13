@@ -4,11 +4,14 @@
 import { STORAGE_KEYS } from './constants'
 import { getStorage } from './storage'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
+import { getValidAccessToken, getOAuthCredentials, clearOAuthCredentials } from './ha-oauth'
 
 export interface StoredCredentials {
   url: string
   token: string
 }
+
+export type AuthMethod = 'oauth' | 'token' | 'addon'
 
 // Extend Window interface for add-on mode
 declare global {
@@ -67,7 +70,7 @@ export function isSetupCompleteSync(): boolean {
 
 /**
  * Get stored Home Assistant credentials
- * Returns add-on credentials if in add-on mode, otherwise from storage
+ * Returns add-on credentials if in add-on mode, then OAuth, then manual token
  */
 export async function getStoredCredentials(): Promise<StoredCredentials | null> {
   if (typeof window === 'undefined') return null
@@ -76,12 +79,37 @@ export async function getStoredCredentials(): Promise<StoredCredentials | null> 
   const addonCreds = getAddonCredentials()
   if (addonCreds) return addonCreds
 
+  // Check OAuth credentials
+  const oauthResult = await getValidAccessToken()
+  if (oauthResult) {
+    return { url: oauthResult.haUrl, token: oauthResult.token }
+  }
+
+  // Fall back to manual token
   const storage = getStorage()
   const url = await storage.getItem(STORAGE_KEYS.HA_URL)
   const token = await storage.getItem(STORAGE_KEYS.HA_TOKEN)
 
   if (!url || !token) return null
   return { url, token }
+}
+
+/**
+ * Determine which auth method is currently in use
+ */
+export async function getAuthMethod(): Promise<AuthMethod | null> {
+  if (typeof window === 'undefined') return null
+
+  if (isHAAddon()) return 'addon'
+
+  const oauthCreds = await getOAuthCredentials()
+  if (oauthCreds) return 'oauth'
+
+  const storage = getStorage()
+  const token = await storage.getItem(STORAGE_KEYS.HA_TOKEN)
+  if (token) return 'token'
+
+  return null
 }
 
 /**
@@ -148,6 +176,8 @@ export async function clearCredentials(): Promise<void> {
   await storage.removeItem(STORAGE_KEYS.HA_TOKEN)
   await storage.removeItem(STORAGE_KEYS.SETUP_COMPLETE)
   await storage.removeItem(STORAGE_KEYS.ENABLED_DOMAINS)
+  // Also clear OAuth credentials
+  await clearOAuthCredentials()
 }
 
 /**

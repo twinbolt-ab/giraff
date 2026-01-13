@@ -1,5 +1,6 @@
 import type { HAEntity, WebSocketMessage, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
 import { ROOM_ORDER_LABEL_PREFIX, DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER } from './constants'
+import { getValidAccessToken, isUsingOAuth } from './ha-oauth'
 
 type MessageHandler = (entities: Map<string, HAEntity>) => void
 type ConnectionHandler = (connected: boolean) => void
@@ -9,6 +10,7 @@ class HAWebSocket {
   private ws: WebSocket | null = null
   private url: string
   private token: string
+  private useOAuth = false
   private messageId = 1
   private entities = new Map<string, HAEntity>()
   private entityAreas = new Map<string, string>() // entity_id -> area name
@@ -37,9 +39,10 @@ class HAWebSocket {
     this.token = ''
   }
 
-  configure(url: string, token: string) {
+  configure(url: string, token: string, useOAuth = false) {
     this.url = url.replace('http', 'ws') + '/api/websocket'
     this.token = token
+    this.useOAuth = useOAuth
   }
 
   connect() {
@@ -189,7 +192,19 @@ class HAWebSocket {
     }
   }
 
-  private authenticate() {
+  private async authenticate() {
+    // If using OAuth, get a fresh token (handles refresh automatically)
+    if (this.useOAuth) {
+      const result = await getValidAccessToken()
+      if (result) {
+        this.token = result.token
+      } else {
+        console.error('[HA WS] OAuth token refresh failed')
+        this.disconnect()
+        return
+      }
+    }
+
     this.send({
       type: 'auth',
       access_token: this.token,

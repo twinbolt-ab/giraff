@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { haWebSocket } from '@/lib/ha-websocket'
-import { getStoredCredentials } from '@/lib/config'
+import { getStoredCredentials, getAuthMethod } from '@/lib/config'
 import type { HAEntity } from '@/types/ha'
 
 export function useHAConnection() {
@@ -14,6 +14,7 @@ export function useHAConnection() {
     // Get credentials from storage (async for native platform support)
     async function initConnection() {
       const credentials = await getStoredCredentials()
+      const authMethod = await getAuthMethod()
 
       if (cancelled) return
 
@@ -24,7 +25,7 @@ export function useHAConnection() {
       }
 
       setIsConfigured(true)
-      haWebSocket.configure(credentials.url, credentials.token)
+      haWebSocket.configure(credentials.url, credentials.token, authMethod === 'oauth')
       haWebSocket.connect()
     }
 
@@ -71,6 +72,7 @@ export function useHAConnection() {
   // Reconnect with new credentials
   const reconnect = useCallback(async () => {
     const credentials = await getStoredCredentials()
+    const authMethod = await getAuthMethod()
     if (!credentials) {
       setIsConfigured(false)
       return
@@ -78,7 +80,7 @@ export function useHAConnection() {
 
     setIsConfigured(true)
     haWebSocket.disconnect()
-    haWebSocket.configure(credentials.url, credentials.token)
+    haWebSocket.configure(credentials.url, credentials.token, authMethod === 'oauth')
     haWebSocket.connect()
   }, [])
 
