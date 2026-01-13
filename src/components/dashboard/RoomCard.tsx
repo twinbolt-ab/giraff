@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
-import { Lightbulb, Thermometer, ChevronDown, Home, Check, Pencil, GripVertical } from 'lucide-react'
+import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, Pencil, GripVertical } from 'lucide-react'
 import type { RoomWithDevices } from '@/types/ha'
 import { RoomExpanded } from './RoomExpanded'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -72,6 +72,7 @@ export function RoomCard({
   const [localBrightness, setLocalBrightness] = useState(initialBrightness)
   const [showBrightnessOverlay, setShowBrightnessOverlay] = useState(false)
   const [useOptimisticValue, setUseOptimisticValue] = useState(false)
+  const [optimisticLightsOn, setOptimisticLightsOn] = useState<boolean | null>(null)
 
   const dragStartRef = useRef<{ x: number; y: number; brightness: number; brightnessMap: Map<string, number> } | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -228,8 +229,28 @@ export function RoomCard({
     if (isInEditMode || didDragRef.current) return
     if (isExpanded) return
     if (!hasLights) return
+
+    // Determine current state (use optimistic if active, otherwise HA value)
+    const currentlyOn = optimisticLightsOn !== null ? optimisticLightsOn : hasLightsOn
+    const willTurnOn = !currentlyOn
+
+    // Set optimistic state immediately
+    setOptimisticLightsOn(willTurnOn)
+    setLocalBrightness(willTurnOn ? 100 : 0)
+    setUseOptimisticValue(true)
+
+    // Clear any existing timer and start new 5-second timer
+    if (optimisticTimerRef.current) {
+      clearTimeout(optimisticTimerRef.current)
+    }
+    optimisticTimerRef.current = setTimeout(() => {
+      setOptimisticLightsOn(null)
+      setUseOptimisticValue(false)
+      optimisticTimerRef.current = null
+    }, 5000)
+
     toggleRoomLights(lights)
-  }, [hasLights, isInEditMode, isExpanded, lights, toggleRoomLights])
+  }, [hasLights, hasLightsOn, isInEditMode, isExpanded, lights, optimisticLightsOn, toggleRoomLights])
 
   const handleHeaderClick = useCallback((e: React.MouseEvent) => {
     if (isInEditMode || didDragRef.current) return
@@ -258,6 +279,8 @@ export function RoomCard({
 
   // Show local brightness while dragging or during optimistic period, otherwise use HA value
   const displayBrightness = isBrightnessDragging || useOptimisticValue ? localBrightness : initialBrightness
+  // Show optimistic lights on/off state if set, otherwise use HA value
+  const displayLightsOn = optimisticLightsOn !== null ? optimisticLightsOn : hasLightsOn
 
   const cardClassName = clsx(
     'card w-full text-left relative overflow-hidden',
@@ -272,7 +295,7 @@ export function RoomCard({
   const cardContent = (
     <>
       {/* Brightness fill background - hidden when expanded */}
-      {hasLights && hasLightsOn && !isExpanded && (
+      {hasLights && displayLightsOn && !isExpanded && (
         <motion.div
           className="absolute inset-0 origin-left pointer-events-none rounded-card"
           style={{ backgroundColor: 'var(--brightness-fill)' }}
@@ -348,16 +371,16 @@ export function RoomCard({
           <div
             className={clsx(
               'rounded-xl transition-colors flex-shrink-0 z-10',
-              isExpanded ? 'p-2.5' : 'p-2',
-              hasLightsOn
+              isExpanded ? 'p-2.5' : 'p-1.5',
+              displayLightsOn
                 ? 'bg-accent/20 text-accent'
                 : 'bg-border/50 text-muted'
             )}
           >
             {room.icon ? (
-              <MdiIcon icon={room.icon} className={isExpanded ? 'w-6 h-6' : 'w-5 h-5'} />
+              <MdiIcon icon={room.icon} className={isExpanded ? 'w-6 h-6' : 'w-7 h-7'} />
             ) : (
-              <Home className={isExpanded ? 'w-6 h-6' : 'w-5 h-5'} />
+              <Home className={isExpanded ? 'w-6 h-6' : 'w-7 h-7'} />
             )}
           </div>
           <h3 className="font-semibold text-foreground truncate flex-1 text-center pl-2 pr-1">
@@ -365,28 +388,25 @@ export function RoomCard({
           </h3>
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 text-sm text-muted">
-          {room.totalLights > 0 && (
-            <span className="flex items-center gap-1">
-              <Lightbulb
-                className={clsx(
-                  'w-3.5 h-3.5',
-                  hasLightsOn ? 'text-accent' : 'text-muted'
-                )}
-              />
-              <span>
-                {hasLightsOn
-                  ? interpolate(t.devices.lightsOn, { count: room.lightsOn })
-                  : t.devices.lightsOff}
-              </span>
-            </span>
-          )}
-
-          {room.temperature !== undefined && (
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3 text-sm text-muted pointer-events-none">
+          {room.temperature !== undefined ? (
             <span className="flex items-center gap-1">
               <Thermometer className="w-3.5 h-3.5" />
               <span>{room.temperature.toFixed(1)}°</span>
+            </span>
+          ) : room.totalLights > 0 && (
+            <span className="flex items-center gap-1">
+              {displayLightsOn ? (
+                <Lightbulb className="w-3.5 h-3.5 text-accent" />
+              ) : (
+                <LightbulbOff className="w-3.5 h-3.5 text-muted" />
+              )}
+              <span>
+                {displayLightsOn
+                  ? interpolate(t.devices.lightsOn, { count: optimisticLightsOn !== null ? room.totalLights : room.lightsOn })
+                  : t.devices.lightsOff}
+              </span>
             </span>
           )}
 
@@ -402,7 +422,7 @@ export function RoomCard({
                 }
                 onToggleExpand()
               }}
-              className="p-1.5 -mr-1.5 rounded-lg hover:bg-border/50 transition-colors touch-feedback"
+              className="absolute inset-0 -mx-4 -my-2 px-4 py-2 flex items-center justify-end hover:bg-border/30 transition-colors touch-feedback"
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
             >
               <motion.div

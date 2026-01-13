@@ -145,6 +145,23 @@ function DashboardContent() {
     setOrderedRooms(newOrder)
   }, [])
 
+  // Collapse expanded room when clicking on empty area (gaps between cards)
+  const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
+    if (!expandedRoomId) return
+
+    // Check if the click target is a card or inside a card
+    const target = e.target as HTMLElement
+    const isInsideCard = target.closest('.card')
+
+    if (!isInsideCard) {
+      // Exit device edit mode if active
+      if (isDeviceEditMode) {
+        exitEditMode()
+      }
+      setExpandedRoomId(null)
+    }
+  }, [expandedRoomId, isDeviceEditMode, exitEditMode])
+
   const handleViewUncategorized = useCallback(() => {
     setSelectedFloorId('__uncategorized__' as unknown as string)
   }, [])
@@ -238,7 +255,7 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4" onClick={handleBackgroundClick}>
         {/* Uncategorized view or Rooms grid */}
         <section>
           {selectedFloorId === '__uncategorized__' ? (
