@@ -105,22 +105,30 @@ function DashboardContent() {
   }, [mode.type, orderedRooms, setAreaOrder])
 
   // Sync orderedRooms with filteredRooms data while preserving order
-  // This ensures edits (name, icon changes) are reflected immediately
+  // This ensures edits (name, icon changes) and deletions are reflected immediately
   useEffect(() => {
     if (!isRoomEditMode || orderedRooms.length === 0) return
 
     // Use areaId for matching since room.id is derived from name and changes when renamed
     const roomDataByAreaId = new Map(filteredRooms.map(r => [r.areaId, r]))
-    const needsUpdate = orderedRooms.some(ordered => {
+
+    // Check if any rooms were deleted
+    const hasDeletedRooms = orderedRooms.some(ordered => !roomDataByAreaId.has(ordered.areaId))
+
+    // Check if any rooms need data updates
+    const needsDataUpdate = orderedRooms.some(ordered => {
       const fresh = roomDataByAreaId.get(ordered.areaId)
       return fresh && (fresh.name !== ordered.name || fresh.icon !== ordered.icon || fresh.id !== ordered.id)
     })
 
-    if (needsUpdate) {
-      setOrderedRooms(prev => prev.map(ordered => {
-        const fresh = roomDataByAreaId.get(ordered.areaId)
-        return fresh || ordered
-      }).filter(r => roomDataByAreaId.has(r.areaId)))
+    if (hasDeletedRooms || needsDataUpdate) {
+      setOrderedRooms(prev => prev
+        .filter(r => roomDataByAreaId.has(r.areaId))
+        .map(ordered => {
+          const fresh = roomDataByAreaId.get(ordered.areaId)
+          return fresh || ordered
+        })
+      )
     }
   }, [isRoomEditMode, filteredRooms, orderedRooms])
 
@@ -339,12 +347,11 @@ function DashboardContent() {
               getKey={(room) => room.id}
               columns={2}
               gap={12}
-              renderItem={(room, index, isDraggingAny, isActive) => (
+              renderItem={(room, index) => (
                 <RoomCard
                   room={room}
                   index={index}
                   isExpanded={false}
-                  isDragging={isActive}
                   onToggleExpand={() => {}}
                   onEdit={() => handleEditRoom(room)}
                 />

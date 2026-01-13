@@ -42,6 +42,8 @@
   body {
     @apply bg-background text-foreground font-satoshi antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -158,12 +160,12 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .wiggle {
-  animation: wiggle 0.12s ease-in-out infinite;
+  animation: wiggle 0.18s ease-in-out infinite;
   transform-origin: center center;
 }
 
 .wiggle-alt {
-  animation: wiggle-alt 0.11s ease-in-out infinite;
+  animation: wiggle-alt 0.16s ease-in-out infinite;
   transform-origin: center center;
 }
 

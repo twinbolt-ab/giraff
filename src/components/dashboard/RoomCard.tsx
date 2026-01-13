@@ -1,7 +1,7 @@
 import { useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
-import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, GripVertical, Sparkles } from 'lucide-react'
+import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, Sparkles } from 'lucide-react'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { RoomExpanded } from './RoomExpanded'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -23,15 +23,9 @@ interface RoomCardProps {
   allRooms?: RoomWithDevices[]
   index: number
   isExpanded: boolean
-  isDragging?: boolean
-  isDragOver?: boolean
   shouldShowScenes?: boolean
   onToggleExpand: () => void
   onEdit?: () => void
-  onDragStart?: () => void
-  onDragOver?: () => void
-  onDrop?: () => void
-  onDragEnd?: () => void
 }
 
 export function RoomCard({
@@ -39,15 +33,9 @@ export function RoomCard({
   allRooms = [],
   index,
   isExpanded,
-  isDragging = false,
-  isDragOver = false,
   shouldShowScenes = false,
   onToggleExpand,
   onEdit,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  onDragEnd,
 }: RoomCardProps) {
   const { setRoomBrightness, getAverageBrightness, toggleRoomLights, getLightBrightnessMap, calculateRelativeBrightness } = useLightControl()
   const { callService } = useHAConnection()
@@ -211,9 +199,6 @@ export function RoomCard({
     'card w-full text-left relative overflow-hidden',
     !isInEditMode && 'transition-all duration-200',
     isExpanded ? 'p-4 col-span-2' : 'px-4 py-1.5',
-    isInEditMode && 'cursor-grab active:cursor-grabbing',
-    isDragging && 'opacity-50 scale-95',
-    isDragOver && 'ring-2 ring-accent scale-105',
     isThisRoomSelected && 'ring-2 ring-accent'
   )
 
@@ -266,7 +251,6 @@ export function RoomCard({
               >
                 {isThisRoomSelected && <Check className="w-3 h-3" />}
               </button>
-              <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
             </div>
           )}
 
@@ -364,27 +348,11 @@ export function RoomCard({
     </>
   )
 
-  // Edit mode: use regular div with drag handlers
+  // Edit mode: use regular div (ReorderableGrid handles drag via touch/pointer events)
   if (isInEditMode) {
     return (
       <div
-        draggable
         onClick={handleToggleSelection}
-        onDragStart={(e) => {
-          e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', String(index))
-          onDragStart?.()
-        }}
-        onDragOver={(e) => {
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'move'
-          onDragOver?.()
-        }}
-        onDrop={(e) => {
-          e.preventDefault()
-          onDrop?.()
-        }}
-        onDragEnd={() => onDragEnd?.()}
         className={cardClassName}
       >
         {cardContent}
