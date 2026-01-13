@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 
+const LONG_PRESS_DURATION = 400
+
 interface ReorderableGridProps<T> {
   items: T[]
   renderItem: (item: T, index: number, isDragging: boolean, isActive: boolean) => React.ReactNode
@@ -30,6 +32,11 @@ export function ReorderableGrid<T>({
   const [orderedItems, setOrderedItems] = useState<T[]>(items)
   const [cellSize, setCellSize] = useState({ width: 0, height: 0 })
   const [containerWidth, setContainerWidth] = useState(0)
+
+  // Long-press state for drag activation
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [pendingDragIndex, setPendingDragIndex] = useState<number | null>(null)
+  const pendingDragPosRef = useRef({ x: 0, y: 0 })
 
   // Sync items when they change externally
   useEffect(() => {
@@ -100,12 +107,42 @@ export function ReorderableGrid<T>({
     return Math.min(orderedItems.length - 1, Math.max(0, index))
   }, [columns, gap, cellSize, orderedItems.length])
 
-  // Handle drag start
+  // Clear long-press timer
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+    setPendingDragIndex(null)
+  }, [])
+
+  // Handle drag start (called after long-press completes)
   const handleDragStart = useCallback((index: number, clientX: number, clientY: number) => {
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(50)
+    }
     setDraggedIndex(index)
     setDragStartPos({ x: clientX, y: clientY })
     setDragOffset({ x: 0, y: 0 })
   }, [])
+
+  // Handle pointer down - start long-press timer
+  const handlePointerDown = useCallback((index: number, clientX: number, clientY: number) => {
+    clearLongPressTimer()
+    setPendingDragIndex(index)
+    pendingDragPosRef.current = { x: clientX, y: clientY }
+
+    longPressTimerRef.current = setTimeout(() => {
+      handleDragStart(index, clientX, clientY)
+      longPressTimerRef.current = null
+    }, LONG_PRESS_DURATION)
+  }, [clearLongPressTimer, handleDragStart])
+
+  // Handle pointer cancel (movement before long-press completes)
+  const handlePointerCancel = useCallback(() => {
+    clearLongPressTimer()
+  }, [clearLongPressTimer])
 
   // Handle drag move
   const handleDragMove = useCallback((clientX: number, clientY: number) => {
@@ -138,18 +175,19 @@ export function ReorderableGrid<T>({
 
   // Handle drag end
   const handleDragEnd = useCallback(() => {
+    clearLongPressTimer()
     if (draggedIndex !== null) {
       onReorder(orderedItems)
     }
     setDraggedIndex(null)
     setDragOffset({ x: 0, y: 0 })
-  }, [draggedIndex, orderedItems, onReorder])
+  }, [draggedIndex, orderedItems, onReorder, clearLongPressTimer])
 
   // Touch handlers
   const handleTouchStart = useCallback((index: number) => (e: React.TouchEvent) => {
     const touch = e.touches[0]
-    handleDragStart(index, touch.clientX, touch.clientY)
-  }, [handleDragStart])
+    handlePointerDown(index, touch.clientX, touch.clientY)
+  }, [handlePointerDown])
 
   // Use native event listener for touchmove to allow preventDefault with passive: false
   useEffect(() => {
@@ -157,9 +195,20 @@ export function ReorderableGrid<T>({
     if (!container) return
 
     const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0]
+
+      // If still waiting for long-press, check if moved too far
+      if (pendingDragIndex !== null && draggedIndex === null) {
+        const dx = touch.clientX - pendingDragPosRef.current.x
+        const dy = touch.clientY - pendingDragPosRef.current.y
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          handlePointerCancel()
+          return
+        }
+      }
+
       if (draggedIndex === null) return
       e.preventDefault()
-      const touch = e.touches[0]
       handleDragMove(touch.clientX, touch.clientY)
     }
 
@@ -174,19 +223,31 @@ export function ReorderableGrid<T>({
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [draggedIndex, handleDragMove, handleDragEnd])
+  }, [draggedIndex, pendingDragIndex, handleDragMove, handleDragEnd, handlePointerCancel])
 
   // Mouse handlers
   const handleMouseDown = useCallback((index: number) => (e: React.MouseEvent) => {
     e.preventDefault()
-    handleDragStart(index, e.clientX, e.clientY)
-  }, [handleDragStart])
+    handlePointerDown(index, e.clientX, e.clientY)
+  }, [handlePointerDown])
 
   useEffect(() => {
-    if (draggedIndex === null) return
+    if (draggedIndex === null && pendingDragIndex === null) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      handleDragMove(e.clientX, e.clientY)
+      // If still waiting for long-press, check if moved too far
+      if (pendingDragIndex !== null && draggedIndex === null) {
+        const dx = e.clientX - pendingDragPosRef.current.x
+        const dy = e.clientY - pendingDragPosRef.current.y
+        if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+          handlePointerCancel()
+          return
+        }
+      }
+
+      if (draggedIndex !== null) {
+        handleDragMove(e.clientX, e.clientY)
+      }
     }
 
     const handleMouseUp = () => {
@@ -200,7 +261,7 @@ export function ReorderableGrid<T>({
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [draggedIndex, handleDragMove, handleDragEnd])
+  }, [draggedIndex, pendingDragIndex, handleDragMove, handleDragEnd, handlePointerCancel])
 
   // Click outside to save
   useEffect(() => {
@@ -245,6 +306,8 @@ export function ReorderableGrid<T>({
         const key = getKey(item)
         const isDragging = draggedIndex === index
         const position = getPositionFromIndex(index)
+        // Apply wiggle to non-dragged items when something is being dragged
+        const shouldWiggle = draggedIndex !== null && !isDragging
 
         return (
           <motion.div
@@ -281,7 +344,7 @@ export function ReorderableGrid<T>({
             onTouchStart={handleTouchStart(index)}
             onMouseDown={handleMouseDown(index)}
           >
-            <div>
+            <div className={clsx(shouldWiggle && (index % 2 === 0 ? 'wiggle' : 'wiggle-alt'))}>
               {renderItem(item, index, draggedIndex !== null, isDragging)}
             </div>
           </motion.div>
