@@ -219,5 +219,10 @@
       "confirm": "Are you sure you want to delete \"{name}\"? This will permanently remove it from Home Assistant.",
       "deleting": "Deleting..."
     }
+  },
+  "sessionExpired": {
+    "title": "Session Expired",
+    "message": "Your Home Assistant session has expired. Please sign in again to continue.",
+    "signIn": "Sign In"
   }
 }

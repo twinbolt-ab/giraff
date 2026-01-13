@@ -44,7 +44,7 @@ export function RoomCard({
   onDrop,
   onDragEnd,
 }: RoomCardProps) {
-  const { setRoomBrightness, getAverageBrightness, toggleRoomLights } = useLightControl()
+  const { setRoomBrightness, getAverageBrightness, toggleRoomLights, getLightBrightnessMap, calculateRelativeBrightness } = useLightControl()
 
   // Get edit mode state from context
   const {
@@ -71,10 +71,12 @@ export function RoomCard({
   const [isBrightnessDragging, setIsBrightnessDragging] = useState(false)
   const [localBrightness, setLocalBrightness] = useState(initialBrightness)
   const [showBrightnessOverlay, setShowBrightnessOverlay] = useState(false)
+  const [useOptimisticValue, setUseOptimisticValue] = useState(false)
 
-  const dragStartRef = useRef<{ x: number; y: number; brightness: number } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number; brightness: number; brightnessMap: Map<string, number> } | null>(null)
   const cardRef = useRef<HTMLDivElement>(null)
   const didDragRef = useRef(false)
+  const optimisticTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   // Scroll when expanded if card would extend below visible area
   useEffect(() => {
@@ -111,14 +113,17 @@ export function RoomCard({
     if (!hasLights || isInEditMode || isExpanded) return
 
     didDragRef.current = false
-    const currentBrightness = isBrightnessDragging ? localBrightness : getAverageBrightness(lights)
+    // Use local brightness if dragging or in optimistic period, otherwise use HA value
+    const currentBrightness = isBrightnessDragging || useOptimisticValue ? localBrightness : getAverageBrightness(lights)
+    const brightnessMap = getLightBrightnessMap(lights)
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
       brightness: currentBrightness,
+      brightnessMap,
     }
     setLocalBrightness(currentBrightness)
-  }, [hasLights, isBrightnessDragging, localBrightness, getAverageBrightness, lights, isInEditMode, isExpanded])
+  }, [hasLights, isBrightnessDragging, useOptimisticValue, localBrightness, getAverageBrightness, getLightBrightnessMap, lights, isInEditMode, isExpanded])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     if (isInEditMode) return
@@ -180,20 +185,44 @@ export function RoomCard({
 
       newBrightness = Math.max(0, Math.min(100, newBrightness))
       setLocalBrightness(Math.round(newBrightness))
-      setRoomBrightness(lights, Math.round(newBrightness))
+
+      // Calculate relative brightness for each light based on the ratio change
+      const relativeBrightness = calculateRelativeBrightness(
+        dragStartRef.current.brightnessMap,
+        startBrightness,
+        newBrightness
+      )
+      setRoomBrightness(lights, relativeBrightness)
     }
-  }, [hasLights, isBrightnessDragging, lights, setRoomBrightness, isInEditMode])
+  }, [hasLights, isBrightnessDragging, lights, setRoomBrightness, calculateRelativeBrightness, isInEditMode])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    if (isBrightnessDragging) {
-      setRoomBrightness(lights, localBrightness, true)
+    if (isBrightnessDragging && dragStartRef.current) {
+      // Calculate final relative brightness for each light
+      const relativeBrightness = calculateRelativeBrightness(
+        dragStartRef.current.brightnessMap,
+        dragStartRef.current.brightness,
+        localBrightness
+      )
+      setRoomBrightness(lights, relativeBrightness, true)
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
+
+      // Use optimistic value for 5 seconds, then sync with HA
+      setUseOptimisticValue(true)
+      if (optimisticTimerRef.current) {
+        clearTimeout(optimisticTimerRef.current)
+      }
+      optimisticTimerRef.current = setTimeout(() => {
+        setUseOptimisticValue(false)
+        optimisticTimerRef.current = null
+      }, 5000)
+
       setTimeout(() => setShowBrightnessOverlay(false), 300)
     }
 
     setIsBrightnessDragging(false)
     dragStartRef.current = null
-  }, [isBrightnessDragging, lights, localBrightness, setRoomBrightness])
+  }, [isBrightnessDragging, lights, localBrightness, setRoomBrightness, calculateRelativeBrightness])
 
   const handleCardClick = useCallback(() => {
     if (isInEditMode || didDragRef.current) return
@@ -218,7 +247,17 @@ export function RoomCard({
     toggleSelection(room.id)
   }, [toggleSelection, room.id])
 
-  const displayBrightness = isBrightnessDragging ? localBrightness : initialBrightness
+  // Cleanup optimistic timer on unmount
+  useEffect(() => {
+    return () => {
+      if (optimisticTimerRef.current) {
+        clearTimeout(optimisticTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Show local brightness while dragging or during optimistic period, otherwise use HA value
+  const displayBrightness = isBrightnessDragging || useOptimisticValue ? localBrightness : initialBrightness
 
   const cardClassName = clsx(
     'card w-full text-left relative overflow-hidden',
