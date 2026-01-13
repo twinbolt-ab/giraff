@@ -54,6 +54,8 @@ export function RoomCard({
     isSelected,
     toggleSelection,
     exitEditMode,
+    enterRoomEdit,
+    enterDeviceEdit,
   } = useEditMode()
 
   // Derive if this card is in an edit mode
@@ -78,6 +80,8 @@ export function RoomCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const didDragRef = useRef(false)
   const optimisticTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const didLongPressRef = useRef(false)
 
   // Scroll when expanded if card would extend below visible area
   useEffect(() => {
@@ -109,11 +113,43 @@ export function RoomCard({
     }
   }, [isExpanded])
 
+  // Long press duration in ms
+  const LONG_PRESS_DURATION = 500
+
+  // Clear long press timer
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current)
+      longPressTimerRef.current = null
+    }
+  }, [])
+
   // Swipe gesture handlers - disabled when expanded
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    didDragRef.current = false
+    didLongPressRef.current = false
+    clearLongPressTimer()
+
+    // Start long-press timer for entering edit mode (only when not already in edit mode)
+    if (!isInEditMode && !isExpanded) {
+      longPressTimerRef.current = setTimeout(() => {
+        didLongPressRef.current = true
+        // Enter room edit mode or device edit mode depending on context
+        if (isExpanded) {
+          enterDeviceEdit(room.id)
+        } else {
+          enterRoomEdit()
+        }
+        // Provide haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(50)
+        }
+      }, LONG_PRESS_DURATION)
+    }
+
+    // Brightness drag setup (only for collapsed cards with lights)
     if (!hasLights || isInEditMode || isExpanded) return
 
-    didDragRef.current = false
     // Use local brightness if dragging or in optimistic period, otherwise use HA value
     const currentBrightness = isBrightnessDragging || useOptimisticValue ? localBrightness : getAverageBrightness(lights)
     const brightnessMap = getLightBrightnessMap(lights)
@@ -124,9 +160,18 @@ export function RoomCard({
       brightnessMap,
     }
     setLocalBrightness(currentBrightness)
-  }, [hasLights, isBrightnessDragging, useOptimisticValue, localBrightness, getAverageBrightness, getLightBrightnessMap, lights, isInEditMode, isExpanded])
+  }, [hasLights, isBrightnessDragging, useOptimisticValue, localBrightness, getAverageBrightness, getLightBrightnessMap, lights, isInEditMode, isExpanded, clearLongPressTimer, enterRoomEdit, enterDeviceEdit, room.id])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    // Cancel long-press if user moves more than a small threshold
+    if (longPressTimerRef.current) {
+      const dx = dragStartRef.current ? Math.abs(e.clientX - dragStartRef.current.x) : 0
+      const dy = dragStartRef.current ? Math.abs(e.clientY - dragStartRef.current.y) : 0
+      if (dx > 10 || dy > 10) {
+        clearLongPressTimer()
+      }
+    }
+
     if (isInEditMode) return
 
     if (!dragStartRef.current || !hasLights) return
@@ -195,9 +240,18 @@ export function RoomCard({
       )
       setRoomBrightness(lights, relativeBrightness)
     }
-  }, [hasLights, isBrightnessDragging, lights, setRoomBrightness, calculateRelativeBrightness, isInEditMode])
+  }, [hasLights, isBrightnessDragging, lights, setRoomBrightness, calculateRelativeBrightness, isInEditMode, clearLongPressTimer])
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    // Clear long-press timer
+    clearLongPressTimer()
+
+    // If long-press triggered, don't process as a normal tap
+    if (didLongPressRef.current) {
+      didLongPressRef.current = false
+      return
+    }
+
     if (isBrightnessDragging && dragStartRef.current) {
       // Calculate final relative brightness for each light
       const relativeBrightness = calculateRelativeBrightness(
@@ -223,7 +277,7 @@ export function RoomCard({
 
     setIsBrightnessDragging(false)
     dragStartRef.current = null
-  }, [isBrightnessDragging, lights, localBrightness, setRoomBrightness, calculateRelativeBrightness])
+  }, [isBrightnessDragging, lights, localBrightness, setRoomBrightness, calculateRelativeBrightness, clearLongPressTimer])
 
   const handleCardClick = useCallback(() => {
     if (isInEditMode || didDragRef.current) return
@@ -268,11 +322,14 @@ export function RoomCard({
     toggleSelection(room.id)
   }, [toggleSelection, room.id])
 
-  // Cleanup optimistic timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (optimisticTimerRef.current) {
         clearTimeout(optimisticTimerRef.current)
+      }
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
       }
     }
   }, [])
