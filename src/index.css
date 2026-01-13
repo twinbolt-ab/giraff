@@ -80,6 +80,7 @@
 @media (hover: none) {
   .touch-feedback {
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   .touch-feedback:active {

@@ -175,7 +175,7 @@ function DashboardContent() {
   const gridRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="min-h-screen bg-background pb-nav">
+    <div className="min-h-screen bg-background pt-safe pb-nav">
       {/* Edit mode header bar */}
       <AnimatePresence>
         {isEditMode && (

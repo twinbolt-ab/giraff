@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Giraff',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
+    androidScheme: 'http',
   },
   ios: {
     contentInset: 'automatic',

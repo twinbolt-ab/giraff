@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Pencil, X, Wifi, Layers, Package, Eye, EyeOff } from 'lucide-react'
@@ -27,14 +27,39 @@ export function SettingsMenu({
   const [showDomainConfig, setShowDomainConfig] = useState(false)
   const { showHiddenItems, setShowHiddenItems } = useEnabledDomains()
   const y = useMotionValue(0)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
-  const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // Release any pointer capture to prevent blocking subsequent touches
+    if (sheetRef.current && 'pointerId' in event) {
+      try {
+        sheetRef.current.releasePointerCapture((event as PointerEvent).pointerId)
+      } catch {
+        // Ignore if pointer capture wasn't held
+      }
+    }
+
+    // Blur any focused element to reset touch state
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur()
+    }
+
     if (info.offset.y > 100 || info.velocity.y > 500) {
       onClose()
+    } else {
+      // Reset y if not closing
+      y.set(0)
     }
   }
 
-  // Close on escape key
+  // Reset y motion value when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      y.set(0)
+    }
+  }, [isOpen, y])
+
+  // Close on escape key and manage body scroll
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -43,6 +68,9 @@ export function SettingsMenu({
       document.addEventListener('keydown', handleEscape)
       // Prevent body scroll when menu is open
       document.body.style.overflow = 'hidden'
+    } else {
+      // Immediately restore scroll when closing (don't wait for cleanup)
+      document.body.style.overflow = ''
     }
     return () => {
       document.removeEventListener('keydown', handleEscape)
@@ -70,9 +98,9 @@ export function SettingsMenu({
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, pointerEvents: 'none' as const }}
+            animate={{ opacity: 1, pointerEvents: 'auto' as const }}
+            exit={{ opacity: 0, pointerEvents: 'none' as const }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             onClick={onClose}
@@ -80,9 +108,10 @@ export function SettingsMenu({
 
           {/* Bottom Sheet */}
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            ref={sheetRef}
+            initial={{ y: '100%', pointerEvents: 'none' as const }}
+            animate={{ y: 0, pointerEvents: 'auto' as const }}
+            exit={{ y: '100%', pointerEvents: 'none' as const }}
             transition={{ type: 'spring', damping: 30, stiffness: 400 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
