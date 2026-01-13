@@ -1,20 +1,17 @@
 #!/bin/sh
 set -e
 
-# Export environment variables for the app
-export HA_ADDON=true
-export NODE_ENV=production
-
-cd /app
-
 echo "=========================================="
 echo "Starting Giraff Dashboard"
 echo "=========================================="
 
-# Start nginx in background (reverse proxy on port 3001)
-echo "Starting nginx reverse proxy..."
-nginx
+# Inject addon credentials into index.html if running as addon
+if [ -n "$SUPERVISOR_TOKEN" ]; then
+  echo "Running as Home Assistant addon, injecting credentials..."
+  INJECT_SCRIPT="<script>window.__HA_ADDON__=true;window.__HA_URL__='http://supervisor/core';window.__HA_TOKEN__='$SUPERVISOR_TOKEN';</script>"
+  sed -i "s|</head>|$INJECT_SCRIPT</head>|" /var/www/html/index.html
+fi
 
-# Start Next.js on port 3000 (nginx proxies to it)
-echo "Starting Next.js server on port 3000..."
-exec npm run start:internal
+# Start nginx (foreground mode)
+echo "Starting nginx on port 3001..."
+exec nginx -g 'daemon off;'
