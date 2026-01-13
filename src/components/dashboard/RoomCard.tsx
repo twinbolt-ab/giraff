@@ -27,6 +27,9 @@ interface RoomCardProps {
 // Minimum drag distance to trigger brightness change (prevents accidental drags)
 const DRAG_THRESHOLD = 10
 
+// Margins for brightness slider (0% at left margin, 100% at right margin)
+const SLIDER_MARGIN = 24
+
 export function RoomCard({
   room,
   allRooms = [],
@@ -98,12 +101,13 @@ export function RoomCard({
     if (!hasLights || isInEditMode || isExpanded) return
 
     didDragRef.current = false
+    const currentBrightness = isBrightnessDragging ? localBrightness : getAverageBrightness(lights)
     dragStartRef.current = {
       x: e.clientX,
       y: e.clientY,
-      brightness: isBrightnessDragging ? localBrightness : getAverageBrightness(lights),
+      brightness: currentBrightness,
     }
-    setLocalBrightness(dragStartRef.current.brightness)
+    setLocalBrightness(currentBrightness)
   }, [hasLights, isBrightnessDragging, localBrightness, getAverageBrightness, lights, isInEditMode, isExpanded])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -133,9 +137,38 @@ export function RoomCard({
     }
 
     if (isBrightnessDragging) {
-      // Map screen position to brightness: left edge = 0%, right edge = 100%
-      const screenWidth = window.innerWidth
-      const newBrightness = Math.max(0, Math.min(100, (e.clientX / screenWidth) * 100))
+      // Stretched scale mapping:
+      // - Left margin = 0%, right margin = 100%
+      // - Touch start position = starting brightness
+      // - Scale stretches/compresses on each side to make this work
+      const leftEdge = SLIDER_MARGIN
+      const rightEdge = window.innerWidth - SLIDER_MARGIN
+      const startX = dragStartRef.current.x
+      const startBrightness = dragStartRef.current.brightness
+
+      let newBrightness: number
+
+      if (e.clientX <= startX) {
+        // Dragging left: map [leftEdge, startX] to [0%, startBrightness%]
+        const range = startX - leftEdge
+        if (range > 0) {
+          const ratio = (e.clientX - leftEdge) / range
+          newBrightness = ratio * startBrightness
+        } else {
+          newBrightness = 0
+        }
+      } else {
+        // Dragging right: map [startX, rightEdge] to [startBrightness%, 100%]
+        const range = rightEdge - startX
+        if (range > 0) {
+          const ratio = (e.clientX - startX) / range
+          newBrightness = startBrightness + ratio * (100 - startBrightness)
+        } else {
+          newBrightness = 100
+        }
+      }
+
+      newBrightness = Math.max(0, Math.min(100, newBrightness))
       setLocalBrightness(Math.round(newBrightness))
       setRoomBrightness(lights, Math.round(newBrightness))
     }
