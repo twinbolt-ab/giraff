@@ -10,8 +10,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-41BDF5?logo=home-assistant&logoColor=white" alt="Home Assistant">
+  <img src="https://img.shields.io/badge/iOS-17+-000000?logo=apple&logoColor=white" alt="iOS">
+  <img src="https://img.shields.io/badge/Android-14+-3DDC84?logo=android&logoColor=white" alt="Android">
   <img src="https://img.shields.io/badge/license-ELv2-blue" alt="License">
-  <img src="https://img.shields.io/badge/status-beta-orange" alt="Status">
 </p>
 
 ---
@@ -34,7 +35,11 @@ https://github.com/twinbolt-ab/giraff/raw/main/public/giraff-demo.mp4
 
 ## Installation
 
-### Home Assistant Add-on (Recommended)
+### iOS & Android (Coming Soon)
+
+Native apps for iOS and Android are in development and will be available on the App Store and Google Play.
+
+### Home Assistant Add-on
 
 1. Go to **Settings → Add-ons → Add-on Store**
 2. Click ⋮ → **Repositories** → Add: `https://github.com/twinbolt-ab/giraff`
@@ -46,10 +51,10 @@ https://github.com/twinbolt-ab/giraff/raw/main/public/giraff-demo.mp4
 ### Docker
 
 ```bash
-docker run -d --name giraff -p 3000:3000 ghcr.io/twinbolt-ab/giraff:latest
+docker run -d --name giraff -p 3001:3001 ghcr.io/twinbolt-ab/giraff:latest
 ```
 
-Open `http://localhost:3000` and follow the setup wizard.
+Open `http://localhost:3001` and follow the setup wizard.
 
 <details>
 <summary>Docker Compose</summary>
@@ -59,7 +64,7 @@ services:
   giraff:
     image: ghcr.io/twinbolt-ab/giraff:latest
     ports:
-      - "3000:3000"
+      - "3001:3001"
     restart: unless-stopped
 ```
 
@@ -79,6 +84,37 @@ services:
 | Switches | On/off toggle |
 
 **Organization:** Edit mode for renaming/reordering, floor management, room management, domain filtering.
+
+---
+
+## Development
+
+Giraff is built with Vite, React, and Capacitor.
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Build for iOS (requires Xcode)
+npm run ios
+
+# Build for Android (requires Android Studio)
+npm run android
+```
+
+### Tech Stack
+
+- **Build**: Vite
+- **UI**: React 18, Tailwind CSS, Framer Motion
+- **State**: TanStack Query
+- **Native**: Capacitor (iOS/Android)
+- **Connection**: WebSocket to Home Assistant
 
 ---
 
