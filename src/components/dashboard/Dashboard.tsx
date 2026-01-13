@@ -89,6 +89,9 @@ function DashboardContent() {
         .filter(item => item.areaId)
 
       Promise.all(updates.map(({ areaId, order }) => setAreaOrder(areaId!, order)))
+
+      // Clear orderedRooms so it gets re-initialized next time
+      setOrderedRooms([])
     }
 
     prevModeTypeRef.current = mode.type
@@ -133,9 +136,15 @@ function DashboardContent() {
       enterDeviceEdit(expandedRoomId)
     } else {
       enterRoomEdit()
+    }
+  }, [selectedFloorId, expandedRoomId, enterRoomEdit, enterDeviceEdit, enterUncategorizedEdit])
+
+  // Initialize orderedRooms when entering room edit mode (works for both menu and long-press)
+  useEffect(() => {
+    if (isRoomEditMode && orderedRooms.length === 0 && filteredRooms.length > 0) {
       setOrderedRooms([...filteredRooms])
     }
-  }, [selectedFloorId, expandedRoomId, filteredRooms, enterRoomEdit, enterDeviceEdit, enterUncategorizedEdit])
+  }, [isRoomEditMode, orderedRooms.length, filteredRooms])
 
   const handleExitEditMode = useCallback(() => {
     exitEditMode()
@@ -145,22 +154,27 @@ function DashboardContent() {
     setOrderedRooms(newOrder)
   }, [])
 
-  // Collapse expanded room when clicking on empty area (gaps between cards)
+  // Handle clicks on empty area (gaps between cards)
+  // - Collapse expanded room if one is expanded
+  // - Exit edit mode if in edit mode
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
-    if (!expandedRoomId) return
-
     // Check if the click target is a card or inside a card
     const target = e.target as HTMLElement
     const isInsideCard = target.closest('.card')
 
     if (!isInsideCard) {
-      // Exit device edit mode if active
-      if (isDeviceEditMode) {
+      // Exit any edit mode when clicking outside cards
+      if (isEditMode) {
         exitEditMode()
+        return
       }
-      setExpandedRoomId(null)
+
+      // Collapse expanded room
+      if (expandedRoomId) {
+        setExpandedRoomId(null)
+      }
     }
-  }, [expandedRoomId, isDeviceEditMode, exitEditMode])
+  }, [expandedRoomId, isEditMode, exitEditMode])
 
   const handleViewUncategorized = useCallback(() => {
     setSelectedFloorId('__uncategorized__' as unknown as string)
