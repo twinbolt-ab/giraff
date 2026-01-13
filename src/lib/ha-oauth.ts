@@ -18,6 +18,7 @@ export interface StoredOAuthCredentials {
   refresh_token: string
   expires_at: number // Unix timestamp (ms)
   ha_url: string
+  client_id?: string // Store the client_id used during auth for consistent refresh
 }
 
 // Check if running as a native Capacitor app
@@ -94,12 +95,15 @@ export async function exchangeCodeForTokens(
 // Refresh the access token using refresh token
 export async function refreshAccessToken(
   haUrl: string,
-  refreshToken: string
+  refreshToken: string,
+  clientId?: string
 ): Promise<OAuthTokens> {
+  // Use stored client_id if provided, otherwise fall back to current
+  const effectiveClientId = clientId || getClientId(haUrl)
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
-    client_id: getClientId(haUrl),
+    client_id: effectiveClientId,
   })
 
   const response = await fetch(`${haUrl}/auth/token`, {
@@ -111,7 +115,9 @@ export async function refreshAccessToken(
   })
 
   if (!response.ok) {
-    throw new Error('Token refresh failed')
+    const errorText = await response.text()
+    console.error('[OAuth] Refresh failed:', response.status, errorText)
+    throw new Error(`Token refresh failed: ${response.status} ${errorText}`)
   }
 
   return response.json()
@@ -145,16 +151,20 @@ const OAUTH_STORAGE_KEYS = {
 // Store OAuth credentials
 export async function storeOAuthCredentials(
   haUrl: string,
-  tokens: OAuthTokens
+  tokens: OAuthTokens,
+  clientId?: string
 ): Promise<void> {
   console.log('[OAuth] storeOAuthCredentials called with URL:', haUrl)
   console.log('[OAuth] Token expires_in:', tokens.expires_in)
   const storage = getStorage()
+  // Use provided clientId or get current one - store it for consistent refresh
+  const storedClientId = clientId || getClientId(haUrl)
   const credentials: StoredOAuthCredentials = {
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
     expires_at: Date.now() + tokens.expires_in * 1000,
     ha_url: haUrl,
+    client_id: storedClientId,
   }
   console.log('[OAuth] Storing credentials, expires_at:', new Date(credentials.expires_at).toISOString())
   await storage.setItem(OAUTH_STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
@@ -243,8 +253,9 @@ export async function getValidAccessToken(): Promise<{
 
   // Token is expired, try to refresh
   try {
-    const newTokens = await refreshAccessToken(creds.ha_url, creds.refresh_token)
-    await storeOAuthCredentials(creds.ha_url, newTokens)
+    // Use stored client_id to ensure refresh works even if accessed from different URL
+    const newTokens = await refreshAccessToken(creds.ha_url, creds.refresh_token, creds.client_id)
+    await storeOAuthCredentials(creds.ha_url, newTokens, creds.client_id)
     return { token: newTokens.access_token, haUrl: creds.ha_url }
   } catch (error) {
     console.error('[OAuth] Token refresh failed:', error)

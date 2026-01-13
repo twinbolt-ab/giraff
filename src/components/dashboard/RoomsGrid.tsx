@@ -1,4 +1,3 @@
-import { useRef } from 'react'
 import { LayoutGroup } from 'framer-motion'
 import { RoomCard } from './RoomCard'
 import { ReorderableGrid } from './ReorderableGrid'
@@ -17,6 +16,7 @@ interface RoomsGridProps {
   shouldShowScenes: boolean
   onReorder: (rooms: RoomWithDevices[]) => void
   onToggleExpand: (roomId: string) => void
+  onClickOutside?: () => void
 }
 
 export function RoomsGrid({
@@ -30,9 +30,8 @@ export function RoomsGrid({
   shouldShowScenes,
   onReorder,
   onToggleExpand,
+  onClickOutside,
 }: RoomsGridProps) {
-  const gridRef = useRef<HTMLDivElement>(null)
-
   // Uncategorized view
   if (selectedFloorId === '__uncategorized__') {
     return <UncategorizedView allRooms={allRooms} />
@@ -59,6 +58,7 @@ export function RoomsGrid({
       <ReorderableGrid
         items={orderedRooms}
         onReorder={onReorder}
+        onClickOutside={onClickOutside}
         getKey={(room) => room.id}
         columns={2}
         gap={12}
@@ -66,6 +66,7 @@ export function RoomsGrid({
           <RoomCard
             room={room}
             isExpanded={false}
+            shouldShowScenes={shouldShowScenes}
             onToggleExpand={() => {}}
           />
         )}
@@ -76,7 +77,7 @@ export function RoomsGrid({
   // Normal grid view
   return (
     <LayoutGroup>
-      <div ref={gridRef} className="grid grid-cols-2 gap-[12px]">
+      <div className="grid grid-cols-2 gap-[12px]">
         {displayRooms.map((room) => (
           <RoomCard
             key={room.id}
