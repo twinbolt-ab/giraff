@@ -102,6 +102,13 @@
       "title": "Show hidden items",
       "description": "Display entities hidden in Home Assistant"
     },
+    "showScenes": {
+      "title": "Show scenes",
+      "description": "Display scene shortcuts on room cards",
+      "auto": "Auto",
+      "on": "On",
+      "off": "Off"
+    },
     "connection": {
       "title": "Connection",
       "description": "Manage Home Assistant connection",
@@ -191,6 +198,8 @@
     "selectAll": "Select All",
     "deselectAll": "Clear",
     "editSelected": "Edit",
+    "editRoom": "Edit room",
+    "editDevice": "Edit device",
     "rooms": {
       "title": "Edit {count} Rooms",
       "moveToFloor": "Move to floor"
