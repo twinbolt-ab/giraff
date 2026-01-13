@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion'
 import { useTheme } from '@/providers/ThemeProvider'
-import { Moon, Sun, Pencil, X, Wifi, Layers, Package, Eye, EyeOff } from 'lucide-react'
+import { Moon, Sun, Pencil, X, Wifi, Layers, Package, Eye, EyeOff, Sparkles } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
+import { useSettings, type ShowScenesOption } from '@/lib/hooks/useSettings'
 import { isHAAddon } from '@/lib/config'
+import { clsx } from 'clsx'
 
 interface SettingsMenuProps {
   isOpen: boolean
@@ -26,8 +28,11 @@ export function SettingsMenu({
   const [showConnectionSettings, setShowConnectionSettings] = useState(false)
   const [showDomainConfig, setShowDomainConfig] = useState(false)
   const { showHiddenItems, setShowHiddenItems } = useEnabledDomains()
+  const { showScenes, setShowScenes } = useSettings()
   const y = useMotionValue(0)
   const sheetRef = useRef<HTMLDivElement>(null)
+
+  const showScenesOptions: ShowScenesOption[] = ['auto', 'on', 'off']
 
   const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     // Release any pointer capture to prevent blocking subsequent touches
@@ -198,6 +203,34 @@ export function SettingsMenu({
                   <div className={`w-5 h-5 mt-0.5 rounded-full bg-white shadow transition-transform ${showHiddenItems ? 'translate-x-4.5 ml-0.5' : 'translate-x-0.5'}`} />
                 </div>
               </button>
+
+              {/* Show Scenes */}
+              <div className="w-full flex items-center gap-4 px-4 py-4 rounded-xl">
+                <div className="p-2.5 rounded-xl bg-border/50">
+                  <Sparkles className="w-5 h-5 text-foreground" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-foreground">{t.settings.showScenes.title}</p>
+                  <p className="text-sm text-muted">{t.settings.showScenes.description}</p>
+                </div>
+                {/* 3-option segmented control */}
+                <div className="flex bg-border/50 rounded-lg p-0.5">
+                  {showScenesOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setShowScenes(option)}
+                      className={clsx(
+                        'px-2.5 py-1 text-xs font-medium rounded-md transition-colors',
+                        showScenes === option
+                          ? 'bg-accent text-white'
+                          : 'text-muted hover:text-foreground'
+                      )}
+                    >
+                      {t.settings.showScenes[option]}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* Uncategorized Items */}
               <button

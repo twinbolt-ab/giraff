@@ -2,12 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 
 const SETTINGS_KEY = 'giraff-settings'
 
+export type ShowScenesOption = 'auto' | 'on' | 'off'
+
 interface Settings {
   groupByFloors: boolean
+  showScenes: ShowScenesOption
 }
 
 const defaultSettings: Settings = {
   groupByFloors: true,
+  showScenes: 'auto',
 }
 
 function loadSettings(): Settings {
@@ -56,9 +60,15 @@ export function useSettings() {
     updateSettings({ groupByFloors: value })
   }, [updateSettings])
 
+  const setShowScenes = useCallback((value: ShowScenesOption) => {
+    updateSettings({ showScenes: value })
+  }, [updateSettings])
+
   return {
     groupByFloors: settings.groupByFloors,
     setGroupByFloors,
+    showScenes: settings.showScenes,
+    setShowScenes,
     isLoaded,
   }
 }

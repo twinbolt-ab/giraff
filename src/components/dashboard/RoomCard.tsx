@@ -1,14 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
-import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, Pencil, GripVertical } from 'lucide-react'
-import type { RoomWithDevices } from '@/types/ha'
+import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, GripVertical, Sparkles } from 'lucide-react'
+import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { RoomExpanded } from './RoomExpanded'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { useLightControl } from '@/lib/hooks/useLightControl'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useOptimisticState } from '@/lib/hooks/useOptimisticState'
+import { useHAConnection } from '@/lib/hooks/useHAConnection'
+import { haWebSocket } from '@/lib/ha-websocket'
 import { t, interpolate } from '@/lib/i18n'
 
 // Constants
@@ -24,6 +26,7 @@ interface RoomCardProps {
   isExpanded: boolean
   isDragging?: boolean
   isDragOver?: boolean
+  shouldShowScenes?: boolean
   onToggleExpand: () => void
   onEdit?: () => void
   onDragStart?: () => void
@@ -39,6 +42,7 @@ export function RoomCard({
   isExpanded,
   isDragging = false,
   isDragOver = false,
+  shouldShowScenes = false,
   onToggleExpand,
   onEdit,
   onDragStart,
@@ -47,6 +51,7 @@ export function RoomCard({
   onDragEnd,
 }: RoomCardProps) {
   const { setRoomBrightness, getAverageBrightness, toggleRoomLights, getLightBrightnessMap, calculateRelativeBrightness } = useLightControl()
+  const { callService } = useHAConnection()
 
   // Get edit mode state from context
   const {
@@ -70,6 +75,32 @@ export function RoomCard({
   const hasLightsOn = room.lightsOn > 0
   const initialBrightness = getAverageBrightness(lights)
 
+  // Scenes for collapsed card view
+  const scenes = useMemo(
+    () => room.devices.filter((d) => d.entity_id.startsWith('scene.')),
+    [room.devices]
+  )
+  // Show scenes row when shouldShowScenes is enabled, not expanded, and not in edit mode
+  const showScenesRow = shouldShowScenes && !isExpanded && !isInEditMode
+  const hasScenes = scenes.length > 0
+
+  // Scene activation handler
+  const handleSceneActivate = useCallback((scene: HAEntity, e: React.MouseEvent) => {
+    e.stopPropagation()
+    callService('scene', 'turn_on', { entity_id: scene.entity_id })
+  }, [callService])
+
+  // Get scene display name (strip room name prefix if present)
+  const getSceneDisplayName = useCallback((scene: HAEntity) => {
+    const name = scene.attributes.friendly_name || scene.entity_id.split('.')[1]
+    const nameLower = name.toLowerCase()
+    const roomNameLower = room.name.toLowerCase()
+    if (nameLower.startsWith(roomNameLower)) {
+      return name.slice(room.name.length).trim() || name
+    }
+    return name
+  }, [room.name])
+
   // Refs
   const cardRef = useRef<HTMLDivElement>(null)
   const dragStartRef = useRef<{ x: number; y: number; brightness: number; brightnessMap: Map<string, number> } | null>(null)
@@ -90,11 +121,16 @@ export function RoomCard({
     duration: OPTIMISTIC_DURATION,
   })
 
-  // Long press for entering edit mode
+  // Long press for entering edit mode and selecting this room
+  const handleLongPress = useCallback(() => {
+    enterRoomEdit()
+    toggleSelection(room.id)
+  }, [enterRoomEdit, toggleSelection, room.id])
+
   const longPress = useLongPress({
     duration: LONG_PRESS_DURATION,
     disabled: isInEditMode || isExpanded,
-    onLongPress: enterRoomEdit,
+    onLongPress: handleLongPress,
   })
 
   // Scroll when expanded if card would extend below visible area
@@ -301,15 +337,6 @@ export function RoomCard({
               >
                 {isThisRoomSelected && <Check className="w-3 h-3" />}
               </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit?.() }}
-                onMouseDown={(e) => e.stopPropagation()}
-                onTouchStart={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 text-muted hover:text-accent transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
               <GripVertical className="w-4 h-4 text-muted flex-shrink-0" />
             </div>
           )}
@@ -334,6 +361,29 @@ export function RoomCard({
             {room.name}
           </h3>
         </div>
+
+        {/* Scenes row - shows for all cards when enabled to maintain consistent height */}
+        {showScenesRow && (
+          <div className="flex gap-1.5 mb-1 min-h-[32px] items-center">
+            {hasScenes && scenes.map((scene) => {
+              const sceneIcon = haWebSocket.getEntityIcon(scene.entity_id)
+              return (
+                <button
+                  key={scene.entity_id}
+                  onClick={(e) => handleSceneActivate(scene, e)}
+                  className="p-1.5 rounded-lg bg-border/50 hover:bg-accent/20 hover:text-accent transition-colors text-muted touch-feedback"
+                  title={getSceneDisplayName(scene)}
+                >
+                  {sceneIcon ? (
+                    <MdiIcon icon={sceneIcon} className="w-5 h-5" />
+                  ) : (
+                    <Sparkles className="w-5 h-5" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         {/* Status row */}
         <div className="relative flex items-center justify-between">
@@ -390,6 +440,7 @@ export function RoomCard({
     return (
       <div
         draggable
+        onClick={handleToggleSelection}
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', String(index))

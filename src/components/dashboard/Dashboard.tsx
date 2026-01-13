@@ -5,21 +5,27 @@ import { Header } from '@/components/layout/Header'
 import { RoomCard } from '@/components/dashboard/RoomCard'
 import { ReorderableGrid } from '@/components/dashboard/ReorderableGrid'
 import { RoomEditModal } from '@/components/dashboard/RoomEditModal'
+import { DeviceEditModal } from '@/components/dashboard/DeviceEditModal'
 import { BulkEditRoomsModal, BulkEditDevicesModal } from '@/components/dashboard/BulkEditModal'
 import { UncategorizedView } from '@/components/dashboard/UncategorizedView'
 import { EditModeProvider, useEditMode } from '@/lib/contexts/EditModeContext'
 import { useRooms } from '@/lib/hooks/useRooms'
 import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { ORDER_GAP } from '@/lib/constants'
 import { t, interpolate } from '@/lib/i18n'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
+
+// Auto threshold for showing scenes
+const AUTO_SCENES_ROOM_THRESHOLD = 16
 
 // Inner component that uses the context
 function DashboardContent() {
   const { rooms, floors, isConnected } = useRooms()
   const { setAreaOrder } = useRoomOrder()
   const { isEntityVisible } = useEnabledDomains()
+  const { showScenes } = useSettings()
 
   // Edit mode from context
   const {
@@ -43,6 +49,7 @@ function DashboardContent() {
   const [selectedFloorId, setSelectedFloorId] = useState<string | null>(null)
   const [hasInitializedFloor, setHasInitializedFloor] = useState(false)
   const [editingRoom, setEditingRoom] = useState<RoomWithDevices | null>(null)
+  const [editingDevice, setEditingDevice] = useState<HAEntity | null>(null)
   const [showBulkEditRooms, setShowBulkEditRooms] = useState(false)
   const [showBulkEditDevices, setShowBulkEditDevices] = useState(false)
 
@@ -119,6 +126,14 @@ function DashboardContent() {
 
   // Display rooms
   const displayRooms = isRoomEditMode ? orderedRooms : filteredRooms
+
+  // Compute shouldShowScenes based on setting and room count
+  const shouldShowScenes = useMemo(() => {
+    if (showScenes === 'off') return false
+    if (showScenes === 'on') return true
+    // Auto: show if fewer than threshold rooms
+    return displayRooms.length < AUTO_SCENES_ROOM_THRESHOLD
+  }, [showScenes, displayRooms.length])
 
   const handleToggleExpand = useCallback((roomId: string) => {
     if (isRoomEditMode) return
@@ -203,6 +218,35 @@ function DashboardContent() {
     return expandedRoom.devices.filter(d => selectedIds.has(d.entity_id))
   }, [isDeviceEditMode, isUncategorizedEditMode, expandedRoomId, rooms, selectedIds])
 
+  // Handle edit button click - opens single editor for 1 item, bulk editor for multiple
+  const handleEditButtonClick = useCallback(() => {
+    const isDeviceOrUncategorized = isDeviceEditMode || isUncategorizedEditMode
+
+    if (selectedCount === 1) {
+      // Single selection - open single-item editor
+      if (isDeviceOrUncategorized) {
+        // Find the selected device
+        const selectedDevice = selectedDevicesForEdit[0]
+        if (selectedDevice) {
+          setEditingDevice(selectedDevice)
+        }
+      } else {
+        // Find the selected room
+        const selectedRoom = selectedRoomsForEdit[0]
+        if (selectedRoom) {
+          setEditingRoom(selectedRoom)
+        }
+      }
+    } else {
+      // Multiple selection - open bulk editor
+      if (isDeviceOrUncategorized) {
+        setShowBulkEditDevices(true)
+      } else {
+        setShowBulkEditRooms(true)
+      }
+    }
+  }, [selectedCount, isDeviceEditMode, isUncategorizedEditMode, selectedDevicesForEdit, selectedRoomsForEdit])
+
   const gridRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -251,10 +295,14 @@ function DashboardContent() {
               <div className="flex items-center gap-2">
                 {selectedCount > 0 && (
                   <button
-                    onClick={() => (isDeviceEditMode || isUncategorizedEditMode) ? setShowBulkEditDevices(true) : setShowBulkEditRooms(true)}
+                    onClick={handleEditButtonClick}
                     className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
                   >
-                    {t.bulkEdit.editSelected}
+                    {selectedCount === 1
+                      ? (isDeviceEditMode || isUncategorizedEditMode)
+                        ? t.bulkEdit.editDevice
+                        : t.bulkEdit.editRoom
+                      : t.bulkEdit.editSelected}
                   </button>
                 )}
                 <button
@@ -312,6 +360,7 @@ function DashboardContent() {
                     allRooms={rooms}
                     index={index}
                     isExpanded={expandedRoomId === room.id}
+                    shouldShowScenes={shouldShowScenes}
                     onToggleExpand={() => handleToggleExpand(room.id)}
                   />
                 ))}
@@ -336,6 +385,12 @@ function DashboardContent() {
         allRooms={rooms}
         floors={floors}
         onClose={() => setEditingRoom(null)}
+      />
+
+      <DeviceEditModal
+        device={editingDevice}
+        rooms={rooms}
+        onClose={() => setEditingDevice(null)}
       />
 
       <BulkEditRoomsModal
