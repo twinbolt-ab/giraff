@@ -72,15 +72,24 @@ export function RoomCard({
   const cardRef = useRef<HTMLDivElement>(null)
   const didDragRef = useRef(false)
 
-  // Scroll to center when expanded
+  // Scroll when expanded if bottom of card is outside viewport
   useEffect(() => {
     if (isExpanded && cardRef.current) {
       setTimeout(() => {
-        cardRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        })
-      }, 50)
+        const card = cardRef.current
+        if (!card) return
+
+        const rect = card.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+
+        // If bottom of card is below viewport, scroll top of card to top of screen
+        if (rect.bottom > viewportHeight) {
+          card.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
+        }
+      }, 250) // Wait for expand animation to complete
     }
   }, [isExpanded])
 
@@ -360,10 +369,10 @@ export function RoomCard({
   return (
     <motion.div
       ref={cardRef}
-      layout
+      layout="position"
       initial={false}
       transition={{
-        layout: { duration: 0.2 }
+        layout: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }
       }}
       className={clsx(cardClassName, hasLights && !isExpanded && 'cursor-pointer')}
       onClick={handleCardClick}

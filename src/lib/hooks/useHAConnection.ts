@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { haWebSocket } from '@/lib/ha-websocket'
-import { getStoredCredentialsSync } from '@/lib/config'
+import { getStoredCredentials } from '@/lib/config'
 import type { HAEntity } from '@/types/ha'
 
 export function useHAConnection() {
@@ -9,18 +9,26 @@ export function useHAConnection() {
   const [isConfigured, setIsConfigured] = useState(false)
 
   useEffect(() => {
-    // Get credentials from storage (sync version for initialization)
-    const credentials = getStoredCredentialsSync()
+    let cancelled = false
 
-    if (!credentials) {
-      console.log('[useHAConnection] No stored credentials')
-      setIsConfigured(false)
-      return
+    // Get credentials from storage (async for native platform support)
+    async function initConnection() {
+      const credentials = await getStoredCredentials()
+
+      if (cancelled) return
+
+      if (!credentials) {
+        console.log('[useHAConnection] No stored credentials')
+        setIsConfigured(false)
+        return
+      }
+
+      setIsConfigured(true)
+      haWebSocket.configure(credentials.url, credentials.token)
+      haWebSocket.connect()
     }
 
-    setIsConfigured(true)
-    haWebSocket.configure(credentials.url, credentials.token)
-    haWebSocket.connect()
+    initConnection()
 
     const unsubMessage = haWebSocket.onMessage((newEntities) => {
       setEntities(new Map(newEntities))
@@ -31,6 +39,7 @@ export function useHAConnection() {
     })
 
     return () => {
+      cancelled = true
       unsubMessage()
       unsubConnection()
     }
@@ -60,8 +69,8 @@ export function useHAConnection() {
   )
 
   // Reconnect with new credentials
-  const reconnect = useCallback(() => {
-    const credentials = getStoredCredentialsSync()
+  const reconnect = useCallback(async () => {
+    const credentials = await getStoredCredentials()
     if (!credentials) {
       setIsConfigured(false)
       return

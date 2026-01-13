@@ -27,7 +27,7 @@ export function SetupWizard() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('welcome')
   const [url, setUrl] = useState('')
-  const [token, setToken] = useState('')
+  const [token, setToken] = useState(import.meta.env.VITE_DEV_HA_TOKEN || '')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([])
