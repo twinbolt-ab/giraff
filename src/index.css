@@ -184,3 +184,30 @@ input[type="range"]::-moz-range-thumb {
   padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
 }
 
+/* iOS-style glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .glass {
+  background: rgba(38, 38, 36, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Floating bar above bottom nav */
+.floating-bar {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 10px);
+}
+
+/* Glass button style */
+.btn-glass {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.dark .btn-glass {
+  background: rgba(255, 255, 255, 0.15);
+}
+
