@@ -111,10 +111,24 @@ export async function exchangeCodeForTokens(
 export async function refreshAccessToken(
   haUrl: string,
   refreshToken: string,
-  clientId?: string
+  clientId?: string,
+  isRetry?: boolean
 ): Promise<OAuthTokens> {
   // Use stored client_id if provided, otherwise fall back to current
   const effectiveClientId = clientId || getClientId(haUrl)
+  const currentClientId = getClientId(haUrl)
+
+  console.log('[OAuth] Refreshing token:', {
+    haUrl,
+    hasRefreshToken: !!refreshToken,
+    refreshTokenPrefix: refreshToken?.substring(0, 10) + '...',
+    effectiveClientId,
+    storedClientId: clientId,
+    currentClientId,
+    clientIdMatch: effectiveClientId === currentClientId,
+    isRetry: !!isRetry,
+  })
+
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
@@ -138,11 +152,21 @@ export async function refreshAccessToken(
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('[OAuth] Refresh failed:', response.status, errorText)
+    console.error('[OAuth] Refresh failed:', {
+      status: response.status,
+      statusText: response.statusText,
+      errorText,
+      clientIdUsed: effectiveClientId,
+    })
 
     // 400/401/403 = auth errors (invalid token, revoked, etc.) - need to re-authenticate
     // 5xx = server errors - might be temporary
     if (response.status === 400 || response.status === 401 || response.status === 403) {
+      // If we used a stored client_id that differs from current, retry with current client_id
+      if (!isRetry && clientId && clientId !== currentClientId) {
+        console.log('[OAuth] Retrying refresh with current client_id instead of stored')
+        return refreshAccessToken(haUrl, refreshToken, undefined, true)
+      }
       throw new AuthError(`Token refresh failed: ${response.status} ${errorText}`)
     }
 
@@ -150,7 +174,9 @@ export async function refreshAccessToken(
     throw new NetworkError(`Server error: ${response.status} ${errorText}`)
   }
 
-  return response.json()
+  const tokens = await response.json()
+  console.log('[OAuth] Refresh response received, expires_in:', tokens.expires_in)
+  return tokens
 }
 
 // Revoke a refresh token (for logout)
@@ -276,19 +302,35 @@ export type TokenResult =
 // Get a valid access token, refreshing if needed
 export async function getValidAccessToken(): Promise<TokenResult> {
   const creds = await getOAuthCredentials()
-  if (!creds) return { status: 'no-credentials' }
+  if (!creds) {
+    console.log('[OAuth] No credentials found')
+    return { status: 'no-credentials' }
+  }
 
   // Check if token is expired (with 60s buffer)
   const isExpired = Date.now() >= creds.expires_at - 60000
+  const secondsRemaining = Math.floor((creds.expires_at - Date.now()) / 1000)
+
+  console.log('[OAuth] Token check:', {
+    expiresAt: new Date(creds.expires_at).toISOString(),
+    now: new Date().toISOString(),
+    isExpired,
+    secondsRemaining,
+    hasRefreshToken: !!creds.refresh_token,
+    storedClientId: creds.client_id,
+    currentClientId: getClientId(creds.ha_url),
+  })
 
   if (!isExpired) {
     return { status: 'valid', token: creds.access_token, haUrl: creds.ha_url }
   }
 
   // Token is expired, try to refresh
+  console.log('[OAuth] Token expired, attempting refresh...')
   try {
     // Use stored client_id to ensure refresh works even if accessed from different URL
     const newTokens = await refreshAccessToken(creds.ha_url, creds.refresh_token, creds.client_id)
+    console.log('[OAuth] Refresh successful, new token expires_in:', newTokens.expires_in)
     await storeOAuthCredentials(creds.ha_url, newTokens, creds.client_id)
     return { status: 'valid', token: newTokens.access_token, haUrl: creds.ha_url }
   } catch (error) {
