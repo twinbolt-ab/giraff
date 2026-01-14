@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="public/giraff.png" alt="Giraff" width="120" height="120">
+  <img src="public/icon.png" alt="Stuga" width="120" height="120">
 </p>
 
-<h1 align="center">Giraff</h1>
+<h1 align="center">Stuga</h1>
 
 <p align="center">
-  <strong>A mobile-first Home Assistant dashboard</strong>
+  <strong>A beautiful, opinionated Home Assistant dashboard</strong>
 </p>
 
 <p align="center">
@@ -17,52 +17,51 @@
 
 ---
 
-## Why Giraff?
+I love Home Assistant. I don't love configuring dashboards.
 
-Home Assistant is incredibly powerful—but its companion app and dashboards weren't designed for simplicity. Giraff is a fast, beautiful alternative that works out of the box. No YAML, no card configurations, no learning curve. Just open it and control your home.
+Stuga is what I wanted: a fast, polished app that just works. Open it, log in, done. Your rooms, devices, and floors are already there. No YAML. No cards. No templates.
 
-Inspired by the polish of Google Home, Hue, and Apple Home.
-
-- **Zero config** — No YAML, no card configurations
-- **In-place editing** — Edit rooms, devices, and floors directly from the dashboard
-- **HA-native persistence** — All changes save directly to Home Assistant
-- **Drag & drop** — Reorder rooms with gestures
-- **Mobile-first** — Built for phones, scales up gracefully
-
-https://github.com/twinbolt-ab/giraff/raw/main/public/giraff-demo.mp4
+Built for my family to actually use.
 
 ---
 
-## Installation
+## What it does
 
-### iOS & Android (Coming Soon)
+- **Zero config** — Reads your HA setup automatically
+- **In-place editing** — Rename rooms, change icons, reorder things. All saved back to HA.
+- **Mobile-first** — Designed for phones. Works on tablets and web too.
+- **Fast** — WebSocket connection, instant updates
 
-Native apps for iOS and Android are in development and will be available on the App Store and Google Play.
+https://github.com/twinbolt-ab/stuga/raw/main/public/stuga-demo.mp4
+
+---
+
+## Install
+
+### iOS & Android
+
+Coming soon to App Store and Google Play. Free.
 
 ### Home Assistant Add-on
 
-1. Go to **Settings → Add-ons → Add-on Store**
-2. Click ⋮ → **Repositories** → Add: `https://github.com/twinbolt-ab/giraff`
-3. Find "Giraff Dashboard" and click **Install**
-4. After installation, open **http://homeassistant.local:3001** (or your HA IP with port 3001)
-
-> **Note:** The sidebar link is currently not functional due to ingress limitations. Access Giraff directly via the URL above.
+1. **Settings → Add-ons → Add-on Store**
+2. Click ⋮ → **Repositories** → Add: `https://github.com/twinbolt-ab/stuga`
+3. Find "Stuga Dashboard" → **Install**
+4. Open `http://homeassistant.local:3001`
 
 ### Docker
 
 ```bash
-docker run -d --name giraff -p 3001:3001 ghcr.io/twinbolt-ab/giraff:latest
+docker run -d -p 3001:3001 ghcr.io/twinbolt-ab/stuga:latest
 ```
-
-Open `http://localhost:3001` and follow the setup wizard.
 
 <details>
 <summary>Docker Compose</summary>
 
 ```yaml
 services:
-  giraff:
-    image: ghcr.io/twinbolt-ab/giraff:latest
+  stuga:
+    image: ghcr.io/twinbolt-ab/stuga:latest
     ports:
       - "3001:3001"
     restart: unless-stopped
@@ -72,64 +71,37 @@ services:
 
 ---
 
-## Features
+## Supports
 
-| Device | Controls |
-|--------|----------|
-| Lights | On/off, swipe brightness adjustment |
-| Climate | Temperature, HVAC modes, power toggle |
-| Covers | Open/close/stop |
-| Fans | On/off, speed |
-| Scenes | One-tap activation |
-| Switches | On/off toggle |
-
-**Organization:** Edit mode for renaming/reordering, floor management, room management, domain filtering.
+Lights, switches, scenes, climate, covers, fans. More coming.
 
 ---
 
 ## Development
 
-Giraff is built with Vite, React, and Capacitor.
-
 ```bash
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
-
-# Build for production
-npm run build
-
-# Build for iOS (requires Xcode)
-npm run ios
-
-# Build for Android (requires Android Studio)
-npm run android
 ```
 
-### Tech Stack
-
-- **Build**: Vite
-- **UI**: React 18, Tailwind CSS, Framer Motion
-- **State**: TanStack Query
-- **Native**: Capacitor (iOS/Android)
-- **Connection**: WebSocket to Home Assistant
+Built with Vite, React, Tailwind, Framer Motion, and Capacitor.
 
 ---
 
-## Issues
+## Roadmap
 
-Found a bug? [Open an issue](https://github.com/twinbolt-ab/giraff/issues).
+**Now:** Polish, stability, community feedback
+
+**Later:** Widgets, Apple Watch, themes, multi-instance support
 
 ---
 
 ## License
 
-[Elastic License 2.0 (ELv2)](LICENSE) — Free for personal and internal business use. Cannot be provided as a hosted service.
+[Elastic License 2.0](LICENSE) — Free for personal use. Can't be offered as a hosted service.
 
 ---
 
 <p align="center">
-  Made by <a href="https://twinbolt.se">Twinbolt</a>
+  Made by <a href="https://twinbolt.se">Twinbolt</a> in Sweden
 </p>

@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.twinbolt.giraff',
-  appName: 'Giraff',
+  appId: 'com.twinbolt.stuga',
+  appName: 'Stuga',
   webDir: 'dist',
   server: {
     androidScheme: 'http',

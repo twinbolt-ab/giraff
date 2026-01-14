@@ -11,7 +11,7 @@
   },
   "setup": {
     "welcome": {
-      "title": "Welcome to Giraff",
+      "title": "Welcome to Stuga",
       "subtitle": "A beautiful dashboard for Home Assistant",
       "getStarted": "Get Started"
     },

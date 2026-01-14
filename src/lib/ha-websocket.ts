@@ -501,7 +501,7 @@ class HAWebSocket {
     return undefined
   }
 
-  // Order helpers - extract order from giraff-*-order-XX labels
+  // Order helpers - extract order from stuga-*-order-XX labels
   getAreaOrder(areaId: string): number {
     const area = this.areaRegistry.get(areaId)
     if (!area?.labels) return DEFAULT_ORDER

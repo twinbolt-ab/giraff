@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve Giraff
+about: Report a bug to help us improve Stuga
 title: '[Bug] '
 labels: bug
 assignees: ''
@@ -29,7 +29,7 @@ If applicable, add screenshots to help explain the problem.
 - **Device**: [e.g., iPhone 15, Desktop]
 - **OS**: [e.g., iOS 17, macOS 14]
 - **Home Assistant Version**: [e.g., 2024.1.0]
-- **Giraff Version**: [e.g., 1.0.0]
+- **Stuga Version**: [e.g., 1.0.0]
 
 ## Additional Context
 Add any other context about the problem here.

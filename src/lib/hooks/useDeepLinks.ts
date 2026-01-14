@@ -6,7 +6,7 @@ import { haWebSocket } from '../ha-websocket'
 
 /**
  * Hook to handle deep links on native platforms
- * Listens for giraff://auth/callback URLs and navigates to the auth callback route
+ * Listens for stuga://auth/callback URLs and navigates to the auth callback route
  */
 export function useDeepLinks() {
   const navigate = useNavigate()
@@ -18,7 +18,7 @@ export function useDeepLinks() {
 
     const handleDeepLink = (event: URLOpenListenerEvent) => {
       // Parse the deep link URL
-      // Format: giraff://auth/callback?code=xxx&state=xxx
+      // Format: com.twinbolt.stuga://auth/callback?code=xxx&state=xxx
       const url = new URL(event.url)
 
       if (url.host === 'auth' && url.pathname === '/callback') {
