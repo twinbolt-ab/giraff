@@ -206,8 +206,8 @@ import { t, interpolate } from '@/lib/i18n'
 
 ## Room Reordering
 
-Room order is stored in Home Assistant using labels with `giraff-` prefix:
-- Labels like `giraff-room-order-05` on areas
+Room order is stored in Home Assistant using labels with `stuga-` prefix:
+- Labels like `stuga-room-order-05` on areas
 - Managed via WebSocket commands to label/area registry
 - Reorder UI: Settings menu → "Reorder rooms" → drag to reorder → tap outside to save
 

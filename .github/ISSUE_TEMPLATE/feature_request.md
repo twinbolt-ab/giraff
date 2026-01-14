@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest an idea for Giraff
+about: Suggest an idea for Stuga
 title: '[Feature] '
 labels: enhancement
 assignees: ''

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 
-const SETTINGS_KEY = 'giraff-settings'
-const SETTINGS_CHANGE_EVENT = 'giraff-settings-change'
+const SETTINGS_KEY = 'stuga-settings'
+const SETTINGS_CHANGE_EVENT = 'stuga-settings-change'
 
 export type ShowScenesOption = 'auto' | 'on' | 'off'
 

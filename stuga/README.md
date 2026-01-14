@@ -1,10 +1,10 @@
-# Giraff Dashboard Add-on
+# Stuga Dashboard Add-on
 
 A mobile-first, Scandinavian-minimal Home Assistant dashboard.
 
 ## Access
 
-After installation, access Giraff directly at:
+After installation, access Stuga directly at:
 
 ```
 http://homeassistant.local:3001
@@ -20,8 +20,8 @@ http://<your-ha-ip>:3001
 
 ## Configuration
 
-No configuration required. Giraff automatically connects to Home Assistant using the Supervisor API.
+No configuration required. Stuga automatically connects to Home Assistant using the Supervisor API.
 
 ## Support
 
-For issues and feature requests, visit: https://github.com/twinbolt-ab/giraff/issues
+For issues and feature requests, visit: https://github.com/twinbolt-ab/stuga/issues

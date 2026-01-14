@@ -2,7 +2,7 @@
 set -e
 
 echo "=========================================="
-echo "Starting Giraff Dashboard"
+echo "Starting Stuga Dashboard"
 echo "=========================================="
 
 # Inject addon credentials into index.html if running as addon

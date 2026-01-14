@@ -182,7 +182,7 @@ export function SetupWizard() {
       if (isNativeApp()) {
         // On native, use OAuth2Client plugin which handles the browser + deep link
         // client_id must be the website with <link rel="redirect_uri"> tag
-        const clientId = 'https://twinbolt.se/giraff'
+        const clientId = 'https://twinbolt.se/stuga'
 
         // Check if using HTTPS - AppAuth library requires HTTPS for token endpoint
         const isHttps = url.startsWith('https://')
@@ -203,14 +203,14 @@ export function SetupWizard() {
             android: {
               appId: clientId,
               responseType: 'code',
-              redirectUrl: 'com.twinbolt.giraff:/',
+              redirectUrl: 'com.twinbolt.stuga:/',
               handleResultOnNewIntent: true,
               handleResultOnActivityResult: true,
             },
             ios: {
               appId: clientId,
               responseType: 'code',
-              redirectUrl: 'com.twinbolt.giraff:/',
+              redirectUrl: 'com.twinbolt.stuga:/',
             },
           })
 
@@ -248,14 +248,14 @@ export function SetupWizard() {
             android: {
               appId: clientId,
               responseType: 'code',
-              redirectUrl: 'com.twinbolt.giraff:/',
+              redirectUrl: 'com.twinbolt.stuga:/',
               handleResultOnNewIntent: true,
               handleResultOnActivityResult: true,
             },
             ios: {
               appId: clientId,
               responseType: 'code',
-              redirectUrl: 'com.twinbolt.giraff:/',
+              redirectUrl: 'com.twinbolt.stuga:/',
             },
           })
 
@@ -391,8 +391,8 @@ export function SetupWizard() {
             >
               <div className="mb-8">
                 <img
-                  src="/giraff.png"
-                  alt="Giraff"
+                  src="/icon.png"
+                  alt="Stuga"
                   width={120}
                   height={180}
                   className="mx-auto mb-6"

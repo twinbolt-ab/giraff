@@ -43,12 +43,12 @@ export function isNativeApp(): boolean {
 }
 
 // Client ID for the app - must be a URL
-// For native apps: We use twinbolt.se/giraff which has the redirect_uri link tag
+// For native apps: We use twinbolt.se/stuga which has the redirect_uri link tag
 // For web: We use the current origin
 export function getClientId(haUrl?: string): string {
-  // On native, use the website that has <link rel="redirect_uri" href="com.twinbolt.giraff:/">
+  // On native, use the website that has <link rel="redirect_uri" href="com.twinbolt.stuga:/">
   if (isNativeApp()) {
-    return 'https://twinbolt.se/giraff'
+    return 'https://twinbolt.se/stuga'
   }
 
   // For web, use current origin
@@ -56,14 +56,14 @@ export function getClientId(haUrl?: string): string {
     return window.location.origin
   }
 
-  return 'https://twinbolt.se/giraff'
+  return 'https://twinbolt.se/stuga'
 }
 
 // Get the redirect URI for OAuth callback
 export function getRedirectUri(haUrl?: string): string {
   // For native apps, use custom URL scheme
   if (isNativeApp()) {
-    return 'com.twinbolt.giraff:/'
+    return 'com.twinbolt.stuga:/'
   }
 
   // For web, redirect back to our app
@@ -71,7 +71,7 @@ export function getRedirectUri(haUrl?: string): string {
     return `${window.location.origin}/auth/callback`
   }
 
-  return 'https://giraff.app/auth/callback'
+  return 'https://stuga.app/auth/callback'
 }
 
 // Exchange authorization code for tokens
@@ -198,10 +198,10 @@ export async function revokeToken(haUrl: string, token: string): Promise<void> {
 
 // Storage keys for OAuth
 const OAUTH_STORAGE_KEYS = {
-  CREDENTIALS: 'giraff-oauth-credentials',
-  PENDING_STATE: 'giraff-oauth-state',
-  PENDING_VERIFIER: 'giraff-oauth-verifier',
-  PENDING_URL: 'giraff-oauth-pending-url',
+  CREDENTIALS: 'stuga-oauth-credentials',
+  PENDING_STATE: 'stuga-oauth-state',
+  PENDING_VERIFIER: 'stuga-oauth-verifier',
+  PENDING_URL: 'stuga-oauth-pending-url',
 } as const
 
 // Store OAuth credentials

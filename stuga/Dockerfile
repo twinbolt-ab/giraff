@@ -8,7 +8,7 @@ RUN apk add --no-cache nodejs npm git nginx
 WORKDIR /app
 
 # Clone the repository
-RUN git clone --depth 1 https://github.com/twinbolt-ab/giraff.git .
+RUN git clone --depth 1 https://github.com/twinbolt-ab/stuga.git .
 
 # Install dependencies and build
 RUN npm ci

@@ -1,15 +1,15 @@
-// Giraff Dashboard configuration constants
+// Stuga Dashboard configuration constants
 // Used for custom attributes stored in Home Assistant
 
-export const GIRAFF_PREFIX = 'giraff-'
+export const STUGA_PREFIX = 'stuga-'
 
 // Label prefixes for ordering
-export const ROOM_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}room-order-`
-export const DEVICE_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}device-order-`
-export const FLOOR_ORDER_LABEL_PREFIX = `${GIRAFF_PREFIX}floor-order-`
+export const ROOM_ORDER_LABEL_PREFIX = `${STUGA_PREFIX}room-order-`
+export const DEVICE_ORDER_LABEL_PREFIX = `${STUGA_PREFIX}device-order-`
+export const FLOOR_ORDER_LABEL_PREFIX = `${STUGA_PREFIX}floor-order-`
 
 // Label prefix for enabled domains configuration
-export const DOMAINS_LABEL_PREFIX = `${GIRAFF_PREFIX}domains-`
+export const DOMAINS_LABEL_PREFIX = `${STUGA_PREFIX}domains-`
 
 // Default order value for items without explicit order
 export const DEFAULT_ORDER = 99
@@ -22,11 +22,11 @@ export const LONG_PRESS_DURATION = 500
 
 // localStorage keys for credentials
 export const STORAGE_KEYS = {
-  HA_URL: 'giraff-ha-url',
-  HA_TOKEN: 'giraff-ha-token',
-  SETUP_COMPLETE: 'giraff-setup-complete',
-  ENABLED_DOMAINS: 'giraff-enabled-domains',
-  SHOW_HIDDEN_ITEMS: 'giraff-show-hidden-items',
-  DEV_MODE: 'giraff-dev-mode',
-  MOCK_SCENARIO: 'giraff-mock-scenario',
+  HA_URL: 'stuga-ha-url',
+  HA_TOKEN: 'stuga-ha-token',
+  SETUP_COMPLETE: 'stuga-setup-complete',
+  ENABLED_DOMAINS: 'stuga-enabled-domains',
+  SHOW_HIDDEN_ITEMS: 'stuga-show-hidden-items',
+  DEV_MODE: 'stuga-dev-mode',
+  MOCK_SCENARIO: 'stuga-mock-scenario',
 } as const

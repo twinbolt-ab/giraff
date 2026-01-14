@@ -1,6 +1,6 @@
-# Contributing to Giraff
+# Contributing to Stuga
 
-Thank you for your interest in contributing to Giraff! This document provides guidelines and information to help you get started.
+Thank you for your interest in contributing to Stuga! This document provides guidelines and information to help you get started.
 
 ## Table of Contents
 
@@ -29,8 +29,8 @@ Be kind and respectful. We're all here to build something useful for the Home As
 
 1. **Fork and clone the repository**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/giraff.git
-   cd giraff
+   git clone https://github.com/YOUR_USERNAME/stuga.git
+   cd stuga
    ```
 
 2. **Install dependencies**
@@ -158,6 +158,6 @@ For feature requests:
 
 ## Questions?
 
-Feel free to open a [discussion](https://github.com/twinbolt/giraff/discussions) if you have questions about contributing.
+Feel free to open a [discussion](https://github.com/twinbolt-ab/stuga/discussions) if you have questions about contributing.
 
-Thank you for helping make Giraff better!
+Thank you for helping make Stuga better!

@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions & Discussions
-    url: https://github.com/twinbolt/giraff/discussions
+    url: https://github.com/twinbolt-ab/stuga/discussions
     about: Ask questions and discuss ideas in GitHub Discussions
   - name: Home Assistant Community
     url: https://community.home-assistant.io/
