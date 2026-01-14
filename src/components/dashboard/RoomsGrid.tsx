@@ -17,6 +17,7 @@ interface RoomsGridProps {
   onReorder: (rooms: RoomWithDevices[]) => void
   onToggleExpand: (roomId: string) => void
   onClickOutside?: () => void
+  onEnterEditModeWithSelection?: (roomId: string) => void
 }
 
 export function RoomsGrid({
@@ -31,6 +32,7 @@ export function RoomsGrid({
   onReorder,
   onToggleExpand,
   onClickOutside,
+  onEnterEditModeWithSelection,
 }: RoomsGridProps) {
   // Uncategorized view
   if (selectedFloorId === '__uncategorized__') {
@@ -86,6 +88,7 @@ export function RoomsGrid({
             isExpanded={expandedRoomId === room.id}
             shouldShowScenes={shouldShowScenes}
             onToggleExpand={() => onToggleExpand(room.id)}
+            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
           />
         ))}
       </div>

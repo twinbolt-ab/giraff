@@ -268,9 +268,14 @@ export function ReorderableGrid<T>({
     if (!onClickOutside) return
 
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        onClickOutside()
-      }
+      const target = e.target as Node
+      // Don't trigger if clicking inside the grid
+      if (containerRef.current?.contains(target)) return
+      // Don't trigger if clicking inside the floating bar (edit mode header)
+      const floatingBar = document.querySelector('.floating-bar')
+      if (floatingBar?.contains(target)) return
+
+      onClickOutside()
     }
 
     // Use a small delay to avoid triggering on the same event that entered reorder mode

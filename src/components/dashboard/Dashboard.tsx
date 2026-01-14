@@ -8,9 +8,10 @@ import { DeviceEditModal } from './DeviceEditModal'
 import { BulkEditRoomsModal, BulkEditDevicesModal } from './BulkEditModal'
 import { EditModeProvider, useEditMode } from '@/lib/contexts/EditModeContext'
 import { useRooms } from '@/lib/hooks/useRooms'
-import { useRoomOrderSync } from '@/lib/hooks/useRoomOrderSync'
+import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useSettings } from '@/lib/hooks/useSettings'
+import { ORDER_GAP } from '@/lib/constants'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 
 // Auto threshold for showing scenes
@@ -21,6 +22,7 @@ function DashboardContent() {
   const { rooms, floors, isConnected } = useRooms()
   const { isEntityVisible } = useEnabledDomains()
   const { showScenes } = useSettings()
+  const { setAreaOrder } = useRoomOrder()
 
   // Edit mode from context
   const {
@@ -31,11 +33,14 @@ function DashboardContent() {
     isUncategorizedEditMode,
     selectedCount,
     selectedIds,
+    orderedRooms: rawOrderedRooms,
     enterRoomEdit,
     enterDeviceEdit,
     enterUncategorizedEdit,
     exitEditMode,
     clearSelection,
+    toggleSelection,
+    reorderRooms,
   } = useEditMode()
 
   // Local UI state
@@ -75,15 +80,25 @@ function DashboardContent() {
     return rooms.filter((room) => room.floorId === selectedFloorId)
   }, [rooms, selectedFloorId, isEntityVisible])
 
-  // Room order sync hook
-  const { orderedRooms, handleReorder } = useRoomOrderSync({
-    filteredRooms,
-    isRoomEditMode,
-    modeType: mode.type,
-  })
+  // Sync room data changes (name/icon updates) while preserving order - replaces useEffect
+  const orderedRooms = useMemo(() => {
+    if (!isRoomEditMode || rawOrderedRooms.length === 0) return rawOrderedRooms
+
+    const freshRoomsByAreaId = new Map(filteredRooms.map(r => [r.areaId, r]))
+
+    // Filter out deleted rooms and update data for existing ones
+    return rawOrderedRooms
+      .filter(r => freshRoomsByAreaId.has(r.areaId))
+      .map(ordered => freshRoomsByAreaId.get(ordered.areaId) || ordered)
+  }, [isRoomEditMode, rawOrderedRooms, filteredRooms])
 
   // Display rooms
   const displayRooms = isRoomEditMode ? orderedRooms : filteredRooms
+
+  // Handle reorder during drag
+  const handleReorder = useCallback((newOrder: RoomWithDevices[]) => {
+    reorderRooms(newOrder)
+  }, [reorderRooms])
 
   // Compute shouldShowScenes based on setting, room count, and whether any room has scenes
   const shouldShowScenes = useMemo(() => {
@@ -109,13 +124,27 @@ function DashboardContent() {
     } else if (expandedRoomId) {
       enterDeviceEdit(expandedRoomId)
     } else {
-      enterRoomEdit()
+      enterRoomEdit(filteredRooms)
     }
-  }, [selectedFloorId, expandedRoomId, enterRoomEdit, enterDeviceEdit, enterUncategorizedEdit])
+  }, [selectedFloorId, expandedRoomId, filteredRooms, enterRoomEdit, enterDeviceEdit, enterUncategorizedEdit])
 
+  // Save room order to HA before exiting edit mode - replaces useEffect
   const handleExitEditMode = useCallback(() => {
+    if (isRoomEditMode && orderedRooms.length > 0) {
+      const updates = orderedRooms
+        .map((room, idx) => ({ areaId: room.areaId, order: (idx + 1) * ORDER_GAP }))
+        .filter(item => item.areaId)
+
+      Promise.all(updates.map(({ areaId, order }) => setAreaOrder(areaId!, order)))
+    }
     exitEditMode()
-  }, [exitEditMode])
+  }, [isRoomEditMode, orderedRooms, exitEditMode, setAreaOrder])
+
+  // Callback for RoomCard long-press to enter edit mode with room selected
+  const handleEnterEditModeWithSelection = useCallback((roomId: string) => {
+    enterRoomEdit(filteredRooms)
+    toggleSelection(roomId)
+  }, [filteredRooms, enterRoomEdit, toggleSelection])
 
   // Handle clicks on empty area (gaps between cards)
   const handleBackgroundClick = useCallback((e: React.MouseEvent) => {
@@ -124,14 +153,14 @@ function DashboardContent() {
 
     if (!isInsideCard) {
       if (isEditMode) {
-        exitEditMode()
+        handleExitEditMode()
         return
       }
       if (expandedRoomId) {
         setExpandedRoomId(null)
       }
     }
-  }, [expandedRoomId, isEditMode, exitEditMode])
+  }, [expandedRoomId, isEditMode, handleExitEditMode])
 
   const handleViewUncategorized = useCallback(() => {
     setSelectedFloorId('__uncategorized__' as unknown as string)
@@ -204,7 +233,8 @@ function DashboardContent() {
             shouldShowScenes={shouldShowScenes}
             onReorder={handleReorder}
             onToggleExpand={handleToggleExpand}
-            onClickOutside={exitEditMode}
+            onClickOutside={handleExitEditMode}
+            onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
           />
         </section>
       </div>

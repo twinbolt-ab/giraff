@@ -24,6 +24,7 @@ interface RoomCardProps {
   isExpanded: boolean
   shouldShowScenes?: boolean
   onToggleExpand: () => void
+  onEnterEditModeWithSelection?: (roomId: string) => void
 }
 
 export function RoomCard({
@@ -32,6 +33,7 @@ export function RoomCard({
   isExpanded,
   shouldShowScenes = false,
   onToggleExpand,
+  onEnterEditModeWithSelection,
 }: RoomCardProps) {
   const { setRoomBrightness, getAverageBrightness, toggleRoomLights, getLightBrightnessMap, calculateRelativeBrightness } = useLightControl()
   const { callService } = useHAConnection()
@@ -44,7 +46,6 @@ export function RoomCard({
     isSelected,
     toggleSelection,
     exitEditMode,
-    enterRoomEdit,
   } = useEditMode()
 
   // Derive edit mode states
@@ -124,9 +125,8 @@ export function RoomCard({
 
   // Long press for entering edit mode and selecting this room
   const handleLongPress = useCallback(() => {
-    enterRoomEdit()
-    toggleSelection(room.id)
-  }, [enterRoomEdit, toggleSelection, room.id])
+    onEnterEditModeWithSelection?.(room.id)
+  }, [onEnterEditModeWithSelection, room.id])
 
   const longPress = useLongPress({
     duration: LONG_PRESS_DURATION,
