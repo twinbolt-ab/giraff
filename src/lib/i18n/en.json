@@ -1,5 +1,6 @@
 {
   "common": {
+    "back": "Back",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "loading": "Loading..."
