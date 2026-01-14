@@ -1,26 +1,28 @@
 import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from 'react'
+import type { RoomWithDevices } from '@/types/ha'
 
 // State machine types
 export type EditMode =
   | { type: 'normal' }
-  | { type: 'edit-rooms'; selectedIds: Set<string> }
+  | { type: 'edit-rooms'; selectedIds: Set<string>; orderedRooms: RoomWithDevices[] }
   | { type: 'edit-devices'; roomId: string; selectedIds: Set<string> }
   | { type: 'edit-uncategorized'; selectedIds: Set<string> }
 
 // Actions
 type EditModeAction =
-  | { type: 'ENTER_ROOM_EDIT' }
+  | { type: 'ENTER_ROOM_EDIT'; rooms: RoomWithDevices[] }
   | { type: 'ENTER_DEVICE_EDIT'; roomId: string }
   | { type: 'ENTER_UNCATEGORIZED_EDIT' }
   | { type: 'EXIT_EDIT_MODE' }
   | { type: 'TOGGLE_SELECTION'; id: string }
   | { type: 'CLEAR_SELECTION' }
+  | { type: 'REORDER_ROOMS'; rooms: RoomWithDevices[] }
 
 // Reducer
 function editModeReducer(state: EditMode, action: EditModeAction): EditMode {
   switch (action.type) {
     case 'ENTER_ROOM_EDIT':
-      return { type: 'edit-rooms', selectedIds: new Set() }
+      return { type: 'edit-rooms', selectedIds: new Set(), orderedRooms: action.rooms }
 
     case 'ENTER_DEVICE_EDIT':
       return { type: 'edit-devices', roomId: action.roomId, selectedIds: new Set() }
@@ -49,6 +51,12 @@ function editModeReducer(state: EditMode, action: EditModeAction): EditMode {
       }
       return state
 
+    case 'REORDER_ROOMS':
+      if (state.type === 'edit-rooms') {
+        return { ...state, orderedRooms: action.rooms }
+      }
+      return state
+
     default:
       return state
   }
@@ -67,14 +75,16 @@ interface EditModeContextValue {
   isSelected: (id: string) => boolean
   selectedCount: number
   selectedIds: Set<string>
+  orderedRooms: RoomWithDevices[]
 
   // Actions
-  enterRoomEdit: () => void
+  enterRoomEdit: (rooms: RoomWithDevices[]) => void
   enterDeviceEdit: (roomId: string) => void
   enterUncategorizedEdit: () => void
   exitEditMode: () => void
   toggleSelection: (id: string) => void
   clearSelection: () => void
+  reorderRooms: (rooms: RoomWithDevices[]) => void
 }
 
 const EditModeContext = createContext<EditModeContextValue | null>(null)
@@ -102,15 +112,23 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
 
   const selectedCount = selectedIds.size
 
+  const orderedRooms = useMemo(() => {
+    if (mode.type === 'edit-rooms') {
+      return mode.orderedRooms
+    }
+    return []
+  }, [mode])
+
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds])
 
   // Actions
-  const enterRoomEdit = useCallback(() => dispatch({ type: 'ENTER_ROOM_EDIT' }), [])
+  const enterRoomEdit = useCallback((rooms: RoomWithDevices[]) => dispatch({ type: 'ENTER_ROOM_EDIT', rooms }), [])
   const enterDeviceEdit = useCallback((roomId: string) => dispatch({ type: 'ENTER_DEVICE_EDIT', roomId }), [])
   const enterUncategorizedEdit = useCallback(() => dispatch({ type: 'ENTER_UNCATEGORIZED_EDIT' }), [])
   const exitEditMode = useCallback(() => dispatch({ type: 'EXIT_EDIT_MODE' }), [])
   const toggleSelection = useCallback((id: string) => dispatch({ type: 'TOGGLE_SELECTION', id }), [])
   const clearSelection = useCallback(() => dispatch({ type: 'CLEAR_SELECTION' }), [])
+  const reorderRooms = useCallback((rooms: RoomWithDevices[]) => dispatch({ type: 'REORDER_ROOMS', rooms }), [])
 
   const value = useMemo<EditModeContextValue>(() => ({
     mode,
@@ -121,12 +139,14 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     isSelected,
     selectedCount,
     selectedIds,
+    orderedRooms,
     enterRoomEdit,
     enterDeviceEdit,
     enterUncategorizedEdit,
     exitEditMode,
     toggleSelection,
     clearSelection,
+    reorderRooms,
   }), [
     mode,
     isEditMode,
@@ -136,12 +156,14 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     isSelected,
     selectedCount,
     selectedIds,
+    orderedRooms,
     enterRoomEdit,
     enterDeviceEdit,
     enterUncategorizedEdit,
     exitEditMode,
     toggleSelection,
     clearSelection,
+    reorderRooms,
   ])
 
   return (
