@@ -19,7 +19,7 @@ function slugify(name: string): string {
 }
 
 export function useRooms() {
-  const { entities, isConnected } = useHAConnection()
+  const { entities, isConnected, hasReceivedData } = useHAConnection()
   const { activeMockScenario } = useDevMode()
   const [registryVersion, setRegistryVersion] = useState(0)
   const [showHiddenItems, setShowHiddenItems] = useState(false)
@@ -165,10 +165,11 @@ export function useRooms() {
     return { rooms: result, floors: floorsArray }
   }, [entities, registryVersion, showHiddenItems, activeMockScenario])
 
-  // When mock mode is active, always report as connected
+  // When mock mode is active, always report as connected and data received
   const effectiveIsConnected = activeMockScenario !== 'none' ? true : isConnected
+  const effectiveHasReceivedData = activeMockScenario !== 'none' ? true : hasReceivedData
 
-  return { rooms, floors, isConnected: effectiveIsConnected }
+  return { rooms, floors, isConnected: effectiveIsConnected, hasReceivedData: effectiveHasReceivedData }
 }
 
 // Helper to extract area from entity attributes (populated by ha-websocket.ts from HA registry)
