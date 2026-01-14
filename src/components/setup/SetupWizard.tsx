@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Check, Loader2, ExternalLink, AlertCircle, X, Wifi, LogIn, Key } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Loader2, ExternalLink, AlertCircle, X, Wifi, LogIn, Key } from 'lucide-react'
 import { saveCredentials } from '@/lib/config'
 import { t } from '@/lib/i18n'
 import {
@@ -509,23 +509,32 @@ export function SetupWizard() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleUrlSubmit}
-                  disabled={!url.trim() || isLoading}
-                  className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t.setup.url.testing}
-                    </>
-                  ) : (
-                    <>
-                      {t.setup.url.testConnection}
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep('welcome')}
+                    disabled={isLoading}
+                    className="py-4 px-4 bg-card border border-border text-foreground rounded-xl font-medium flex items-center justify-center hover:bg-border/30 transition-colors touch-feedback disabled:opacity-50"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleUrlSubmit}
+                    disabled={!url.trim() || isLoading}
+                    className="flex-1 py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {t.setup.url.testing}
+                      </>
+                    ) : (
+                      <>
+                        {t.setup.url.testConnection}
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -601,6 +610,15 @@ export function SetupWizard() {
                     <span>{error}</span>
                   </div>
                 )}
+
+                <button
+                  onClick={() => setStep('url')}
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 text-muted font-medium flex items-center justify-center gap-2 hover:text-foreground transition-colors touch-feedback disabled:opacity-50"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {t.common.back}
+                </button>
               </div>
             </motion.div>
           )}
@@ -657,23 +675,32 @@ export function SetupWizard() {
                   </div>
                 )}
 
-                <button
-                  onClick={handleTokenSubmit}
-                  disabled={!token.trim() || isLoading}
-                  className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t.setup.token.authenticating}
-                    </>
-                  ) : (
-                    <>
-                      {t.setup.token.authenticate}
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep('auth-method')}
+                    disabled={isLoading}
+                    className="py-4 px-4 bg-card border border-border text-foreground rounded-xl font-medium flex items-center justify-center hover:bg-border/30 transition-colors touch-feedback disabled:opacity-50"
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleTokenSubmit}
+                    disabled={!token.trim() || isLoading}
+                    className="flex-1 py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {t.setup.token.authenticating}
+                      </>
+                    ) : (
+                      <>
+                        {t.setup.token.authenticate}
+                        <ArrowRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           )}
