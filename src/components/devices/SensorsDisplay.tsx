@@ -13,7 +13,7 @@ function getEntityDisplayName(entity: HAEntity): string {
 
 interface SensorItemProps {
   sensor: HAEntity
-  icon: React.ReactNode
+  fallbackIcon: React.ReactNode
   value: string
   isInEditMode: boolean
   isSelected: boolean
@@ -23,18 +23,24 @@ interface SensorItemProps {
 
 function SensorItem({
   sensor,
-  icon,
+  fallbackIcon,
   value,
   isInEditMode,
   isSelected,
   onToggleSelection,
   onEnterEditModeWithSelection,
 }: SensorItemProps) {
+  const customIcon = haWebSocket.getEntityIcon(sensor.entity_id)
+
   const longPress = useLongPress({
     duration: 500,
     disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(sensor.entity_id),
   })
+
+  const iconElement = customIcon ? (
+    <MdiIcon icon={customIcon} className="w-4 h-4" />
+  ) : fallbackIcon
 
   if (isInEditMode) {
     return (
@@ -45,7 +51,7 @@ function SensorItem({
         <div className="flex items-center gap-2">
           <SelectionCheckbox isSelected={isSelected} />
           <div className="p-1.5 rounded-lg bg-border/50 text-muted flex-shrink-0">
-            {icon}
+            {iconElement}
           </div>
           <span className="flex-1 text-sm font-medium text-foreground truncate text-left">
             {getEntityDisplayName(sensor)}
@@ -66,7 +72,7 @@ function SensorItem({
     >
       <div className="flex items-center gap-2">
         <div className="p-1.5 rounded-lg bg-border/50 text-muted flex-shrink-0">
-          {icon}
+          {iconElement}
         </div>
         <span className="flex-1 text-sm font-medium text-foreground truncate">
           {getEntityDisplayName(sensor)}
@@ -108,7 +114,7 @@ export function SensorsDisplay({
           <SensorItem
             key={sensor.entity_id}
             sensor={sensor}
-            icon={<Thermometer className="w-4 h-4" />}
+            fallbackIcon={<Thermometer className="w-4 h-4" />}
             value={`${parseFloat(sensor.state).toFixed(1)}°C`}
             isInEditMode={isInEditMode}
             isSelected={isSelected(sensor.entity_id)}
@@ -120,7 +126,7 @@ export function SensorsDisplay({
           <SensorItem
             key={sensor.entity_id}
             sensor={sensor}
-            icon={<Droplets className="w-4 h-4" />}
+            fallbackIcon={<Droplets className="w-4 h-4" />}
             value={`${Math.round(parseFloat(sensor.state))}%`}
             isInEditMode={isInEditMode}
             isSelected={isSelected(sensor.entity_id)}
