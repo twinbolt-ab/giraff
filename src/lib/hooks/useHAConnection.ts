@@ -7,6 +7,7 @@ export function useHAConnection() {
   const [isConnected, setIsConnected] = useState(() => haWebSocket.isConnected())
   const [entities, setEntities] = useState<Map<string, HAEntity>>(new Map())
   const [isConfigured, setIsConfigured] = useState(false)
+  const [hasReceivedData, setHasReceivedData] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -33,6 +34,7 @@ export function useHAConnection() {
 
     const unsubMessage = haWebSocket.onMessage((newEntities) => {
       setEntities(new Map(newEntities))
+      setHasReceivedData(true)
     })
 
     const unsubConnection = haWebSocket.onConnection((connected) => {
@@ -95,6 +97,7 @@ export function useHAConnection() {
   return {
     isConnected,
     isConfigured,
+    hasReceivedData,
     entities,
     callService,
     getEntity,

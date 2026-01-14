@@ -20,7 +20,7 @@ const AUTO_SCENES_ROOM_THRESHOLD = 16
 
 // Inner component that uses the context
 function DashboardContent() {
-  const { rooms, floors, isConnected } = useRooms()
+  const { rooms, floors, isConnected, hasReceivedData } = useRooms()
   const { isEntityVisible } = useEnabledDomains()
   const { showScenes } = useSettings()
   const { setAreaOrder } = useRoomOrder()
@@ -61,13 +61,19 @@ function DashboardContent() {
     })
   }, [rooms, isEntityVisible])
 
-  // Auto-select first floor when floors load (only on initial load)
+  // Auto-select first floor when floors load, or show uncategorized if no rooms
   useEffect(() => {
-    if (floors.length > 0 && !hasInitializedFloor) {
-      setSelectedFloorId(floors[0].floor_id)
-      setHasInitializedFloor(true)
+    if (!hasInitializedFloor) {
+      if (floors.length > 0) {
+        setSelectedFloorId(floors[0].floor_id)
+        setHasInitializedFloor(true)
+      } else if (hasReceivedData && rooms.length === 0) {
+        // Data has loaded but no floors and no rooms - show uncategorized
+        setSelectedFloorId('__uncategorized__')
+        setHasInitializedFloor(true)
+      }
     }
-  }, [floors, hasInitializedFloor])
+  }, [floors, hasInitializedFloor, hasReceivedData, rooms.length])
 
   // Filter rooms by selected floor
   const filteredRooms = useMemo(() => {
