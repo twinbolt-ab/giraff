@@ -28,8 +28,9 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     if (sheetRef.current && 'pointerId' in event) {
       try {
         sheetRef.current.releasePointerCapture((event as PointerEvent).pointerId)
-      } catch {
-        // Ignore if pointer capture wasn't held
+      } catch (e) {
+        // Expected when pointer capture wasn't held - not an error
+        console.debug('[ConnectionSettings] Pointer capture release skipped:', e)
       }
     }
 
@@ -103,8 +104,8 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
               ws.close()
               resolve(false)
             }
-          } catch {
-            // Invalid JSON, ignore
+          } catch (e) {
+            console.warn('[ConnectionSettings] WebSocket message parse error:', e)
           }
         }
 
@@ -125,7 +126,8 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
             resolve(false)
           }
         }, 10000)
-      } catch {
+      } catch (e) {
+        console.warn('[ConnectionSettings] Connection test failed:', e)
         resolve(false)
       }
     })

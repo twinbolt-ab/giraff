@@ -5,6 +5,7 @@ import { generateMinimalHome } from './minimal'
 import { generateComplexHome } from './complex'
 import { generateEdgeCases } from './edge-cases'
 import { generateUnassignedDevices } from './unassigned'
+import { generateApartment } from './apartment'
 
 export interface MockData {
   rooms: RoomWithDevices[]
@@ -24,6 +25,8 @@ export function generateMockData(scenario: MockScenario): MockData | null {
       return generateEdgeCases()
     case 'unassigned':
       return generateUnassignedDevices()
+    case 'apartment':
+      return generateApartment()
     case 'none':
     default:
       return null

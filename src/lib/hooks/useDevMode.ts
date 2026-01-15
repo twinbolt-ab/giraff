@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useSyncExternalStore } from 'react'
 import { STORAGE_KEYS } from '../constants'
 
-export type MockScenario = 'none' | 'empty' | 'minimal' | 'complex' | 'edge-cases' | 'unassigned'
+export type MockScenario = 'none' | 'empty' | 'minimal' | 'complex' | 'edge-cases' | 'unassigned' | 'apartment'
 
 interface DevModeState {
   isDevMode: boolean

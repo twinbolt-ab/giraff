@@ -56,10 +56,13 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
 
-  const roomOptions = rooms.map(r => ({
-    value: r.areaId || '',
-    label: r.name
-  })).filter(r => r.value)
+  const roomOptions = [
+    { value: '', label: t.floors.none },
+    ...rooms.map(r => ({
+      value: r.areaId || '',
+      label: r.name
+    })).filter(r => r.value)
+  ]
 
   const handleSave = async () => {
     if (!device) return

@@ -2,7 +2,7 @@
 // Implements the authorization code flow per https://developers.home-assistant.io/docs/auth_api/
 
 import { STORAGE_KEYS } from './constants'
-import { getStorage } from './storage'
+import { getStorage, getSecureStorage } from './storage'
 
 // Custom error types to distinguish between network and auth failures
 export class NetworkError extends Error {
@@ -213,6 +213,7 @@ export async function storeOAuthCredentials(
   console.log('[OAuth] storeOAuthCredentials called with URL:', haUrl)
   console.log('[OAuth] Token expires_in:', tokens.expires_in)
   const storage = getStorage()
+  const secureStorage = getSecureStorage()
   // Use provided clientId or get current one - store it for consistent refresh
   const storedClientId = clientId || getClientId(haUrl)
   const credentials: StoredOAuthCredentials = {
@@ -223,20 +224,21 @@ export async function storeOAuthCredentials(
     client_id: storedClientId,
   }
   console.log('[OAuth] Storing credentials, expires_at:', new Date(credentials.expires_at).toISOString())
-  await storage.setItem(OAUTH_STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
-  console.log('[OAuth] Credentials stored')
-  // Mark setup as complete
+  // Store credentials in secure storage (iOS Keychain / Android KeyStore on native)
+  await secureStorage.setItem(OAUTH_STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
+  console.log('[OAuth] Credentials stored securely')
+  // Mark setup as complete (non-sensitive, use regular storage)
   await storage.setItem(STORAGE_KEYS.SETUP_COMPLETE, 'true')
   console.log('[OAuth] Setup marked complete')
-  // Also store URL in standard location for compatibility
+  // Also store URL in standard location for compatibility (non-sensitive)
   await storage.setItem(STORAGE_KEYS.HA_URL, haUrl)
   console.log('[OAuth] URL stored')
 }
 
 // Get stored OAuth credentials
 export async function getOAuthCredentials(): Promise<StoredOAuthCredentials | null> {
-  const storage = getStorage()
-  const stored = await storage.getItem(OAUTH_STORAGE_KEYS.CREDENTIALS)
+  const secureStorage = getSecureStorage()
+  const stored = await secureStorage.getItem(OAUTH_STORAGE_KEYS.CREDENTIALS)
   if (!stored) return null
   try {
     return JSON.parse(stored) as StoredOAuthCredentials
@@ -253,8 +255,8 @@ export async function hasOAuthCredentials(): Promise<boolean> {
 
 // Clear OAuth credentials
 export async function clearOAuthCredentials(): Promise<void> {
-  const storage = getStorage()
-  await storage.removeItem(OAUTH_STORAGE_KEYS.CREDENTIALS)
+  const secureStorage = getSecureStorage()
+  await secureStorage.removeItem(OAUTH_STORAGE_KEYS.CREDENTIALS)
 }
 
 // Store pending OAuth state (for validation after redirect)
