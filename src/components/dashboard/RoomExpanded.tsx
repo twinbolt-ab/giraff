@@ -124,20 +124,6 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
   )
 
 
-  // Remove room name from scene name if present
-  const getSceneDisplayName = useCallback(
-    (scene: HAEntity) => {
-      const name = getEntityDisplayName(scene)
-      const nameLower = name.toLowerCase()
-      const roomNameLower = room.name.toLowerCase()
-
-      if (nameLower.startsWith(roomNameLower)) {
-        return name.slice(room.name.length).trim() || name
-      }
-      return name
-    },
-    [room.name]
-  )
 
   const hasDevices =
     lights.length > 0 ||
@@ -170,7 +156,7 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
           onActivate={handlers.handleSceneActivate}
           onToggleSelection={toggleSelection}
           onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-          getDisplayName={getSceneDisplayName}
+          getDisplayName={getEntityDisplayName}
         />
 
         <LightsSection

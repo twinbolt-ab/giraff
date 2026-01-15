@@ -78,16 +78,10 @@ export function RoomCard({
     callService('scene', 'turn_on', { entity_id: scene.entity_id })
   }, [callService])
 
-  // Get scene display name (strip room name prefix if present)
+  // Get scene display name
   const getSceneDisplayName = useCallback((scene: HAEntity) => {
-    const name = scene.attributes.friendly_name || scene.entity_id.split('.')[1]
-    const nameLower = name.toLowerCase()
-    const roomNameLower = room.name.toLowerCase()
-    if (nameLower.startsWith(roomNameLower)) {
-      return name.slice(room.name.length).trim() || name
-    }
-    return name
-  }, [room.name])
+    return scene.attributes.friendly_name || scene.entity_id.split('.')[1]
+  }, [])
 
   // Refs
   const cardRef = useRef<HTMLDivElement>(null)
