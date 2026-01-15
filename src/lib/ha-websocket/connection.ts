@@ -7,18 +7,12 @@ import { notifyConnectionHandlers, clearPendingCallbacks } from './message-route
 
 type MessageCallback = (message: WebSocketMessage) => void
 
-/**
- * Configure the WebSocket connection parameters
- */
 export function configure(state: HAWebSocketState, url: string, token: string, useOAuth = false): void {
   state.url = url.replace('http', 'ws') + '/api/websocket'
   state.token = token
   state.useOAuth = useOAuth
 }
 
-/**
- * Connect to Home Assistant WebSocket
- */
 export function connect(state: HAWebSocketState, onMessage: MessageCallback): void {
   if (state.ws?.readyState === WebSocket.OPEN) return
 
@@ -49,9 +43,6 @@ export function connect(state: HAWebSocketState, onMessage: MessageCallback): vo
   }
 }
 
-/**
- * Disconnect from WebSocket
- */
 export function disconnect(state: HAWebSocketState): void {
   if (state.reconnectTimeout) {
     clearTimeout(state.reconnectTimeout)
@@ -63,9 +54,6 @@ export function disconnect(state: HAWebSocketState): void {
   state.isAuthenticated = false
 }
 
-/**
- * Schedule a reconnection attempt
- */
 function scheduleReconnect(state: HAWebSocketState, onMessage: MessageCallback): void {
   if (state.reconnectTimeout) return
 
@@ -76,9 +64,7 @@ function scheduleReconnect(state: HAWebSocketState, onMessage: MessageCallback):
   }, RECONNECT_DELAY)
 }
 
-/**
- * Authenticate with Home Assistant
- */
+/** For OAuth, refreshes the access token before sending auth message. */
 export async function authenticate(state: HAWebSocketState): Promise<boolean> {
   // If using OAuth, get a fresh token (handles refresh automatically)
   if (state.useOAuth) {
@@ -105,25 +91,16 @@ export async function authenticate(state: HAWebSocketState): Promise<boolean> {
   return true
 }
 
-/**
- * Send a message via WebSocket
- */
 export function send(state: HAWebSocketState, message: Record<string, unknown>): void {
   if (state.ws?.readyState === WebSocket.OPEN) {
     state.ws.send(JSON.stringify(message))
   }
 }
 
-/**
- * Get next message ID
- */
 export function getNextMessageId(state: HAWebSocketState): number {
   return state.messageId++
 }
 
-/**
- * Check if authenticated
- */
 export function isConnected(state: HAWebSocketState): boolean {
   return state.isAuthenticated
 }

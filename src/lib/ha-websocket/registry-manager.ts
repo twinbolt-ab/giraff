@@ -4,9 +4,6 @@ import { send, getNextMessageId } from './connection'
 import { notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
 import { logger } from '@/lib/logger'
 
-/**
- * Subscribe to state change events
- */
 export function subscribeToStateChanges(state: HAWebSocketState): void {
   send(state, {
     id: getNextMessageId(state),
@@ -15,9 +12,7 @@ export function subscribeToStateChanges(state: HAWebSocketState): void {
   })
 }
 
-/**
- * Fetch all registries on initial connection
- */
+/** Called after auth to load labels, floors, areas, devices, entities, and states. */
 export function fetchAllRegistries(state: HAWebSocketState): void {
   fetchLabelRegistry(state)
   fetchFloorRegistry(state)
@@ -75,9 +70,6 @@ function fetchAllStates(state: HAWebSocketState): void {
   })
 }
 
-/**
- * Handle registry result messages
- */
 export function handleRegistryResult(
   state: HAWebSocketState,
   messageId: number,
@@ -160,9 +152,6 @@ export function handleRegistryResult(
   return false
 }
 
-/**
- * Handle state change events
- */
 export function handleStateChange(state: HAWebSocketState, entityId: string, newState: HAEntity | null): void {
   if (newState) {
     // Apply area info if we have it
@@ -177,9 +166,7 @@ export function handleStateChange(state: HAWebSocketState, entityId: string, new
   notifyMessageHandlers(state)
 }
 
-/**
- * Apply area names to entity attributes
- */
+/** Copies area name from entityAreas map into entity.attributes.area for convenience. */
 export function applyAreasToEntities(state: HAWebSocketState): void {
   for (const [entityId, areaName] of state.entityAreas) {
     const entity = state.entities.get(entityId)
@@ -189,9 +176,7 @@ export function applyAreasToEntities(state: HAWebSocketState): void {
   }
 }
 
-/**
- * Re-process entity-to-area mappings (called when device registry loads)
- */
+/** Re-processes entity-to-area mappings when device registry loads after entity registry. */
 export function remapEntityAreas(state: HAWebSocketState): void {
   for (const [entityId, entry] of state.entityRegistry) {
     if (state.entityAreas.has(entityId)) continue // Already mapped
