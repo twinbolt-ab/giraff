@@ -7,6 +7,7 @@ import { IconPickerField } from '@/components/ui/IconPickerField'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
+import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor, HAEntity } from '@/types/ha'
 
 interface BulkEditRoomsModalProps {
@@ -44,7 +45,7 @@ export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkE
       onComplete()
       onClose()
     } catch (error) {
-      console.error('Failed to update rooms:', error)
+      logger.error('BulkEdit', 'Failed to update rooms:', error)
       showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
@@ -143,7 +144,7 @@ export function BulkEditDevicesModal({ devices, rooms, onClose, onComplete }: Bu
       onComplete()
       onClose()
     } catch (error) {
-      console.error('Failed to update devices:', error)
+      logger.error('BulkEdit', 'Failed to update devices:', error)
       showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)

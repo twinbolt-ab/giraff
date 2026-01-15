@@ -3,6 +3,7 @@ import { useHAConnection } from './useHAConnection'
 import { useDevMode } from './useDevMode'
 import { haWebSocket } from '../ha-websocket'
 import { getShowHiddenItemsSync } from '../config'
+import { settingsEvents } from '../events'
 import { generateMockData } from '../mock-data'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 import { DEFAULT_ORDER, STORAGE_KEYS } from '../constants'
@@ -28,7 +29,7 @@ export function useRooms() {
   useEffect(() => {
     setShowHiddenItems(getShowHiddenItemsSync())
 
-    // Listen for localStorage changes (from other components)
+    // Listen for localStorage changes (from other tabs)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEYS.SHOW_HIDDEN_ITEMS) {
         setShowHiddenItems(e.newValue === 'true')
@@ -36,14 +37,14 @@ export function useRooms() {
     }
     window.addEventListener('storage', handleStorage)
 
-    // Also poll for changes from same tab (storage event doesn't fire for same tab)
-    const interval = setInterval(() => {
-      setShowHiddenItems(getShowHiddenItemsSync())
-    }, 500)
+    // Listen for same-tab changes via event system (replaces polling)
+    const unsubscribe = settingsEvents.subscribe('showHiddenItems', (value) => {
+      setShowHiddenItems(value as boolean)
+    })
 
     return () => {
       window.removeEventListener('storage', handleStorage)
-      clearInterval(interval)
+      unsubscribe()
     }
   }, [])
 

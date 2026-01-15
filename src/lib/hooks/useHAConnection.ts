@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { haWebSocket } from '@/lib/ha-websocket'
 import { getStoredCredentials, getAuthMethod } from '@/lib/config'
 import { getValidAccessToken, isUsingOAuth } from '@/lib/ha-oauth'
+import { logger } from '@/lib/logger'
 import type { HAEntity } from '@/types/ha'
 
 export function useHAConnection() {
@@ -21,7 +22,7 @@ export function useHAConnection() {
       if (cancelled) return
 
       if (result.status !== 'valid') {
-        console.log('[useHAConnection] No valid credentials:', result.status)
+        logger.debug('useHAConnection', 'No valid credentials:', result.status)
         setIsConfigured(false)
         return
       }
@@ -50,11 +51,11 @@ export function useHAConnection() {
       const usingOAuth = await isUsingOAuth()
       if (!usingOAuth) return
 
-      console.log('[useHAConnection] Tab became visible, checking token')
+      logger.debug('useHAConnection', 'Tab became visible, checking token')
       const result = await getValidAccessToken()
 
       if (result.status === 'valid' && !haWebSocket.isConnected()) {
-        console.log('[useHAConnection] Reconnecting with refreshed token')
+        logger.debug('useHAConnection', 'Reconnecting with refreshed token')
         haWebSocket.configure(result.haUrl, result.token, true)
         haWebSocket.connect()
       }

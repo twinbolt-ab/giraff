@@ -5,6 +5,7 @@ import { LogIn, AlertCircle, WifiOff, RefreshCw } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/Dashboard'
 import { isSetupComplete, getStoredCredentials, clearCredentials } from '@/lib/config'
 import { t } from '@/lib/i18n'
+import { logger } from '@/lib/logger'
 
 type HomeState = 'loading' | 'ready' | 'session-expired' | 'connection-lost' | 'needs-setup'
 
@@ -28,11 +29,11 @@ export default function Home() {
       setState('ready')
     } else if (result.status === 'network-error') {
       // Credentials exist but network is down - show reconnect UI, not setup
-      console.log('[Home] Network error - showing connection lost UI')
+      logger.debug('Home', 'Network error - showing connection lost UI')
       setState('connection-lost')
     } else {
       // No credentials at all
-      console.log('[Home] No credentials - session expired')
+      logger.debug('Home', 'No credentials - session expired')
       setState('session-expired')
     }
   }, [navigate])
