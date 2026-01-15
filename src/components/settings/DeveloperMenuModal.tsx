@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion'
-import { X, Wifi, Home, Building, AlertTriangle, XCircle, LogOut, HelpCircle } from 'lucide-react'
+import { X, Wifi, Home, Building, AlertTriangle, XCircle, LogOut, HelpCircle, Building2 } from 'lucide-react'
 import { useDevMode, type MockScenario } from '@/lib/hooks/useDevMode'
 import { t } from '@/lib/i18n'
 import { clsx } from 'clsx'
@@ -53,6 +53,12 @@ const SCENARIOS: ScenarioOption[] = [
     label: 'Unassigned Devices',
     description: 'Devices with no room or floor',
     icon: <HelpCircle className="w-5 h-5" />,
+  },
+  {
+    id: 'apartment',
+    label: 'Apartment',
+    description: 'Rooms and devices, no floors',
+    icon: <Building2 className="w-5 h-5" />,
   },
 ]
 
@@ -125,7 +131,7 @@ export function DeveloperMenuModal({ isOpen, onClose }: DeveloperMenuModalProps)
             dragElastic={{ top: 0, bottom: 0.5 }}
             onDragEnd={handleDragEnd}
             style={{ y }}
-            className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-2xl shadow-warm-lg max-h-[80vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-2xl shadow-warm-lg max-h-[90vh] overflow-y-auto"
           >
             {/* Handle bar */}
             <div className="flex justify-center pt-3 pb-2">

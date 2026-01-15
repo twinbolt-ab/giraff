@@ -84,8 +84,8 @@ export function SetupWizard() {
               ws.close()
               resolve(false)
             }
-          } catch {
-            // Invalid JSON, ignore
+          } catch (e) {
+            console.warn('[SetupWizard] WebSocket message parse error:', e)
           }
         }
 
@@ -107,7 +107,8 @@ export function SetupWizard() {
             resolve(false)
           }
         }, timeout)
-      } catch {
+      } catch (e) {
+        console.warn('[SetupWizard] Connection test failed:', e)
         resolve(false)
       }
     })
@@ -636,7 +637,7 @@ export function SetupWizard() {
               <h2 className="text-2xl font-bold text-foreground mb-2">
                 {t.setup.token.title}
               </h2>
-              <p className="text-muted mb-6">
+              <p className="text-muted mb-4">
                 <a
                   href={`${url}/profile/security`}
                   target="_blank"
@@ -647,6 +648,9 @@ export function SetupWizard() {
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
                 {' '}{t.setup.token.hint}
+              </p>
+              <p className="text-sm text-muted bg-card border border-border rounded-lg px-3 py-2 mb-6">
+                {t.setup.token.instructions}
               </p>
 
               <div className="space-y-4">

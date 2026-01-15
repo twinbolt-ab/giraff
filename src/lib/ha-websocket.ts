@@ -31,7 +31,10 @@ class HAWebSocket {
   private labels = new Map<string, HALabel>() // label_id -> label
   private floors = new Map<string, HAFloor>() // floor_id -> floor
   private registryHandlers = new Set<RegistryHandler>()
-  private pendingCallbacks = new Map<number, (success: boolean, result?: unknown, error?: { code: string; message: string }) => void>()
+  private pendingCallbacks = new Map<number, {
+    callback: (success: boolean, result?: unknown, error?: { code: string; message: string }) => void
+    timeout: NodeJS.Timeout
+  }>()
 
   constructor() {
     // Will be set from environment
@@ -102,12 +105,13 @@ class HAWebSocket {
       case 'result':
         // Handle pending callbacks first
         if (message.id && this.pendingCallbacks.has(message.id)) {
-          const callback = this.pendingCallbacks.get(message.id)!
+          const pending = this.pendingCallbacks.get(message.id)!
+          clearTimeout(pending.timeout)
           this.pendingCallbacks.delete(message.id)
           if (!message.success && message.error) {
             console.error('[HA WS] Command failed:', message.error.code, message.error.message)
           }
-          callback(message.success ?? false, message.result, message.error)
+          pending.callback(message.success ?? false, message.result, message.error)
         }
 
         if (message.success) {
@@ -325,9 +329,30 @@ class HAWebSocket {
       clearTimeout(this.reconnectTimeout)
       this.reconnectTimeout = null
     }
+    // Clear all pending callbacks to prevent memory leaks
+    for (const [, { callback, timeout }] of this.pendingCallbacks) {
+      clearTimeout(timeout)
+      callback(false, undefined, { code: 'disconnected', message: 'WebSocket disconnected' })
+    }
+    this.pendingCallbacks.clear()
     this.ws?.close()
     this.ws = null
     this.isAuthenticated = false
+  }
+
+  // Helper to register a callback with automatic timeout cleanup
+  private registerCallback(
+    msgId: number,
+    callback: (success: boolean, result?: unknown, error?: { code: string; message: string }) => void,
+    timeoutMs = 30000
+  ) {
+    const timeout = setTimeout(() => {
+      if (this.pendingCallbacks.has(msgId)) {
+        this.pendingCallbacks.delete(msgId)
+        callback(false, undefined, { code: 'timeout', message: 'Request timed out' })
+      }
+    }, timeoutMs)
+    this.pendingCallbacks.set(msgId, { callback, timeout })
   }
 
   onMessage(handler: MessageHandler) {
@@ -419,7 +444,7 @@ class HAWebSocket {
 
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success) {
           // Update local registry - merge our updates with existing floor
           const updatedFloor: HAFloor = {
@@ -464,7 +489,7 @@ class HAWebSocket {
 
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, _result, error) => {
+      this.registerCallback(msgId, (success, _result, error) => {
         if (success) {
           // Update local registry
           floor.level = order
@@ -531,7 +556,7 @@ class HAWebSocket {
     if (!sensorEntityId) {
       return new Promise((resolve, reject) => {
         const msgId = this.messageId++
-        this.pendingCallbacks.set(msgId, (success) => {
+        this.registerCallback(msgId, (success) => {
           if (success) {
             area.labels = existingLabels
             this.notifyRegistryHandlers()
@@ -565,7 +590,7 @@ class HAWebSocket {
     if (!sensorLabelId) {
       sensorLabelId = await new Promise<string>((resolve, reject) => {
         const msgId = this.messageId++
-        this.pendingCallbacks.set(msgId, (success, result) => {
+        this.registerCallback(msgId, (success, result) => {
           if (success && result && typeof result === 'object' && 'label_id' in result) {
             const newLabel = result as HALabel
             this.labels.set(newLabel.label_id, newLabel)
@@ -585,7 +610,7 @@ class HAWebSocket {
     // Update area with new labels
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           area.labels = [...existingLabels, sensorLabelId!]
           this.notifyRegistryHandlers()
@@ -649,7 +674,7 @@ class HAWebSocket {
     // Create new label
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success && result && typeof result === 'object' && 'label_id' in result) {
           const newLabel = result as HALabel
           this.labels.set(newLabel.label_id, newLabel)
@@ -683,7 +708,7 @@ class HAWebSocket {
     // Update area with new labels
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           // Update local registry
           area.labels = [...existingLabels, orderLabelId]
@@ -719,7 +744,7 @@ class HAWebSocket {
     // Update entity with new labels
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           // Update local registry
           entity.labels = [...existingLabels, orderLabelId]
@@ -747,7 +772,7 @@ class HAWebSocket {
 
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success) {
           // Update local registry - merge our updates with existing area
           // HA may return partial result, so we manually apply our changes
@@ -800,7 +825,7 @@ class HAWebSocket {
   async deleteArea(areaId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           // Remove from local registries
           this.areaRegistry.delete(areaId)
@@ -824,7 +849,7 @@ class HAWebSocket {
   async createArea(name: string, floorId?: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success && result && typeof result === 'object' && 'area_id' in result) {
           const newArea = result as AreaRegistryEntry
           // Add to local registries
@@ -852,7 +877,7 @@ class HAWebSocket {
   async createFloor(name: string): Promise<string> {
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success && result && typeof result === 'object' && 'floor_id' in result) {
           const newFloor = result as HAFloor
           // Add to local registry
@@ -876,7 +901,7 @@ class HAWebSocket {
   async deleteScene(entityId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           // Remove from local registries
           this.entities.delete(entityId)
@@ -909,7 +934,7 @@ class HAWebSocket {
 
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success, result) => {
+      this.registerCallback(msgId, (success, result) => {
         if (success) {
           // Update local registry - merge our updates with existing entity
           const baseEntity = entity || { entity_id: entityId } as EntityRegistryEntry
@@ -993,7 +1018,7 @@ class HAWebSocket {
 
     return new Promise((resolve, reject) => {
       const msgId = this.messageId++
-      this.pendingCallbacks.set(msgId, (success) => {
+      this.registerCallback(msgId, (success) => {
         if (success) {
           // Update local cache
           if (entity) {
