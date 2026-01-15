@@ -6,6 +6,7 @@ import { FloorEditModal } from '@/components/dashboard/FloorEditModal'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { haWebSocket } from '@/lib/ha-websocket'
 import { t } from '@/lib/i18n'
+import { logger } from '@/lib/logger'
 import type { HAFloor } from '@/types/ha'
 
 interface BottomNavProps {
@@ -66,7 +67,7 @@ export function BottomNav({
         try {
           await haWebSocket.setFloorOrder(floor.floor_id, i * 10)
         } catch (error) {
-          console.error('Failed to save floor order:', error)
+          logger.error('Header', 'Failed to save floor order:', error)
         }
       }
     }

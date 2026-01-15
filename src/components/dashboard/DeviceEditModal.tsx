@@ -10,6 +10,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
+import { logger } from '@/lib/logger'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 
 interface DeviceEditModalProps {
@@ -83,7 +84,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
 
       onClose()
     } catch (error) {
-      console.error('Failed to update device:', error)
+      logger.error('DeviceEdit', 'Failed to update device:', error)
       showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
@@ -101,7 +102,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
       setShowDeleteConfirm(false)
       onClose()
     } catch (error) {
-      console.error('Failed to delete scene:', error)
+      logger.error('DeviceEdit', 'Failed to delete scene:', error)
       showError(t.errors.deleteFailed)
       setIsDeleting(false)
     }

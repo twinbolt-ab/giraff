@@ -1,6 +1,7 @@
 import type { HAEntity, WebSocketMessage, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
 import { ROOM_ORDER_LABEL_PREFIX, DEVICE_ORDER_LABEL_PREFIX, TEMPERATURE_SENSOR_LABEL_PREFIX, DEFAULT_ORDER } from './constants'
 import { getValidAccessToken, isUsingOAuth } from './ha-oauth'
+import { logger } from './logger'
 
 type MessageHandler = (entities: Map<string, HAEntity>) => void
 type ConnectionHandler = (connected: boolean) => void
@@ -55,7 +56,7 @@ class HAWebSocket {
       this.ws = new WebSocket(this.url)
 
       this.ws.onopen = () => {
-        console.log('[HA WS] Connected')
+        logger.debug('HA WS', 'Connected')
       }
 
       this.ws.onmessage = (event) => {
@@ -63,17 +64,17 @@ class HAWebSocket {
       }
 
       this.ws.onclose = () => {
-        console.log('[HA WS] Disconnected')
+        logger.debug('HA WS', 'Disconnected')
         this.isAuthenticated = false
         this.notifyConnectionHandlers(false)
         this.scheduleReconnect()
       }
 
       this.ws.onerror = (error) => {
-        console.error('[HA WS] Error:', error)
+        logger.error('HA WS', 'Error:', error)
       }
     } catch (error) {
-      console.error('[HA WS] Connection failed:', error)
+      logger.error('HA WS', 'Connection failed:', error)
       this.scheduleReconnect()
     }
   }
@@ -85,7 +86,7 @@ class HAWebSocket {
         break
 
       case 'auth_ok':
-        console.log('[HA WS] Authenticated')
+        logger.debug('HA WS', 'Authenticated')
         this.isAuthenticated = true
         this.notifyConnectionHandlers(true)
         this.subscribeToStateChanges()
@@ -98,7 +99,7 @@ class HAWebSocket {
         break
 
       case 'auth_invalid':
-        console.error('[HA WS] Authentication failed')
+        logger.error('HA WS', 'Authentication failed')
         this.disconnect()
         break
 
@@ -109,7 +110,7 @@ class HAWebSocket {
           clearTimeout(pending.timeout)
           this.pendingCallbacks.delete(message.id)
           if (!message.success && message.error) {
-            console.error('[HA WS] Command failed:', message.error.code, message.error.message)
+            logger.error('HA WS', 'Command failed:', message.error.code, message.error.message)
           }
           pending.callback(message.success ?? false, message.result, message.error)
         }
@@ -120,13 +121,13 @@ class HAWebSocket {
             for (const label of message.result as HALabel[]) {
               this.labels.set(label.label_id, label)
             }
-            console.log('[HA WS] Loaded', this.labels.size, 'labels')
+            logger.debug('HA WS', 'Loaded', this.labels.size, 'labels')
           } else if (message.id === this.floorRegistryMessageId && Array.isArray(message.result)) {
             // Floor registry response
             for (const floor of message.result as HAFloor[]) {
               this.floors.set(floor.floor_id, floor)
             }
-            console.log('[HA WS] Loaded', this.floors.size, 'floors')
+            logger.debug('HA WS', 'Loaded', this.floors.size, 'floors')
             this.notifyRegistryHandlers()
           } else if (message.id === this.areaRegistryMessageId && Array.isArray(message.result)) {
             // Area registry response
@@ -134,14 +135,14 @@ class HAWebSocket {
               this.areas.set(area.area_id, area.name)
               this.areaRegistry.set(area.area_id, area)
             }
-            console.log('[HA WS] Loaded', this.areas.size, 'areas')
+            logger.debug('HA WS', 'Loaded', this.areas.size, 'areas')
             this.notifyRegistryHandlers()
           } else if (message.id === this.deviceRegistryMessageId && Array.isArray(message.result)) {
             // Device registry response
             for (const device of message.result as { id: string; area_id?: string }[]) {
               this.deviceRegistry.set(device.id, device)
             }
-            console.log('[HA WS] Loaded', this.deviceRegistry.size, 'devices')
+            logger.debug('HA WS', 'Loaded', this.deviceRegistry.size, 'devices')
             // Re-map entity areas in case entity registry loaded first
             this.remapEntityAreas()
           } else if (message.id === this.entityRegistryMessageId && Array.isArray(message.result)) {
@@ -161,7 +162,7 @@ class HAWebSocket {
                 }
               }
             }
-            console.log('[HA WS] Mapped', this.entityAreas.size, 'entities to areas')
+            logger.debug('HA WS', 'Mapped', this.entityAreas.size, 'entities to areas')
             // Re-notify with updated area info
             this.applyAreasToEntities()
             this.notifyMessageHandlers()
@@ -204,12 +205,12 @@ class HAWebSocket {
         this.token = result.token
       } else if (result.status === 'network-error') {
         // Network error - keep trying to reconnect, credentials are still valid
-        console.warn('[HA WS] Network error getting token, will retry on reconnect')
+        logger.warn('HA WS', 'Network error getting token, will retry on reconnect')
         this.disconnect()
         return
       } else {
         // Auth error or no credentials - stop trying
-        console.error('[HA WS] OAuth token unavailable:', result.status)
+        logger.error('HA WS', 'OAuth token unavailable:', result.status)
         this.disconnect()
         return
       }
@@ -319,7 +320,7 @@ class HAWebSocket {
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null
-      console.log('[HA WS] Attempting reconnect...')
+      logger.debug('HA WS', 'Attempting reconnect...')
       this.connect()
     }, 5000)
   }

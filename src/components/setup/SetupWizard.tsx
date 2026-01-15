@@ -12,6 +12,7 @@ import {
   getRedirectUri,
 } from '@/lib/ha-oauth'
 import { OAuth2Client } from '@byteowls/capacitor-oauth2'
+import { logger } from '@/lib/logger'
 
 type Step = 'welcome' | 'url' | 'auth-method' | 'token' | 'complete'
 
@@ -85,7 +86,7 @@ export function SetupWizard() {
               resolve(false)
             }
           } catch (e) {
-            console.warn('[SetupWizard] WebSocket message parse error:', e)
+            logger.warn('SetupWizard', 'WebSocket message parse error:', e)
           }
         }
 
@@ -108,7 +109,7 @@ export function SetupWizard() {
           }
         }, timeout)
       } catch (e) {
-        console.warn('[SetupWizard] Connection test failed:', e)
+        logger.warn('SetupWizard', 'Connection test failed:', e)
         resolve(false)
       }
     })
@@ -216,16 +217,16 @@ export function SetupWizard() {
           })
 
           // Store the tokens
-          console.log('[OAuth] HTTPS response:', JSON.stringify(response, null, 2))
+          logger.debug('OAuth', 'HTTPS response:', JSON.stringify(response, null, 2))
           if (response.access_token) {
-            console.log('[OAuth] Storing credentials for URL:', url)
+            logger.debug('OAuth', 'Storing credentials for URL:', url)
             await storeOAuthCredentials(url, {
               access_token: response.access_token as string,
               refresh_token: response.refresh_token as string,
               expires_in: (response.expires_in as number) || 1800,
               token_type: 'Bearer',
             })
-            console.log('[OAuth] Credentials stored successfully')
+            logger.debug('OAuth', 'Credentials stored successfully')
 
             // Navigate to home
             navigate('/', { replace: true })
@@ -293,15 +294,15 @@ export function SetupWizard() {
 
           const tokens = await tokenResponse.json()
 
-          console.log('[OAuth] HTTP tokens received:', JSON.stringify(tokens, null, 2))
-          console.log('[OAuth] Storing credentials for URL:', url)
+          logger.debug('OAuth', 'HTTP tokens received:', JSON.stringify(tokens, null, 2))
+          logger.debug('OAuth', 'Storing credentials for URL:', url)
           await storeOAuthCredentials(url, {
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
             expires_in: tokens.expires_in || 1800,
             token_type: 'Bearer',
           })
-          console.log('[OAuth] Credentials stored successfully')
+          logger.debug('OAuth', 'Credentials stored successfully')
 
           // Navigate to home
           navigate('/', { replace: true })
@@ -342,7 +343,7 @@ export function SetupWizard() {
         window.location.href = `${url}/auth/authorize?${params.toString()}`
       }
     } catch (err) {
-      console.error('[OAuth] Failed:', err)
+      logger.error('OAuth', 'Failed:', err)
       const errorMessage = err instanceof Error ? err.message : String(err)
       setError(errorMessage || t.setup.oauth?.startError || 'Failed to start authentication')
       setIsLoading(false)

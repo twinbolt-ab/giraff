@@ -131,7 +131,22 @@
       "success": "Connection updated",
       "error": "Connection failed. Check your settings.",
       "logout": "Log Out",
-      "logoutConfirm": "Are you sure you want to log out? You will need to reconnect to Home Assistant."
+      "logoutConfirm": "Are you sure you want to log out? You will need to reconnect to Home Assistant.",
+      "authMethod": "Authentication",
+      "oauth": {
+        "label": "Home Assistant Login",
+        "description": "You're signed in with your Home Assistant account. Tokens refresh automatically.",
+        "reauthenticate": "Sign In Again",
+        "reauthenticating": "Opening Home Assistant..."
+      },
+      "token": {
+        "label": "Access Token",
+        "description": "Using a long-lived access token for authentication."
+      },
+      "addon": {
+        "label": "Home Assistant Add-on",
+        "description": "Running as a Home Assistant add-on. Connection is managed automatically."
+      }
     },
     "developer": {
       "title": "Developer",

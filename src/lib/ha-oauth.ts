@@ -3,6 +3,7 @@
 
 import { STORAGE_KEYS } from './constants'
 import { getStorage, getSecureStorage } from './storage'
+import { logger } from './logger'
 
 // Custom error types to distinguish between network and auth failures
 export class NetworkError extends Error {
@@ -118,16 +119,7 @@ export async function refreshAccessToken(
   const effectiveClientId = clientId || getClientId(haUrl)
   const currentClientId = getClientId(haUrl)
 
-  console.log('[OAuth] Refreshing token:', {
-    haUrl,
-    hasRefreshToken: !!refreshToken,
-    refreshTokenPrefix: refreshToken?.substring(0, 10) + '...',
-    effectiveClientId,
-    storedClientId: clientId,
-    currentClientId,
-    clientIdMatch: effectiveClientId === currentClientId,
-    isRetry: !!isRetry,
-  })
+  logger.debug('OAuth', 'Refreshing token for', haUrl)
 
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
@@ -146,25 +138,20 @@ export async function refreshAccessToken(
     })
   } catch (error) {
     // Network error (offline, DNS failure, timeout, etc.)
-    console.error('[OAuth] Network error during refresh:', error)
+    logger.warn('OAuth', 'Network error during refresh:', error)
     throw new NetworkError(`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`)
   }
 
   if (!response.ok) {
     const errorText = await response.text()
-    console.error('[OAuth] Refresh failed:', {
-      status: response.status,
-      statusText: response.statusText,
-      errorText,
-      clientIdUsed: effectiveClientId,
-    })
+    logger.warn('OAuth', 'Refresh failed:', response.status, errorText)
 
     // 400/401/403 = auth errors (invalid token, revoked, etc.) - need to re-authenticate
     // 5xx = server errors - might be temporary
     if (response.status === 400 || response.status === 401 || response.status === 403) {
       // If we used a stored client_id that differs from current, retry with current client_id
       if (!isRetry && clientId && clientId !== currentClientId) {
-        console.log('[OAuth] Retrying refresh with current client_id instead of stored')
+        logger.debug('OAuth', 'Retrying refresh with current client_id')
         return refreshAccessToken(haUrl, refreshToken, undefined, true)
       }
       throw new AuthError(`Token refresh failed: ${response.status} ${errorText}`)
@@ -175,7 +162,7 @@ export async function refreshAccessToken(
   }
 
   const tokens = await response.json()
-  console.log('[OAuth] Refresh response received, expires_in:', tokens.expires_in)
+  logger.debug('OAuth', 'Token refreshed successfully')
   return tokens
 }
 
@@ -210,8 +197,7 @@ export async function storeOAuthCredentials(
   tokens: OAuthTokens,
   clientId?: string
 ): Promise<void> {
-  console.log('[OAuth] storeOAuthCredentials called with URL:', haUrl)
-  console.log('[OAuth] Token expires_in:', tokens.expires_in)
+  logger.debug('OAuth', 'Storing credentials for', haUrl)
   const storage = getStorage()
   const secureStorage = getSecureStorage()
   // Use provided clientId or get current one - store it for consistent refresh
@@ -223,16 +209,13 @@ export async function storeOAuthCredentials(
     ha_url: haUrl,
     client_id: storedClientId,
   }
-  console.log('[OAuth] Storing credentials, expires_at:', new Date(credentials.expires_at).toISOString())
   // Store credentials in secure storage (iOS Keychain / Android KeyStore on native)
   await secureStorage.setItem(OAUTH_STORAGE_KEYS.CREDENTIALS, JSON.stringify(credentials))
-  console.log('[OAuth] Credentials stored securely')
   // Mark setup as complete (non-sensitive, use regular storage)
   await storage.setItem(STORAGE_KEYS.SETUP_COMPLETE, 'true')
-  console.log('[OAuth] Setup marked complete')
   // Also store URL in standard location for compatibility (non-sensitive)
   await storage.setItem(STORAGE_KEYS.HA_URL, haUrl)
-  console.log('[OAuth] URL stored')
+  logger.debug('OAuth', 'Credentials stored successfully')
 }
 
 // Get stored OAuth credentials
@@ -305,42 +288,29 @@ export type TokenResult =
 export async function getValidAccessToken(): Promise<TokenResult> {
   const creds = await getOAuthCredentials()
   if (!creds) {
-    console.log('[OAuth] No credentials found')
     return { status: 'no-credentials' }
   }
 
   // Check if token is expired (with 60s buffer)
   const isExpired = Date.now() >= creds.expires_at - 60000
-  const secondsRemaining = Math.floor((creds.expires_at - Date.now()) / 1000)
-
-  console.log('[OAuth] Token check:', {
-    expiresAt: new Date(creds.expires_at).toISOString(),
-    now: new Date().toISOString(),
-    isExpired,
-    secondsRemaining,
-    hasRefreshToken: !!creds.refresh_token,
-    storedClientId: creds.client_id,
-    currentClientId: getClientId(creds.ha_url),
-  })
 
   if (!isExpired) {
     return { status: 'valid', token: creds.access_token, haUrl: creds.ha_url }
   }
 
   // Token is expired, try to refresh
-  console.log('[OAuth] Token expired, attempting refresh...')
+  logger.debug('OAuth', 'Token expired, refreshing...')
   try {
     // Use stored client_id to ensure refresh works even if accessed from different URL
     const newTokens = await refreshAccessToken(creds.ha_url, creds.refresh_token, creds.client_id)
-    console.log('[OAuth] Refresh successful, new token expires_in:', newTokens.expires_in)
     await storeOAuthCredentials(creds.ha_url, newTokens, creds.client_id)
     return { status: 'valid', token: newTokens.access_token, haUrl: creds.ha_url }
   } catch (error) {
-    console.error('[OAuth] Token refresh failed:', error)
+    logger.warn('OAuth', 'Token refresh failed:', error)
 
     if (error instanceof AuthError) {
       // Permanent auth failure - credentials are invalid, need to re-authenticate
-      console.log('[OAuth] Auth error - clearing credentials')
+      logger.debug('OAuth', 'Auth error - clearing credentials')
       const storage = getStorage()
       await clearOAuthCredentials()
       await storage.removeItem(STORAGE_KEYS.SETUP_COMPLETE)
@@ -348,7 +318,7 @@ export async function getValidAccessToken(): Promise<TokenResult> {
     }
 
     // Network error - keep credentials, user might just need to reconnect WiFi
-    console.log('[OAuth] Network error - keeping credentials for retry')
+    logger.debug('OAuth', 'Network error - keeping credentials for retry')
     return { status: 'network-error', haUrl: creds.ha_url }
   }
 }

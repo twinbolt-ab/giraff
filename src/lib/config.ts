@@ -3,6 +3,7 @@
 
 import { STORAGE_KEYS } from './constants'
 import { getStorage } from './storage'
+import { settingsEvents } from './events'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
 import { getValidAccessToken, getOAuthCredentials, clearOAuthCredentials, type TokenResult } from './ha-oauth'
 
@@ -266,4 +267,6 @@ export async function setShowHiddenItems(show: boolean): Promise<void> {
   if (typeof window === 'undefined') return
   const storage = getStorage()
   await storage.setItem(STORAGE_KEYS.SHOW_HIDDEN_ITEMS, show ? 'true' : 'false')
+  // Notify listeners in same tab (storage event only fires for other tabs)
+  settingsEvents.emit('showHiddenItems', show)
 }

@@ -8,6 +8,7 @@ import {
   storeOAuthCredentials,
 } from '@/lib/ha-oauth'
 import { t } from '@/lib/i18n'
+import { logger } from '@/lib/logger'
 
 type Status = 'processing' | 'success' | 'error'
 
@@ -76,7 +77,7 @@ export default function AuthCallback() {
           navigate('/', { replace: true })
         }, 1500)
       } catch (err) {
-        console.error('[OAuth] Token exchange failed:', err)
+        logger.error('OAuth', 'Token exchange failed:', err)
         setStatus('error')
         setError(err instanceof Error ? err.message : 'Failed to complete authentication')
         await clearPendingOAuth()

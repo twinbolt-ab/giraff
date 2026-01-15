@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ChevronDown, Plus, Loader2 } from 'lucide-react'
+import { logger } from '@/lib/logger'
 
 interface ComboBoxOption {
   value: string
@@ -97,7 +98,7 @@ export function ComboBox({
       setIsOpen(false)
       setInputValue('')
     } catch (error) {
-      console.error('Failed to create:', error)
+      logger.error('ComboBox', 'Failed to create:', error)
     } finally {
       setIsCreating(false)
     }

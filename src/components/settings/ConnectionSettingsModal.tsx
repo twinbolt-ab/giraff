@@ -1,9 +1,19 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion'
-import { X, Check, Loader2, AlertCircle, Eye, EyeOff, LogOut } from 'lucide-react'
+import { X, Check, Loader2, AlertCircle, Eye, EyeOff, LogOut, LogIn, Key, Server } from 'lucide-react'
 import { t } from '@/lib/i18n'
-import { getStoredCredentialsSync, updateUrl, updateToken, clearCredentials } from '@/lib/config'
+import {
+  getStoredCredentialsSync,
+  updateUrl,
+  updateToken,
+  clearCredentials,
+  getAuthMethod,
+  type AuthMethod
+} from '@/lib/config'
+import { getOAuthCredentials, storePendingOAuth, isNativeApp, getClientId, getRedirectUri, storeOAuthCredentials } from '@/lib/ha-oauth'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
+import { OAuth2Client } from '@byteowls/capacitor-oauth2'
+import { logger } from '@/lib/logger'
 
 interface ConnectionSettingsModalProps {
   isOpen: boolean
@@ -12,6 +22,7 @@ interface ConnectionSettingsModalProps {
 
 export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsModalProps) {
   const { reconnect } = useHAConnection()
+  const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -58,21 +69,34 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     }
   }, [isOpen, y])
 
-  // Load current credentials when modal opens
+  // Load current credentials and detect auth method when modal opens
   useEffect(() => {
     if (isOpen) {
-      const credentials = getStoredCredentialsSync()
-      if (credentials) {
-        setUrl(credentials.url)
-        setToken(credentials.token)
+      const loadCredentials = async () => {
+        const method = await getAuthMethod()
+        setAuthMethod(method)
+
+        if (method === 'oauth') {
+          const oauthCreds = await getOAuthCredentials()
+          if (oauthCreds) {
+            setUrl(oauthCreds.ha_url)
+          }
+        } else {
+          const credentials = getStoredCredentialsSync()
+          if (credentials) {
+            setUrl(credentials.url)
+            setToken(credentials.token)
+          }
+        }
       }
+      loadCredentials()
       setError(null)
       setSuccess(false)
       setShowLogoutConfirm(false)
     }
   }, [isOpen])
 
-  // Test connection
+  // Test connection for token auth
   const testConnection = async (testUrl: string, testToken: string): Promise<boolean> => {
     return new Promise((resolve) => {
       try {
@@ -105,7 +129,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
               resolve(false)
             }
           } catch (e) {
-            console.warn('[ConnectionSettings] WebSocket message parse error:', e)
+            logger.warn('ConnectionSettings', 'WebSocket message parse error:', e)
           }
         }
 
@@ -127,7 +151,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
           }
         }, 10000)
       } catch (e) {
-        console.warn('[ConnectionSettings] Connection test failed:', e)
+        logger.warn('ConnectionSettings', 'Connection test failed:', e)
         resolve(false)
       }
     })
@@ -160,9 +184,201 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     setIsLoading(false)
   }
 
+  const handleOAuthReauth = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      if (isNativeApp()) {
+        // On native, use OAuth2Client plugin which handles the browser + deep link
+        const clientId = 'https://twinbolt.se/stuga'
+        const isHttps = url.startsWith('https://')
+
+        if (isHttps) {
+          const response = await OAuth2Client.authenticate({
+            authorizationBaseUrl: `${url}/auth/authorize`,
+            accessTokenEndpoint: `${url}/auth/token`,
+            scope: '',
+            pkceEnabled: true,
+            logsEnabled: true,
+            web: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: `${window.location.origin}/auth/callback`,
+            },
+            android: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.stuga:/',
+              handleResultOnNewIntent: true,
+              handleResultOnActivityResult: true,
+            },
+            ios: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.stuga:/',
+            },
+          })
+
+          if (response.access_token) {
+            await storeOAuthCredentials(url, {
+              access_token: response.access_token as string,
+              refresh_token: response.refresh_token as string,
+              expires_in: (response.expires_in as number) || 1800,
+              token_type: 'Bearer',
+            })
+            reconnect()
+            setSuccess(true)
+            setTimeout(() => onClose(), 1500)
+          } else {
+            throw new Error('No access token received')
+          }
+        } else {
+          // For HTTP (local HA), handle token exchange manually
+          const response = await OAuth2Client.authenticate({
+            authorizationBaseUrl: `${url}/auth/authorize`,
+            scope: '',
+            pkceEnabled: true,
+            logsEnabled: true,
+            web: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: `${window.location.origin}/auth/callback`,
+            },
+            android: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.stuga:/',
+              handleResultOnNewIntent: true,
+              handleResultOnActivityResult: true,
+            },
+            ios: {
+              appId: clientId,
+              responseType: 'code',
+              redirectUrl: 'com.twinbolt.stuga:/',
+            },
+          })
+
+          const authCode = response.authorization_response?.code as string
+          const codeVerifier = response.authorization_response?.code_verifier as string
+
+          if (!authCode) {
+            throw new Error('No authorization code received')
+          }
+
+          const tokenBody = new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: authCode,
+            client_id: clientId,
+          })
+          if (codeVerifier) {
+            tokenBody.set('code_verifier', codeVerifier)
+          }
+
+          const tokenResponse = await fetch(`${url}/auth/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: tokenBody.toString(),
+          })
+
+          if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text()
+            throw new Error(`Token exchange failed: ${errorText}`)
+          }
+
+          const tokens = await tokenResponse.json()
+          await storeOAuthCredentials(url, {
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_in: tokens.expires_in || 1800,
+            token_type: 'Bearer',
+          })
+          reconnect()
+          setSuccess(true)
+          setTimeout(() => onClose(), 1500)
+        }
+      } else {
+        // On web, use manual redirect flow
+        const array = new Uint8Array(32)
+        crypto.getRandomValues(array)
+        const verifier = Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('')
+        const encoder = new TextEncoder()
+        const data = encoder.encode(verifier)
+        const hashed = await crypto.subtle.digest('SHA-256', data)
+        const bytes = new Uint8Array(hashed)
+        let binary = ''
+        for (const byte of bytes) {
+          binary += String.fromCharCode(byte)
+        }
+        const challenge = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+
+        const stateArray = new Uint8Array(16)
+        crypto.getRandomValues(stateArray)
+        const state = Array.from(stateArray, (byte) => byte.toString(16).padStart(2, '0')).join('')
+
+        await storePendingOAuth(state, verifier, url)
+
+        const params = new URLSearchParams({
+          client_id: getClientId(url),
+          redirect_uri: getRedirectUri(url),
+          state,
+          response_type: 'code',
+          code_challenge: challenge,
+          code_challenge_method: 'S256',
+        })
+
+        window.location.href = `${url}/auth/authorize?${params.toString()}`
+      }
+    } catch (err) {
+      logger.error('OAuth', 'Re-auth failed:', err)
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(errorMessage || 'Failed to re-authenticate')
+      setIsLoading(false)
+    }
+  }
+
   const handleLogout = async () => {
     await clearCredentials()
     window.location.reload()
+  }
+
+  // Auth method icon and label
+  const getAuthIcon = () => {
+    switch (authMethod) {
+      case 'oauth':
+        return <LogIn className="w-5 h-5 text-accent" />
+      case 'addon':
+        return <Server className="w-5 h-5 text-green-500" />
+      case 'token':
+      default:
+        return <Key className="w-5 h-5 text-muted" />
+    }
+  }
+
+  const getAuthLabel = () => {
+    switch (authMethod) {
+      case 'oauth':
+        return t.settings.connection.oauth?.label || 'Home Assistant Login'
+      case 'addon':
+        return t.settings.connection.addon?.label || 'Home Assistant Add-on'
+      case 'token':
+      default:
+        return t.settings.connection.token?.label || 'Access Token'
+    }
+  }
+
+  const getAuthDescription = () => {
+    switch (authMethod) {
+      case 'oauth':
+        return t.settings.connection.oauth?.description || 'You\'re signed in with your Home Assistant account.'
+      case 'addon':
+        return t.settings.connection.addon?.description || 'Running as a Home Assistant add-on.'
+      case 'token':
+      default:
+        return t.settings.connection.token?.description || 'Using a long-lived access token.'
+    }
   }
 
   return (
@@ -210,51 +426,70 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
 
             {/* Content */}
             <div className="px-4 pb-safe space-y-4">
-              {/* URL Field */}
+              {/* Auth Method Badge */}
+              <div className="flex items-center gap-3 p-3 bg-background rounded-xl border border-border">
+                <div className="w-10 h-10 rounded-lg bg-card border border-border flex items-center justify-center flex-shrink-0">
+                  {getAuthIcon()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground">{getAuthLabel()}</div>
+                  <p className="text-sm text-muted">{getAuthDescription()}</p>
+                </div>
+              </div>
+
+              {/* URL Field - Read-only for OAuth/Addon, Editable for Token */}
               <div>
                 <label htmlFor="connection-url" className="block text-sm font-medium text-foreground mb-2">
                   {t.settings.connection.urlLabel}
                 </label>
-                <input
-                  id="connection-url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => {
-                    setUrl(e.target.value)
-                    setError(null)
-                    setSuccess(false)
-                  }}
-                  placeholder="http://homeassistant.local:8123"
-                  className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
-                />
-              </div>
-
-              {/* Token Field */}
-              <div>
-                <label htmlFor="connection-token" className="block text-sm font-medium text-foreground mb-2">
-                  {t.settings.connection.tokenLabel}
-                </label>
-                <div className="relative">
+                {authMethod === 'token' ? (
                   <input
-                    id="connection-token"
-                    type={showToken ? 'text' : 'password'}
-                    value={token}
+                    id="connection-url"
+                    type="url"
+                    value={url}
                     onChange={(e) => {
-                      setToken(e.target.value)
+                      setUrl(e.target.value)
                       setError(null)
                       setSuccess(false)
                     }}
-                    className="w-full px-4 py-3 pr-12 bg-background border border-border rounded-xl text-foreground font-mono text-sm focus:outline-none focus:border-accent transition-colors"
+                    placeholder="http://homeassistant.local:8123"
+                    className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowToken(!showToken)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-foreground transition-colors"
-                  >
-                    {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
+                ) : (
+                  <div className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground font-mono text-sm">
+                    {url || '—'}
+                  </div>
+                )}
               </div>
+
+              {/* Token Field - Only for token auth */}
+              {authMethod === 'token' && (
+                <div>
+                  <label htmlFor="connection-token" className="block text-sm font-medium text-foreground mb-2">
+                    {t.settings.connection.tokenLabel}
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="connection-token"
+                      type={showToken ? 'text' : 'password'}
+                      value={token}
+                      onChange={(e) => {
+                        setToken(e.target.value)
+                        setError(null)
+                        setSuccess(false)
+                      }}
+                      className="w-full px-4 py-3 pr-12 bg-background border border-border rounded-xl text-foreground font-mono text-sm focus:outline-none focus:border-accent transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowToken(!showToken)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted hover:text-foreground transition-colors"
+                    >
+                      {showToken ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Error Message */}
               {error && (
@@ -272,60 +507,89 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                 </div>
               )}
 
-              {/* Save Button */}
-              <button
-                onClick={handleSave}
-                disabled={!url.trim() || !token.trim() || isLoading}
-                className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {t.settings.connection.testing}
-                  </>
-                ) : success ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    {t.settings.connection.saved}
-                  </>
-                ) : (
-                  t.settings.connection.save
-                )}
-              </button>
+              {/* Action Button - Different for each auth type */}
+              {authMethod === 'token' && (
+                <button
+                  onClick={handleSave}
+                  disabled={!url.trim() || !token.trim() || isLoading}
+                  className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t.settings.connection.testing}
+                    </>
+                  ) : success ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {t.settings.connection.saved}
+                    </>
+                  ) : (
+                    t.settings.connection.save
+                  )}
+                </button>
+              )}
 
-              {/* Logout Section */}
-              <div className="pt-4 border-t border-border mt-4">
-                {showLogoutConfirm ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted text-center">
-                      {t.settings.connection.logoutConfirm}
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setShowLogoutConfirm(false)}
-                        className="flex-1 py-3 px-4 bg-border/50 text-foreground rounded-xl font-medium hover:bg-border transition-colors"
-                      >
-                        {t.common.cancel}
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="flex-1 py-3 px-4 bg-red-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-600 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        {t.settings.connection.logout}
-                      </button>
+              {authMethod === 'oauth' && (
+                <button
+                  onClick={handleOAuthReauth}
+                  disabled={isLoading}
+                  className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {t.settings.connection.oauth?.reauthenticating || 'Opening Home Assistant...'}
+                    </>
+                  ) : success ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {t.settings.connection.saved}
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="w-5 h-5" />
+                      {t.settings.connection.oauth?.reauthenticate || 'Sign In Again'}
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* Logout Section - Not shown for addon */}
+              {authMethod !== 'addon' && (
+                <div className="pt-4 border-t border-border mt-4">
+                  {showLogoutConfirm ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-muted text-center">
+                        {t.settings.connection.logoutConfirm}
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => setShowLogoutConfirm(false)}
+                          className="flex-1 py-3 px-4 bg-border/50 text-foreground rounded-xl font-medium hover:bg-border transition-colors"
+                        >
+                          {t.common.cancel}
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="flex-1 py-3 px-4 bg-red-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-600 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          {t.settings.connection.logout}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowLogoutConfirm(true)}
-                    className="w-full py-3 px-4 text-red-500 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {t.settings.connection.logout}
-                  </button>
-                )}
-              </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowLogoutConfirm(true)}
+                      className="w-full py-3 px-4 text-red-500 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-red-500/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t.settings.connection.logout}
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="h-4" />
             </div>

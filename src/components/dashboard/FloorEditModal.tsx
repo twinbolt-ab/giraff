@@ -6,6 +6,7 @@ import { IconPickerField } from '@/components/ui/IconPickerField'
 import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
+import { logger } from '@/lib/logger'
 import type { HAFloor } from '@/types/ha'
 
 interface FloorEditModalProps {
@@ -40,7 +41,7 @@ export function FloorEditModal({ floor, onClose }: FloorEditModalProps) {
       })
       onClose()
     } catch (error) {
-      console.error('Failed to update floor:', error)
+      logger.error('FloorEdit', 'Failed to update floor:', error)
       showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)

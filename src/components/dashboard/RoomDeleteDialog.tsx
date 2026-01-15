@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/Select'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
+import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
 interface RoomDeleteDialogProps {
@@ -114,7 +115,7 @@ export function RoomDeleteDialog({
       onDeleted()
       onClose()
     } catch (error) {
-      console.error('Failed to delete room:', error)
+      logger.error('RoomDelete', 'Failed to delete room:', error)
       showError(t.errors.deleteFailed)
       setIsDeleting(false)
     }
