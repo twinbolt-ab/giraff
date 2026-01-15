@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useRef, useState, useLayoutEffect } from 'react'
 import { motion } from 'framer-motion'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
@@ -24,11 +24,14 @@ function getEntityDisplayName(entity: HAEntity): string {
 interface RoomExpandedProps {
   room: RoomWithDevices
   allRooms: RoomWithDevices[]
+  isExpanded: boolean
 }
 
-export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
+export function RoomExpanded({ room, allRooms, isExpanded }: RoomExpandedProps) {
   const { enabledDomains } = useEnabledDomains()
   const handlers = useDeviceHandlers()
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [measuredHeight, setMeasuredHeight] = useState(0)
 
   // Get edit mode state from context
   const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit } = useEditMode()
@@ -135,28 +138,30 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
     covers.length > 0 ||
     fans.length > 0
 
+  // Measure content height whenever it might change
+  useLayoutEffect(() => {
+    if (contentRef.current) {
+      setMeasuredHeight(contentRef.current.scrollHeight)
+    }
+  }, [lights, switches, scenes, inputBooleans, inputNumbers, climates, covers, fans, hasDevices])
+
   return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{
-        opacity: 1,
-        height: 'auto',
-        transition: {
-          height: { duration: 0.2, ease: [0.25, 0.1, 0.25, 1], delay: 0.12 },
-          opacity: { duration: 0.15, ease: 'easeOut', delay: 0.12 },
-        },
+    <div
+      style={{
+        height: isExpanded ? measuredHeight : 0,
+        overflow: 'hidden',
+        transition: `height 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) ${isExpanded ? '0.12s' : '0s'}`,
       }}
-      exit={{
-        opacity: 0,
-        height: 0,
-        transition: {
-          height: { duration: 0.12, ease: [0.4, 0, 0.6, 1] },
-          opacity: { duration: 0.1, ease: 'easeIn' },
-        },
-      }}
-      style={{ overflow: 'hidden', willChange: 'height, opacity' }}
     >
-      <div
+      <motion.div
+        ref={contentRef}
+        initial={false}
+        animate={{ opacity: isExpanded ? 1 : 0 }}
+        transition={{
+          duration: 0.15,
+          ease: isExpanded ? 'easeOut' : 'easeIn',
+          delay: isExpanded ? 0.12 : 0,
+        }}
         className="pt-3 mt-3 border-t border-border pb-1 px-0.5 -mx-0.5"
         onPointerDown={(e) => e.stopPropagation()}
         onPointerMove={(e) => e.stopPropagation()}
@@ -243,7 +248,7 @@ export function RoomExpanded({ room, allRooms }: RoomExpandedProps) {
         {!hasDevices && (
           <p className="text-sm text-muted py-2">{t.rooms.noDevices}</p>
         )}
-      </div>
-    </motion.div>
+      </motion.div>
+    </div>
   )
 }
