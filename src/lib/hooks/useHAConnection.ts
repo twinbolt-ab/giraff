@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react'
-import { haWebSocket } from '@/lib/ha-websocket'
+import * as ws from '@/lib/ha-websocket'
 import { getStoredCredentials, getAuthMethod } from '@/lib/config'
 import { getValidAccessToken, isUsingOAuth } from '@/lib/ha-oauth'
 import { logger } from '@/lib/logger'
 import type { HAEntity } from '@/types/ha'
 
 export function useHAConnection() {
-  const [isConnected, setIsConnected] = useState(() => haWebSocket.isConnected())
+  const [isConnected, setIsConnected] = useState(() => ws.isConnected())
   const [entities, setEntities] = useState<Map<string, HAEntity>>(new Map())
   const [isConfigured, setIsConfigured] = useState(false)
   const [hasReceivedData, setHasReceivedData] = useState(false)
@@ -28,18 +28,18 @@ export function useHAConnection() {
       }
 
       setIsConfigured(true)
-      haWebSocket.configure(result.credentials.url, result.credentials.token, authMethod === 'oauth')
-      haWebSocket.connect()
+      ws.configure(result.credentials.url, result.credentials.token, authMethod === 'oauth')
+      ws.connect()
     }
 
     initConnection()
 
-    const unsubMessage = haWebSocket.onMessage((newEntities) => {
+    const unsubMessage = ws.onMessage((newEntities) => {
       setEntities(new Map(newEntities))
       setHasReceivedData(true)
     })
 
-    const unsubConnection = haWebSocket.onConnection((connected) => {
+    const unsubConnection = ws.onConnection((connected) => {
       setIsConnected(connected)
     })
 
@@ -54,10 +54,10 @@ export function useHAConnection() {
       logger.debug('useHAConnection', 'Tab became visible, checking token')
       const result = await getValidAccessToken()
 
-      if (result.status === 'valid' && !haWebSocket.isConnected()) {
+      if (result.status === 'valid' && !ws.isConnected()) {
         logger.debug('useHAConnection', 'Reconnecting with refreshed token')
-        haWebSocket.configure(result.haUrl, result.token, true)
-        haWebSocket.connect()
+        ws.configure(result.haUrl, result.token, true)
+        ws.connect()
       }
     }
 
@@ -73,7 +73,7 @@ export function useHAConnection() {
 
   const callService = useCallback(
     (domain: string, service: string, data?: Record<string, unknown>) => {
-      return haWebSocket.callService(domain, service, data)
+      return ws.callService(domain, service, data)
     },
     []
   )
@@ -104,14 +104,14 @@ export function useHAConnection() {
     }
 
     setIsConfigured(true)
-    haWebSocket.disconnect()
-    haWebSocket.configure(result.credentials.url, result.credentials.token, authMethod === 'oauth')
-    haWebSocket.connect()
+    ws.disconnect()
+    ws.configure(result.credentials.url, result.credentials.token, authMethod === 'oauth')
+    ws.connect()
   }, [])
 
   // Disconnect and clear state
   const disconnect = useCallback(() => {
-    haWebSocket.disconnect()
+    ws.disconnect()
     setIsConnected(false)
     setIsConfigured(false)
     setEntities(new Map())

@@ -4,7 +4,7 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -44,7 +44,7 @@ function CoverItem({
 }) {
   const isOpen = cover.state === 'open'
   const isClosed = cover.state === 'closed'
-  const coverIcon = haWebSocket.getEntityIcon(cover.entity_id)
+  const coverIcon = getEntityIcon(cover.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

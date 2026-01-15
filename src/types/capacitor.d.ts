@@ -5,7 +5,7 @@
 declare global {
   interface Window {
     Capacitor?: {
-      isNativePlatform: () => boolean
+      isNativePlatform?: () => boolean
     }
   }
 }

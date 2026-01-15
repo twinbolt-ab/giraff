@@ -5,7 +5,8 @@ import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { useLightControl } from '@/lib/hooks/useLightControl'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
+import { OPTIMISTIC_DURATION, OVERLAY_HIDE_DELAY } from '@/lib/constants'
 
 // Minimum drag distance to trigger brightness change
 const DRAG_THRESHOLD = 10
@@ -31,7 +32,7 @@ export function LightSlider({ light, disabled = false, compact = false }: LightS
 
   const isOn = light.state === 'on'
   const displayName = light.attributes.friendly_name || light.entity_id.split('.')[1]
-  const entityIcon = haWebSocket.getEntityIcon(light.entity_id)
+  const entityIcon = getEntityIcon(light.entity_id)
 
   // Swipe gesture handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -117,10 +118,10 @@ export function LightSlider({ light, disabled = false, compact = false }: LightS
       optimisticTimerRef.current = setTimeout(() => {
         setUseOptimisticValue(false)
         optimisticTimerRef.current = null
-      }, 5000)
+      }, OPTIMISTIC_DURATION)
 
       // Hide overlay after a short delay
-      setTimeout(() => setShowBrightnessOverlay(false), 300)
+      setTimeout(() => setShowBrightnessOverlay(false), OVERLAY_HIDE_DELAY)
     }
 
     isDraggingRef.current = false

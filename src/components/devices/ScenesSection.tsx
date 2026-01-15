@@ -4,7 +4,7 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -39,7 +39,7 @@ function SceneItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   displayName: (scene: HAEntity) => string
 }) {
-  const sceneIcon = haWebSocket.getEntityIcon(scene.entity_id)
+  const sceneIcon = getEntityIcon(scene.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

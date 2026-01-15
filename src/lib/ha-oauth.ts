@@ -40,7 +40,7 @@ export interface StoredOAuthCredentials {
 // Check if running as a native Capacitor app
 export function isNativeApp(): boolean {
   if (typeof window === 'undefined') return false
-  return !!(window as any).Capacitor?.isNativePlatform?.()
+  return !!window.Capacitor?.isNativePlatform?.()
 }
 
 // Client ID for the app - must be a URL

@@ -1,9 +1,10 @@
 import { useRef, useCallback, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
-import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check, Sparkles } from 'lucide-react'
+import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check } from 'lucide-react'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { RoomExpanded } from './RoomExpanded'
+import { RoomCardScenes } from './RoomCardScenes'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { useLightControl } from '@/lib/hooks/useLightControl'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
@@ -11,12 +12,8 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useOptimisticState } from '@/lib/hooks/useOptimisticState'
 import { useBrightnessGesture } from '@/lib/hooks/useBrightnessGesture'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
-import { haWebSocket } from '@/lib/ha-websocket'
 import { t, interpolate } from '@/lib/i18n'
-
-// Constants
-const LONG_PRESS_DURATION = 500
-const OPTIMISTIC_DURATION = 5000
+import { LONG_PRESS_DURATION, OPTIMISTIC_DURATION } from '@/lib/constants'
 
 interface RoomCardProps {
   room: RoomWithDevices
@@ -59,8 +56,13 @@ export function RoomCard({
 
   // Room data
   const lights = room.devices.filter((d) => d.entity_id.startsWith('light.'))
+  const switches = room.devices.filter((d) => d.entity_id.startsWith('switch.'))
   const hasLights = lights.length > 0
+  const hasSwitches = switches.length > 0
+  const hasControllableDevices = hasLights || hasSwitches
   const hasLightsOn = room.lightsOn > 0
+  const hasSwitchesOn = switches.some((s) => s.state === 'on')
+  const hasDevicesOn = hasLightsOn || hasSwitchesOn
   const initialBrightness = getAverageBrightness(lights)
 
   // Scenes for collapsed card view
@@ -70,18 +72,12 @@ export function RoomCard({
   )
   // Show scenes row when shouldShowScenes is enabled and not expanded
   const showScenesRow = shouldShowScenes && !isExpanded
-  const hasScenes = scenes.length > 0
 
   // Scene activation handler
   const handleSceneActivate = useCallback((scene: HAEntity, e: React.MouseEvent) => {
     e.stopPropagation()
     callService('scene', 'turn_on', { entity_id: scene.entity_id })
   }, [callService])
-
-  // Get scene display name
-  const getSceneDisplayName = useCallback((scene: HAEntity) => {
-    return scene.attributes.friendly_name || scene.entity_id.split('.')[1]
-  }, [])
 
   // Refs
   const cardRef = useRef<HTMLDivElement>(null)
@@ -183,13 +179,13 @@ export function RoomCard({
       return
     }
 
-    if (isInEditMode || isExpanded || !hasLights) return
+    if (isInEditMode || isExpanded || !hasControllableDevices) return
 
-    const willTurnOn = !lightsOnState.displayValue
+    const willTurnOn = !hasDevicesOn
     lightsOnState.setOptimistic(willTurnOn)
     brightnessState.setOptimistic(willTurnOn ? 100 : 0)
-    toggleRoomLights(lights)
-  }, [hasLights, isInEditMode, isExpanded, shouldBlur, exitEditMode, lightsOnState, brightnessState, toggleRoomLights, lights])
+    toggleRoomLights(lights, switches)
+  }, [hasControllableDevices, hasDevicesOn, isInEditMode, isExpanded, shouldBlur, exitEditMode, lightsOnState, brightnessState, toggleRoomLights, lights, switches])
 
   // Header click - collapse when expanded
   const handleHeaderClick = useCallback((e: React.MouseEvent) => {
@@ -323,25 +319,11 @@ export function RoomCard({
 
         {/* Scenes row - shows for all cards when enabled to maintain consistent height */}
         {showScenesRow && (
-          <div className={clsx('flex gap-1.5 mb-1 min-h-[32px] items-center justify-center', isInEditMode && 'pointer-events-none')}>
-            {hasScenes && scenes.slice(0, 4).map((scene) => {
-              const sceneIcon = haWebSocket.getEntityIcon(scene.entity_id)
-              return (
-                <button
-                  key={scene.entity_id}
-                  onClick={(e) => handleSceneActivate(scene, e)}
-                  className="p-1.5 rounded-lg bg-border/50 hover:bg-accent/20 hover:text-accent transition-colors text-muted touch-feedback"
-                  title={getSceneDisplayName(scene)}
-                >
-                  {sceneIcon ? (
-                    <MdiIcon icon={sceneIcon} className="w-5 h-5" />
-                  ) : (
-                    <Sparkles className="w-5 h-5" />
-                  )}
-                </button>
-              )
-            })}
-          </div>
+          <RoomCardScenes
+            scenes={scenes}
+            isInEditMode={isInEditMode}
+            onSceneActivate={handleSceneActivate}
+          />
         )}
 
         {/* Status row */}
@@ -413,7 +395,7 @@ export function RoomCard({
       layout="position"
       initial={false}
       transition={{ layout: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] } }}
-      className={clsx(cardClassName, hasLights && !isExpanded && 'cursor-pointer')}
+      className={clsx(cardClassName, hasControllableDevices && !isExpanded && 'cursor-pointer')}
       onClick={handleCardClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

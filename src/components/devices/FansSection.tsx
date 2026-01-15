@@ -4,7 +4,7 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -38,7 +38,7 @@ function FanItem({
 }) {
   const isOn = fan.state === 'on'
   const percentage = fan.attributes.percentage as number | undefined
-  const fanIcon = haWebSocket.getEntityIcon(fan.entity_id)
+  const fanIcon = getEntityIcon(fan.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

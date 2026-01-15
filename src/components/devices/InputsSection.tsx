@@ -5,7 +5,7 @@ import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -44,7 +44,7 @@ function InputNumberItem({
   const max = typeof input.attributes.max === 'number' ? input.attributes.max : 100
   const step = typeof input.attributes.step === 'number' ? input.attributes.step : 1
   const unit = typeof input.attributes.unit_of_measurement === 'string' ? input.attributes.unit_of_measurement : ''
-  const inputIcon = haWebSocket.getEntityIcon(input.entity_id)
+  const inputIcon = getEntityIcon(input.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

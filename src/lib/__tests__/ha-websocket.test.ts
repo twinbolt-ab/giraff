@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-
-// We need to test the WebSocket class behavior
-// Since it's a singleton, we'll test the key behaviors
+import { createInitialState } from '../ha-websocket/types'
+import { registerCallback, clearPendingCallbacks } from '../ha-websocket/message-router'
 
 describe('HAWebSocket', () => {
   beforeEach(() => {
@@ -14,52 +13,36 @@ describe('HAWebSocket', () => {
 
   describe('callService', () => {
     it('should return a Promise', async () => {
-      // Import fresh instance
-      const { haWebSocket } = await import('../ha-websocket')
+      const { callService } = await import('../ha-websocket')
 
-      // Mock the send method
-      const sendSpy = vi.spyOn(haWebSocket as any, 'send').mockImplementation(() => {})
-
-      // Call the service
-      const promise = haWebSocket.callService('light', 'turn_on', { entity_id: 'light.test' })
+      // Call the service - it returns a Promise even if WebSocket is not connected
+      const promise = callService('light', 'turn_on', { entity_id: 'light.test' })
 
       // Verify it returns a Promise
       expect(promise).toBeInstanceOf(Promise)
-
-      // Clean up
-      sendSpy.mockRestore()
     })
 
-    it('should send correct message format', async () => {
-      const { haWebSocket } = await import('../ha-websocket')
+    it('should resolve with success false when not connected', async () => {
+      const { callService } = await import('../ha-websocket')
 
-      let sentMessage: any = null
-      const sendSpy = vi.spyOn(haWebSocket as any, 'send').mockImplementation((msg: any) => {
-        sentMessage = msg
-      })
+      // Call service when not connected
+      const promise = callService('light', 'turn_on', { entity_id: 'light.living_room' })
 
-      haWebSocket.callService('light', 'turn_on', { entity_id: 'light.living_room' })
+      // Advance timers to trigger timeout
+      vi.advanceTimersByTime(31000)
 
-      expect(sentMessage).toMatchObject({
-        type: 'call_service',
-        domain: 'light',
-        service: 'turn_on',
-        service_data: { entity_id: 'light.living_room' },
-      })
-      expect(sentMessage.id).toBeDefined()
-
-      sendSpy.mockRestore()
+      const result = await promise
+      expect(result.success).toBe(false)
     })
   })
 
   describe('registerCallback', () => {
-    it('should timeout after specified duration', async () => {
-      const { haWebSocket } = await import('../ha-websocket')
-
+    it('should timeout after specified duration', () => {
+      const state = createInitialState()
       const callback = vi.fn()
 
-      // Access private method
-      ;(haWebSocket as any).registerCallback(999, callback, 5000)
+      // Register callback with 5 second timeout
+      registerCallback(state, 999, callback, 5000)
 
       // Callback should not be called immediately
       expect(callback).not.toHaveBeenCalled()
@@ -76,17 +59,16 @@ describe('HAWebSocket', () => {
     })
   })
 
-  describe('disconnect', () => {
-    it('should clear pending callbacks on disconnect', async () => {
-      const { haWebSocket } = await import('../ha-websocket')
-
+  describe('clearPendingCallbacks', () => {
+    it('should clear pending callbacks on disconnect', () => {
+      const state = createInitialState()
       const callback = vi.fn()
 
       // Register a callback
-      ;(haWebSocket as any).registerCallback(888, callback, 30000)
+      registerCallback(state, 888, callback, 30000)
 
-      // Disconnect
-      haWebSocket.disconnect()
+      // Clear all pending callbacks (simulates disconnect)
+      clearPendingCallbacks(state)
 
       // Callback should be called with disconnected error
       expect(callback).toHaveBeenCalledWith(

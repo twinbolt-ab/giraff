@@ -6,7 +6,7 @@ import { ComboBox } from '@/components/ui/ComboBox'
 import { IconPickerField } from '@/components/ui/IconPickerField'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { updateArea, createFloor, updateEntity, createArea } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor, HAEntity } from '@/types/ha'
 
@@ -40,7 +40,7 @@ export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkE
       await Promise.all(
         rooms
           .filter(room => room.areaId)
-          .map(room => haWebSocket.updateArea(room.areaId!, { floor_id: targetFloorId }))
+          .map(room => updateArea(room.areaId!, { floor_id: targetFloorId }))
       )
       onComplete()
       onClose()
@@ -65,7 +65,7 @@ export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkE
             onChange={setFloorId}
             options={floorOptions}
             placeholder="— No change —"
-            onCreate={(name) => haWebSocket.createFloor(name)}
+            onCreate={(name) => createFloor(name)}
             createLabel={t.edit.createFloor}
           />
         </FormField>
@@ -138,7 +138,7 @@ export function BulkEditDevicesModal({ devices, rooms, onClose, onComplete }: Bu
             updates.hidden_by = hidden === 'hide' ? 'user' : null
           }
 
-          return haWebSocket.updateEntity(device.entity_id, updates)
+          return updateEntity(device.entity_id, updates)
         })
       )
       onComplete()
@@ -164,7 +164,7 @@ export function BulkEditDevicesModal({ devices, rooms, onClose, onComplete }: Bu
             onChange={setRoomId}
             options={roomOptions}
             placeholder="— No change —"
-            onCreate={(name) => haWebSocket.createArea(name)}
+            onCreate={(name) => createArea(name)}
             createLabel={t.edit.createRoom}
           />
         </FormField>

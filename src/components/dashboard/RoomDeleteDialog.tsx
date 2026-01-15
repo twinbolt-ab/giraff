@@ -6,7 +6,7 @@ import { FormField } from '@/components/ui/FormField'
 import { Select } from '@/components/ui/Select'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { updateEntity, deleteArea } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
@@ -104,13 +104,13 @@ export function RoomDeleteDialog({
         const newAreaId = targetRoomId || null
         await Promise.all(
           controllableDevices.map(device =>
-            haWebSocket.updateEntity(device.entity_id, { area_id: newAreaId })
+            updateEntity(device.entity_id, { area_id: newAreaId })
           )
         )
       }
 
       // Delete the room
-      await haWebSocket.deleteArea(room.areaId)
+      await deleteArea(room.areaId)
 
       onDeleted()
       onClose()

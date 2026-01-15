@@ -2,7 +2,7 @@ import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from './MdiIcon'
 import { SelectionCheckbox } from './SelectionCheckbox'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 
 function getEntityDisplayName(entity: HAEntity): string {
@@ -29,7 +29,7 @@ export function DeviceToggleButton({
   fallbackIcon,
 }: DeviceToggleButtonProps) {
   const isOn = entity.state === 'on'
-  const entityIcon = haWebSocket.getEntityIcon(entity.entity_id)
+  const entityIcon = getEntityIcon(entity.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

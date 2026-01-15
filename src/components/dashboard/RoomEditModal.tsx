@@ -8,7 +8,7 @@ import { IconPickerField } from '@/components/ui/IconPickerField'
 import { RoomDeleteDialog } from '@/components/dashboard/RoomDeleteDialog'
 import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getAreaTemperatureSensor, updateArea, setAreaTemperatureSensor, createFloor } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
@@ -59,7 +59,7 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
       setFloorId(room.floorId || '')
       setIcon(room.icon || '')
       // Get current temperature sensor selection from HA
-      const currentSensor = haWebSocket.getAreaTemperatureSensor(roomId)
+      const currentSensor = getAreaTemperatureSensor(roomId)
       setTemperatureSensor(currentSensor || '')
     }
     // Only re-run when roomId changes, not when room object reference changes
@@ -76,13 +76,13 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
 
     setIsSaving(true)
     try {
-      await haWebSocket.updateArea(room.areaId, {
+      await updateArea(room.areaId, {
         name: name.trim() || room.name,
         floor_id: floorId || null,
         icon: icon.trim() || null,
       })
       // Save temperature sensor selection (empty string clears selection)
-      await haWebSocket.setAreaTemperatureSensor(
+      await setAreaTemperatureSensor(
         room.areaId,
         temperatureSensor || null
       )
@@ -116,7 +116,7 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
             onChange={setFloorId}
             options={floorOptions}
             placeholder={t.floors.none}
-            onCreate={(name) => haWebSocket.createFloor(name)}
+            onCreate={(name) => createFloor(name)}
             createLabel={t.edit.createFloor}
           />
         </FormField>
