@@ -48,7 +48,7 @@ export function FloorSwipeContainer({
 
   // Get current index from selected floor ID
   const currentIndex = useMemo(() => {
-    if (selectedFloorId === null || selectedFloorId === '__uncategorized__') {
+    if (selectedFloorId === null || selectedFloorId === '__all_devices__') {
       const idx = floorIds.indexOf(null)
       return idx >= 0 ? idx : 0
     }

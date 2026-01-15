@@ -4,9 +4,11 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
+import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
@@ -19,6 +21,7 @@ interface ClimateSectionProps {
   onToggle: (device: HAEntity) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: Map<string, EntityMeta>
 }
 
 function ClimateItem({
@@ -28,6 +31,7 @@ function ClimateItem({
   onToggle,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: {
   climate: HAEntity
   isInEditMode: boolean
@@ -35,6 +39,7 @@ function ClimateItem({
   onToggle: (device: HAEntity) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: EntityMeta
 }) {
   const currentTemp = climate.attributes.current_temperature as number | undefined
   const targetTemp = climate.attributes.temperature as number | undefined
@@ -66,9 +71,18 @@ function ClimateItem({
               <Thermometer className="w-5 h-5" />
             )}
           </div>
-          <span className="flex-1 text-sm font-medium text-foreground truncate text-left">
-            {getEntityDisplayName(climate)}
-          </span>
+          <div className="flex-1 flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium text-foreground truncate text-left">
+              {getEntityDisplayName(climate)}
+            </span>
+            {entityMeta && (
+              <EntityBadges
+                isHidden={entityMeta.isHidden}
+                hasRoom={entityMeta.hasRoom}
+                className="flex-shrink-0"
+              />
+            )}
+          </div>
         </div>
       </button>
     )
@@ -106,10 +120,17 @@ function ClimateItem({
             <span className="text-sm font-medium text-foreground truncate">
               {getEntityDisplayName(climate)}
             </span>
+            {entityMeta && (
+              <EntityBadges
+                isHidden={entityMeta.isHidden}
+                hasRoom={entityMeta.hasRoom}
+                className="flex-shrink-0"
+              />
+            )}
             {!isOff && (
               <span
                 className={clsx(
-                  'px-2 py-0.5 rounded-full text-xs font-medium capitalize',
+                  'px-2 py-0.5 rounded-full text-xs font-medium capitalize flex-shrink-0',
                   hvacMode === 'heat' && 'bg-orange-500/20 text-orange-500',
                   hvacMode === 'cool' && 'bg-blue-500/20 text-blue-500',
                   hvacMode === 'heat_cool' && 'bg-purple-500/20 text-purple-500',
@@ -152,6 +173,7 @@ export function ClimateSection({
   onToggle,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: ClimateSectionProps) {
   if (climates.length === 0) return null
 
@@ -168,6 +190,7 @@ export function ClimateSection({
             onToggle={onToggle}
             onToggleSelection={onToggleSelection}
             onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+            entityMeta={entityMeta?.get(climate.entity_id)}
           />
         ))}
       </div>

@@ -1,7 +1,7 @@
 import { LayoutGroup } from 'framer-motion'
 import { RoomCard } from './RoomCard'
 import { ReorderableGrid } from './ReorderableGrid'
-import { UncategorizedView } from './UncategorizedView'
+import { AllDevicesView } from './AllDevicesView'
 import { t } from '@/lib/i18n'
 import type { RoomWithDevices } from '@/types/ha'
 
@@ -34,22 +34,29 @@ export function RoomsGrid({
   onClickOutside,
   onEnterEditModeWithSelection,
 }: RoomsGridProps) {
-  // Uncategorized view
-  if (selectedFloorId === '__uncategorized__') {
-    return <UncategorizedView />
+  // All devices view
+  if (selectedFloorId === '__all_devices__') {
+    return <AllDevicesView />
   }
 
   // Empty state
   if (displayRooms.length === 0) {
+    // Determine the appropriate message
+    let emptyMessage: string
+    if (!isConnected) {
+      emptyMessage = t.rooms.connectingToHA
+    } else if (allRooms.length === 0) {
+      emptyMessage = t.rooms.loading
+    } else if (selectedFloorId) {
+      // Connected, has rooms elsewhere, but this floor is empty
+      emptyMessage = t.rooms.emptyFloor
+    } else {
+      emptyMessage = t.rooms.noRoomsOnFloor
+    }
+
     return (
       <div className="card p-8 text-center">
-        <p className="text-muted">
-          {!isConnected
-            ? t.rooms.connectingToHA
-            : allRooms.length === 0
-            ? t.rooms.loading
-            : t.rooms.noRoomsOnFloor}
-        </p>
+        <p className="text-muted">{emptyMessage}</p>
       </div>
     )
   }

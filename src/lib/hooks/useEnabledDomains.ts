@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getEnabledDomainsSync, setEnabledDomains as saveEnabledDomains, isEntityVisible as checkEntityVisible, getShowHiddenItemsSync, setShowHiddenItems as saveShowHiddenItems } from '../config'
+import { getEnabledDomainsSync, setEnabledDomains as saveEnabledDomains, isEntityVisible as checkEntityVisible } from '../config'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
 
 /**
@@ -8,12 +8,10 @@ import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
  */
 export function useEnabledDomains() {
   const [enabledDomains, setEnabledDomainsState] = useState<ConfigurableDomain[]>(DEFAULT_ENABLED_DOMAINS)
-  const [showHiddenItems, setShowHiddenItemsState] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
     setEnabledDomainsState(getEnabledDomainsSync())
-    setShowHiddenItemsState(getShowHiddenItemsSync())
   }, [])
 
   // Save domains and update state
@@ -44,19 +42,11 @@ export function useEnabledDomains() {
     setEnabledDomains(DEFAULT_ENABLED_DOMAINS)
   }, [setEnabledDomains])
 
-  // Toggle showHiddenItems
-  const setShowHiddenItems = useCallback((show: boolean) => {
-    saveShowHiddenItems(show)
-    setShowHiddenItemsState(show)
-  }, [])
-
   return {
     enabledDomains,
     setEnabledDomains,
     isEntityVisible,
     toggleDomain,
     resetToDefaults,
-    showHiddenItems,
-    setShowHiddenItems,
   }
 }

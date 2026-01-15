@@ -5,6 +5,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 interface LightsSectionProps {
   lights: HAEntity[]
@@ -13,6 +14,8 @@ interface LightsSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   compact?: boolean
+  singleColumn?: boolean
+  entityMeta?: Map<string, EntityMeta>
 }
 
 function LightItem({
@@ -22,6 +25,7 @@ function LightItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   compact,
+  entityMeta,
 }: {
   light: HAEntity
   isInEditMode: boolean
@@ -29,6 +33,7 @@ function LightItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   compact: boolean
+  entityMeta?: EntityMeta
 }) {
   const longPress = useLongPress({
     duration: 500,
@@ -51,6 +56,7 @@ function LightItem({
             light={light}
             disabled={true}
             compact={compact}
+            entityMeta={entityMeta}
           />
         </div>
       </button>
@@ -68,6 +74,7 @@ function LightItem({
         light={light}
         disabled={false}
         compact={compact}
+        entityMeta={entityMeta}
       />
     </div>
   )
@@ -80,11 +87,13 @@ export function LightsSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   compact = false,
+  singleColumn = false,
+  entityMeta,
 }: LightsSectionProps) {
   if (lights.length === 0) return null
 
-  // Use two columns for lights when there are more than 6 (unless explicitly set)
-  const useTwoColumn = compact || lights.length > 6
+  // Use two columns for lights when there are more than 6 (unless explicitly set or forced single)
+  const useTwoColumn = !singleColumn && (compact || lights.length > 6)
 
   return (
     <div className="mb-4">
@@ -103,6 +112,7 @@ export function LightsSection({
             onToggleSelection={onToggleSelection}
             onEnterEditModeWithSelection={onEnterEditModeWithSelection}
             compact={useTwoColumn}
+            entityMeta={entityMeta?.get(light.entity_id)}
           />
         ))}
       </div>

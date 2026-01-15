@@ -112,3 +112,25 @@ export async function createFloor(state: HAWebSocketState, name: string): Promis
     })
   })
 }
+
+export async function deleteFloor(state: HAWebSocketState, floorId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const msgId = getNextMessageId(state)
+    registerCallback(state, msgId, (success, _result, error) => {
+      if (success) {
+        // Remove from local registry
+        state.floors.delete(floorId)
+        notifyRegistryHandlers(state)
+        resolve()
+      } else {
+        reject(new Error(`Failed to delete floor: ${error?.message || 'Unknown error'}`))
+      }
+    })
+
+    send(state, {
+      id: msgId,
+      type: 'config/floor_registry/delete',
+      floor_id: floorId,
+    })
+  })
+}

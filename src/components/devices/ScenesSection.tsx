@@ -4,9 +4,11 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
+import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
@@ -20,6 +22,7 @@ interface ScenesSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   getDisplayName?: (scene: HAEntity) => string
+  entityMeta?: Map<string, EntityMeta>
 }
 
 function SceneItem({
@@ -30,6 +33,7 @@ function SceneItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   displayName,
+  entityMeta,
 }: {
   scene: HAEntity
   isInEditMode: boolean
@@ -38,6 +42,7 @@ function SceneItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   displayName: (scene: HAEntity) => string
+  entityMeta?: EntityMeta
 }) {
   const sceneIcon = getEntityIcon(scene.entity_id)
 
@@ -65,6 +70,12 @@ function SceneItem({
           <Sparkles className="w-3.5 h-3.5" />
         )}
         {displayName(scene)}
+        {entityMeta && (
+          <EntityBadges
+            isHidden={entityMeta.isHidden}
+            hasRoom={entityMeta.hasRoom}
+          />
+        )}
       </button>
     )
   }
@@ -89,6 +100,12 @@ function SceneItem({
         <Sparkles className="w-3.5 h-3.5" />
       )}
       {displayName(scene)}
+      {entityMeta && (
+        <EntityBadges
+          isHidden={entityMeta.isHidden}
+          hasRoom={entityMeta.hasRoom}
+        />
+      )}
     </button>
   )
 }
@@ -101,6 +118,7 @@ export function ScenesSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   getDisplayName,
+  entityMeta,
 }: ScenesSectionProps) {
   if (scenes.length === 0) return null
 
@@ -120,6 +138,7 @@ export function ScenesSection({
             onToggleSelection={onToggleSelection}
             onEnterEditModeWithSelection={onEnterEditModeWithSelection}
             displayName={displayName}
+            entityMeta={entityMeta?.get(scene.entity_id)}
           />
         ))}
       </div>

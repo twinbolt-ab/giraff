@@ -2,8 +2,10 @@ import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from './MdiIcon'
 import { SelectionCheckbox } from './SelectionCheckbox'
+import { EntityBadges } from './EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
@@ -17,6 +19,7 @@ interface DeviceToggleButtonProps {
   onToggleSelection: () => void
   onEnterEditModeWithSelection?: () => void
   fallbackIcon: React.ReactNode
+  entityMeta?: EntityMeta
 }
 
 export function DeviceToggleButton({
@@ -27,6 +30,7 @@ export function DeviceToggleButton({
   onToggleSelection,
   onEnterEditModeWithSelection,
   fallbackIcon,
+  entityMeta,
 }: DeviceToggleButtonProps) {
   const isOn = entity.state === 'on'
   const entityIcon = getEntityIcon(entity.entity_id)
@@ -63,16 +67,25 @@ export function DeviceToggleButton({
           )}
         </div>
         {/* Name */}
-        <span
-          className={clsx(
-            'flex-1 text-sm font-medium truncate text-left',
-            isOn ? 'text-foreground' : 'text-muted'
+        <div className="flex-1 flex items-center gap-1.5 min-w-0">
+          <span
+            className={clsx(
+              'text-sm font-medium truncate text-left',
+              isOn ? 'text-foreground' : 'text-muted'
+            )}
+          >
+            {getEntityDisplayName(entity)}
+          </span>
+          {entityMeta && (
+            <EntityBadges
+              isHidden={entityMeta.isHidden}
+              hasRoom={entityMeta.hasRoom}
+              className="flex-shrink-0"
+            />
           )}
-        >
-          {getEntityDisplayName(entity)}
-        </span>
+        </div>
         {/* State indicator on right */}
-        <span className="text-xs text-muted">{isOn ? 'On' : 'Off'}</span>
+        <span className="text-xs text-muted flex-shrink-0">{isOn ? 'On' : 'Off'}</span>
       </button>
     )
   }
@@ -111,16 +124,25 @@ export function DeviceToggleButton({
           )}
         </div>
         {/* Name */}
-        <span
-          className={clsx(
-            'flex-1 text-sm font-medium truncate text-left',
-            isOn ? 'text-foreground' : 'text-muted'
+        <div className="flex-1 flex items-center gap-1.5 min-w-0">
+          <span
+            className={clsx(
+              'text-sm font-medium truncate text-left',
+              isOn ? 'text-foreground' : 'text-muted'
+            )}
+          >
+            {getEntityDisplayName(entity)}
+          </span>
+          {entityMeta && (
+            <EntityBadges
+              isHidden={entityMeta.isHidden}
+              hasRoom={entityMeta.hasRoom}
+              className="flex-shrink-0"
+            />
           )}
-        >
-          {getEntityDisplayName(entity)}
-        </span>
+        </div>
         {/* State indicator on right */}
-        <span className="text-xs text-muted">{isOn ? 'On' : 'Off'}</span>
+        <span className="text-xs text-muted flex-shrink-0">{isOn ? 'On' : 'Off'}</span>
       </button>
     </div>
   )

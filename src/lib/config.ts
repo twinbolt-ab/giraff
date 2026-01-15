@@ -3,7 +3,6 @@
 
 import { STORAGE_KEYS } from './constants'
 import { getStorage } from './storage'
-import { settingsEvents } from './events'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
 import { getValidAccessToken, getOAuthCredentials, clearOAuthCredentials, type TokenResult } from './ha-oauth'
 
@@ -241,32 +240,4 @@ export async function setEnabledDomains(domains: ConfigurableDomain[]): Promise<
 export function isEntityVisible(entityId: string, enabledDomains?: ConfigurableDomain[]): boolean {
   const domains = enabledDomains ?? getEnabledDomainsSync()
   return domains.some(domain => entityId.startsWith(`${domain}.`))
-}
-
-/**
- * Get showHiddenItems setting from storage
- */
-export async function getShowHiddenItems(): Promise<boolean> {
-  if (typeof window === 'undefined') return false
-  const storage = getStorage()
-  return (await storage.getItem(STORAGE_KEYS.SHOW_HIDDEN_ITEMS)) === 'true'
-}
-
-/**
- * Synchronous version
- */
-export function getShowHiddenItemsSync(): boolean {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(STORAGE_KEYS.SHOW_HIDDEN_ITEMS) === 'true'
-}
-
-/**
- * Save showHiddenItems setting to storage
- */
-export async function setShowHiddenItems(show: boolean): Promise<void> {
-  if (typeof window === 'undefined') return
-  const storage = getStorage()
-  await storage.setItem(STORAGE_KEYS.SHOW_HIDDEN_ITEMS, show ? 'true' : 'false')
-  // Notify listeners in same tab (storage event only fires for other tabs)
-  settingsEvents.emit('showHiddenItems', show)
 }

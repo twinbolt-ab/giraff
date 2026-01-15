@@ -4,9 +4,11 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
+import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
@@ -21,6 +23,7 @@ interface CoversSectionProps {
   onStop: (device: HAEntity) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: Map<string, EntityMeta>
 }
 
 function CoverItem({
@@ -32,6 +35,7 @@ function CoverItem({
   onStop,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: {
   cover: HAEntity
   isInEditMode: boolean
@@ -41,6 +45,7 @@ function CoverItem({
   onStop: (device: HAEntity) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: EntityMeta
 }) {
   const isOpen = cover.state === 'open'
   const isClosed = cover.state === 'closed'
@@ -69,9 +74,18 @@ function CoverItem({
             <Blinds className="w-5 h-5" />
           )}
         </div>
-        <span className="flex-1 text-sm font-medium text-foreground truncate text-left">
-          {getEntityDisplayName(cover)}
-        </span>
+        <div className="flex-1 flex items-center gap-1.5 min-w-0">
+          <span className="text-sm font-medium text-foreground truncate text-left">
+            {getEntityDisplayName(cover)}
+          </span>
+          {entityMeta && (
+            <EntityBadges
+              isHidden={entityMeta.isHidden}
+              hasRoom={entityMeta.hasRoom}
+              className="flex-shrink-0"
+            />
+          )}
+        </div>
       </button>
     )
   }
@@ -102,17 +116,26 @@ function CoverItem({
       </div>
 
       {/* Name */}
-      <span
-        className={clsx(
-          'flex-1 text-sm font-medium truncate',
-          isOpen ? 'text-foreground' : 'text-muted'
+      <div className="flex-1 flex items-center gap-1.5 min-w-0">
+        <span
+          className={clsx(
+            'text-sm font-medium truncate',
+            isOpen ? 'text-foreground' : 'text-muted'
+          )}
+        >
+          {getEntityDisplayName(cover)}
+        </span>
+        {entityMeta && (
+          <EntityBadges
+            isHidden={entityMeta.isHidden}
+            hasRoom={entityMeta.hasRoom}
+            className="flex-shrink-0"
+          />
         )}
-      >
-        {getEntityDisplayName(cover)}
-      </span>
+      </div>
 
       {/* State */}
-      <span className="text-xs text-muted capitalize">{cover.state}</span>
+      <span className="text-xs text-muted capitalize flex-shrink-0">{cover.state}</span>
 
       {/* Control buttons */}
       <div className="flex items-center gap-1">
@@ -160,6 +183,7 @@ export function CoversSection({
   onStop,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: CoversSectionProps) {
   if (covers.length === 0) return null
 
@@ -178,6 +202,7 @@ export function CoversSection({
             onStop={onStop}
             onToggleSelection={onToggleSelection}
             onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+            entityMeta={entityMeta?.get(cover.entity_id)}
           />
         ))}
       </div>

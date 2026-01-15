@@ -38,7 +38,8 @@ export const STORAGE_KEYS = {
   HA_TOKEN: 'stuga-ha-token',
   SETUP_COMPLETE: 'stuga-setup-complete',
   ENABLED_DOMAINS: 'stuga-enabled-domains',
-  SHOW_HIDDEN_ITEMS: 'stuga-show-hidden-items',
   DEV_MODE: 'stuga-dev-mode',
   MOCK_SCENARIO: 'stuga-mock-scenario',
+  STRUCTURE_HINT_DISMISSED: 'stuga-structure-hint-dismissed',
+  FLOORS_HINT_DISMISSED: 'stuga-floors-hint-dismissed',
 } as const

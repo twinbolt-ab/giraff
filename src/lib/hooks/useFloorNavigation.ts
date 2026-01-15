@@ -12,7 +12,7 @@ interface UseFloorNavigationOptions {
 }
 
 interface UseFloorNavigationReturn {
-  /** The currently selected floor ID (null = unassigned rooms, '__uncategorized__' = uncategorized view) */
+  /** The currently selected floor ID (null = unassigned rooms, '__all_devices__' = all devices view) */
   selectedFloorId: string | null
   /** Rooms filtered by selected floor */
   filteredRooms: RoomWithDevices[]
@@ -22,8 +22,8 @@ interface UseFloorNavigationReturn {
   getRoomsForFloor: (floorId: string | null) => RoomWithDevices[]
   /** Handle floor selection (from swipe or tab click) */
   handleSelectFloor: (floorId: string | null) => void
-  /** Switch to uncategorized devices view */
-  handleViewUncategorized: () => void
+  /** Switch to all devices view */
+  handleViewAllDevices: () => void
 }
 
 export function useFloorNavigation({
@@ -50,7 +50,7 @@ export function useFloorNavigation({
     // If user has made an explicit selection, use it (unless it's stale)
     if (userSelectedFloorId !== undefined) {
       // Validate the selection still exists
-      if (userSelectedFloorId === '__uncategorized__') return '__uncategorized__'
+      if (userSelectedFloorId === '__all_devices__') return '__all_devices__'
       if (userSelectedFloorId === null) return null // "Other" tab
       if (floors.some(f => f.floor_id === userSelectedFloorId)) return userSelectedFloorId
       // Selection is stale, fall through to auto-select
@@ -61,7 +61,7 @@ export function useFloorNavigation({
       return floors[0].floor_id
     }
     if (hasReceivedData && rooms.length === 0) {
-      return '__uncategorized__'
+      return '__all_devices__'
     }
     return null
   }, [userSelectedFloorId, floors, hasReceivedData, rooms.length])
@@ -102,9 +102,9 @@ export function useFloorNavigation({
     setUserSelectedFloorId(floorId)
   }, [selectedFloorId, onFloorChange])
 
-  const handleViewUncategorized = useCallback(() => {
+  const handleViewAllDevices = useCallback(() => {
     onFloorChange?.() // Notify parent (e.g., to close expanded rooms)
-    setUserSelectedFloorId('__uncategorized__') // Special ID for uncategorized devices view
+    setUserSelectedFloorId('__all_devices__') // Special ID for all devices view
   }, [onFloorChange])
 
   return {
@@ -113,6 +113,6 @@ export function useFloorNavigation({
     hasUnassignedRooms,
     getRoomsForFloor,
     handleSelectFloor,
-    handleViewUncategorized,
+    handleViewAllDevices,
   }
 }

@@ -120,6 +120,7 @@ export const updateFloor = (floorId: string, updates: { name?: string; icon?: st
 export const setFloorOrder = (floorId: string, order: number) =>
   floorSvc.setFloorOrder(state, floorId, order)
 export const createFloor = (name: string) => floorSvc.createFloor(state, name)
+export const deleteFloor = (floorId: string) => floorSvc.deleteFloor(state, floorId)
 
 // Re-export types
 export type { HAWebSocketState, MessageHandler, ConnectionHandler, RegistryHandler } from './types'
