@@ -259,5 +259,10 @@
     "title": "Connection Lost",
     "message": "Unable to connect to Home Assistant. Check your WiFi connection and try again.",
     "retry": "Retry Connection"
+  },
+  "errors": {
+    "saveFailed": "Failed to save changes",
+    "deleteFailed": "Failed to delete",
+    "updateFailed": "Failed to update"
   }
 }

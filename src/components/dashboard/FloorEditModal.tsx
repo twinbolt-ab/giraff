@@ -3,6 +3,7 @@ import { EditModal } from '@/components/ui/EditModal'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { IconPickerField } from '@/components/ui/IconPickerField'
+import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { HAFloor } from '@/types/ha'
@@ -16,6 +17,7 @@ export function FloorEditModal({ floor, onClose }: FloorEditModalProps) {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const { showError } = useToast()
 
   // Reset form only when a different floor is selected
   const floorId = floor?.floor_id
@@ -39,6 +41,7 @@ export function FloorEditModal({ floor, onClose }: FloorEditModalProps) {
       onClose()
     } catch (error) {
       console.error('Failed to update floor:', error)
+      showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }

@@ -402,13 +402,23 @@ class HAWebSocket {
     return this.entities.get(entityId)
   }
 
-  callService(domain: string, service: string, data?: Record<string, unknown>) {
-    this.send({
-      id: this.messageId++,
-      type: 'call_service',
-      domain,
-      service,
-      service_data: data,
+  callService(
+    domain: string,
+    service: string,
+    data?: Record<string, unknown>
+  ): Promise<{ success: boolean; error?: { code: string; message: string } }> {
+    return new Promise((resolve) => {
+      const msgId = this.messageId++
+      this.registerCallback(msgId, (success, _result, error) => {
+        resolve({ success, error })
+      })
+      this.send({
+        id: msgId,
+        type: 'call_service',
+        domain,
+        service,
+        service_data: data,
+      })
     })
   }
 

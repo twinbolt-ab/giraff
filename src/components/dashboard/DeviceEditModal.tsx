@@ -7,6 +7,7 @@ import { ComboBox } from '@/components/ui/ComboBox'
 import { Toggle } from '@/components/ui/Toggle'
 import { IconPickerField } from '@/components/ui/IconPickerField'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
@@ -25,6 +26,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const { showError } = useToast()
 
   // Determine if this is a scene
   const isScene = useMemo(() => {
@@ -82,6 +84,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
       onClose()
     } catch (error) {
       console.error('Failed to update device:', error)
+      showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }
@@ -99,6 +102,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
       onClose()
     } catch (error) {
       console.error('Failed to delete scene:', error)
+      showError(t.errors.deleteFailed)
       setIsDeleting(false)
     }
   }
