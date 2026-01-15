@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { useDevMode } from './useDevMode'
-import { haWebSocket } from '../ha-websocket'
+import * as ws from '../ha-websocket'
 import { getShowHiddenItemsSync } from '../config'
 import { settingsEvents } from '../events'
 import { generateMockData } from '../mock-data'
@@ -50,7 +50,7 @@ export function useRooms() {
 
   // Subscribe to registry updates for order changes
   useEffect(() => {
-    const unsubscribe = haWebSocket.onRegistryUpdate(() => {
+    const unsubscribe = ws.onRegistryUpdate(() => {
       setRegistryVersion(v => v + 1)
     })
     return () => { unsubscribe() }
@@ -66,9 +66,9 @@ export function useRooms() {
     }
 
     const roomMap = new Map<string, { entities: HAEntity[]; areaId: string | null }>()
-    const areaRegistry = haWebSocket.getAreaRegistry()
-    const floorRegistry = haWebSocket.getFloors()
-    const hiddenEntities = haWebSocket.getHiddenEntities()
+    const areaRegistry = ws.getAreaRegistry()
+    const floorRegistry = ws.getFloors()
+    const hiddenEntities = ws.getHiddenEntities()
 
     // Group entities by area (we'll extract area from friendly_name or entity_id patterns)
     for (const entity of entities.values()) {
@@ -114,7 +114,7 @@ export function useRooms() {
       // Get temperature from selected sensor, or first one alphabetically
       let temperature: number | undefined
       if (tempSensors.length > 0) {
-        const selectedSensorId = areaId ? haWebSocket.getAreaTemperatureSensor(areaId) : undefined
+        const selectedSensorId = areaId ? ws.getAreaTemperatureSensor(areaId) : undefined
         const selectedSensor = selectedSensorId
           ? tempSensors.find((s) => s.entity_id === selectedSensorId)
           : undefined
@@ -137,8 +137,8 @@ export function useRooms() {
         : undefined
 
       // Get order, icon, and floor from HA
-      const order = areaId ? haWebSocket.getAreaOrder(areaId) : DEFAULT_ORDER
-      const icon = areaId ? haWebSocket.getAreaIcon(areaId) : undefined
+      const order = areaId ? ws.getAreaOrder(areaId) : DEFAULT_ORDER
+      const icon = areaId ? ws.getAreaIcon(areaId) : undefined
       const areaEntry = areaId ? areaRegistry.get(areaId) : undefined
       const floorId = areaEntry?.floor_id
 

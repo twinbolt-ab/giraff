@@ -5,7 +5,7 @@ import { TextInput } from '@/components/ui/TextInput'
 import { IconPickerField } from '@/components/ui/IconPickerField'
 import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { updateFloor } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { HAFloor } from '@/types/ha'
 
@@ -35,7 +35,7 @@ export function FloorEditModal({ floor, onClose }: FloorEditModalProps) {
 
     setIsSaving(true)
     try {
-      await haWebSocket.updateFloor(floor.floor_id, {
+      await updateFloor(floor.floor_id, {
         name: name.trim() || floor.name,
         icon: icon.trim() || null,
       })

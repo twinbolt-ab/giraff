@@ -9,7 +9,7 @@ import { IconPickerField } from '@/components/ui/IconPickerField'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityRegistry, isEntityHidden, updateEntity, setEntityHidden, deleteScene, createArea } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 
@@ -43,8 +43,8 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   useEffect(() => {
     if (device && deviceId) {
       // Get current name and icon from entity registry
-      const entityRegistry = haWebSocket.getEntityRegistry()
-      const entry = entityRegistry.get(deviceId)
+      const registry = getEntityRegistry()
+      const entry = registry.get(deviceId)
       setName(entry?.name || '')
       setIcon(entry?.icon || '')
 
@@ -54,7 +54,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
       setRoomId(currentRoom?.areaId || '')
 
       // Get hidden state
-      setHidden(haWebSocket.isEntityHidden(deviceId))
+      setHidden(isEntityHidden(deviceId))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
@@ -73,14 +73,14 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
     setIsSaving(true)
     try {
       // Update name, icon, and area
-      await haWebSocket.updateEntity(device.entity_id, {
+      await updateEntity(device.entity_id, {
         name: name.trim() || null,
         icon: icon.trim() || null,
         area_id: roomId || null,
       })
 
       // Update hidden state
-      await haWebSocket.setEntityHidden(device.entity_id, hidden)
+      await setEntityHidden(device.entity_id, hidden)
 
       onClose()
     } catch (error) {
@@ -98,7 +98,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
 
     setIsDeleting(true)
     try {
-      await haWebSocket.deleteScene(device.entity_id)
+      await deleteScene(device.entity_id)
       setShowDeleteConfirm(false)
       onClose()
     } catch (error) {
@@ -137,7 +137,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
               onChange={setRoomId}
               options={roomOptions}
               placeholder="Select room..."
-              onCreate={(name) => haWebSocket.createArea(name)}
+              onCreate={(name) => createArea(name)}
               createLabel={t.edit.createRoom}
             />
           </FormField>

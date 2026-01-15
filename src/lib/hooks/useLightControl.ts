@@ -96,14 +96,17 @@ export function useLightControl(options: UseLightControlOptions = {}) {
     [callService]
   )
 
-  // Toggle all lights in a room on/off
+  // Toggle all lights and switches in a room on/off
   const toggleRoomLights = useCallback(
-    (lights: HAEntity[]) => {
-      // If any light is on, turn all off. Otherwise turn all on.
-      const anyOn = lights.some((l) => l.state === 'on')
+    (lights: HAEntity[], switches: HAEntity[] = []) => {
+      // If any light or switch is on, turn all off. Otherwise turn all on.
+      const anyOn = lights.some((l) => l.state === 'on') || switches.some((s) => s.state === 'on')
       const service = anyOn ? 'turn_off' : 'turn_on'
       for (const light of lights) {
         callService('light', service, { entity_id: light.entity_id })
+      }
+      for (const sw of switches) {
+        callService('switch', service, { entity_id: sw.entity_id })
       }
     },
     [callService]

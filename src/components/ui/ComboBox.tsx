@@ -27,6 +27,7 @@ export function ComboBox({
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const [dropdownMaxHeight, setDropdownMaxHeight] = useState(240)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -92,6 +93,7 @@ export function ComboBox({
     if (!onCreate || !inputValue.trim() || isCreating) return
 
     setIsCreating(true)
+    setCreateError(null)
     try {
       const newId = await onCreate(inputValue.trim())
       onChange(newId)
@@ -99,6 +101,7 @@ export function ComboBox({
       setInputValue('')
     } catch (error) {
       logger.error('ComboBox', 'Failed to create:', error)
+      setCreateError(error instanceof Error ? error.message : 'Failed to create')
     } finally {
       setIsCreating(false)
     }
@@ -149,11 +152,17 @@ export function ComboBox({
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => {
+                setInputValue(e.target.value)
+                setCreateError(null)
+              }}
               onKeyDown={handleKeyDown}
               placeholder="Type to search or create..."
               className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors text-sm"
             />
+            {createError && (
+              <p className="text-red-500 text-xs mt-1">{createError}</p>
+            )}
           </div>
 
           {/* Options list - scrollable */}

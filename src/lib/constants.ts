@@ -23,6 +23,15 @@ export const ORDER_GAP = 10
 // Long-press duration to enter reorder mode (ms)
 export const LONG_PRESS_DURATION = 500
 
+// WebSocket reconnect delay (ms)
+export const RECONNECT_DELAY = 5000
+
+// Duration for optimistic UI updates before reverting (ms)
+export const OPTIMISTIC_DURATION = 5000
+
+// Delay before hiding brightness/overlay UI elements (ms)
+export const OVERLAY_HIDE_DELAY = 300
+
 // localStorage keys for credentials
 export const STORAGE_KEYS = {
   HA_URL: 'stuga-ha-url',

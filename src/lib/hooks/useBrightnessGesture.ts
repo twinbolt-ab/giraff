@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import type { HAEntity } from '@/types/ha'
+import { OVERLAY_HIDE_DELAY } from '@/lib/constants'
 
 // Minimum drag distance to trigger brightness change (prevents accidental drags)
 const DRAG_THRESHOLD = 10
@@ -158,7 +159,7 @@ export function useBrightnessGesture({
       setRoomBrightness(lights, relativeBrightness, true)
       ;(e.target as HTMLElement).releasePointerCapture(e.pointerId)
 
-      setTimeout(() => setShowOverlay(false), 300)
+      setTimeout(() => setShowOverlay(false), OVERLAY_HIDE_DELAY)
     }
 
     setIsDragging(false)

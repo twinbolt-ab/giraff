@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { useEnabledDomains } from './useEnabledDomains'
 import { useDevMode } from './useDevMode'
-import { haWebSocket } from '../ha-websocket'
+import { isEntityHidden } from '../ha-websocket'
 import { generateMockData } from '../mock-data'
 import type { HAEntity, ConfigurableDomain } from '@/types/ha'
 import { ALL_CONFIGURABLE_DOMAINS } from '@/types/ha'
@@ -49,7 +49,7 @@ export function useUncategorizedEntities() {
       if (!enabledDomains.includes(domain)) continue
 
       // Skip if entity is hidden (unless showHiddenItems is enabled)
-      if (!showHiddenItems && haWebSocket.isEntityHidden(entity.entity_id)) continue
+      if (!showHiddenItems && isEntityHidden(entity.entity_id)) continue
 
       result.push(entity)
     }

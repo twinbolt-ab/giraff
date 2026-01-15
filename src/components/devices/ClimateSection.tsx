@@ -4,7 +4,7 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -40,7 +40,7 @@ function ClimateItem({
   const targetTemp = climate.attributes.temperature as number | undefined
   const hvacMode = climate.state
   const isOff = hvacMode === 'off'
-  const climateIcon = haWebSocket.getEntityIcon(climate.entity_id)
+  const climateIcon = getEntityIcon(climate.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

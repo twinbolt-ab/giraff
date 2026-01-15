@@ -4,7 +4,7 @@ import { Settings } from 'lucide-react'
 import { SettingsMenu } from './SettingsMenu'
 import { FloorEditModal } from '@/components/dashboard/FloorEditModal'
 import { MdiIcon } from '@/components/ui/MdiIcon'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { setFloorOrder } from '@/lib/ha-websocket'
 import { t } from '@/lib/i18n'
 import { logger } from '@/lib/logger'
 import type { HAFloor } from '@/types/ha'
@@ -65,7 +65,7 @@ export function BottomNav({
       const originalIndex = floors.findIndex(f => f.floor_id === floor.floor_id)
       if (originalIndex !== i) {
         try {
-          await haWebSocket.setFloorOrder(floor.floor_id, i * 10)
+          await setFloorOrder(floor.floor_id, i * 10)
         } catch (error) {
           logger.error('Header', 'Failed to save floor order:', error)
         }

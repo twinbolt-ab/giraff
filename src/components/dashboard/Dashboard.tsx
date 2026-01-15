@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Header } from '@/components/layout/Header'
 import { EditModeHeader } from './EditModeHeader'
@@ -13,6 +13,8 @@ import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { useDevMode } from '@/lib/hooks/useDevMode'
+import { useFloorNavigation } from '@/lib/hooks/useFloorNavigation'
+import { useModalState } from '@/lib/hooks/useModalState'
 import { ORDER_GAP } from '@/lib/constants'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 
@@ -45,71 +47,42 @@ function DashboardContent() {
     reorderRooms,
   } = useEditMode()
 
-  // Local UI state
+  // Expanded room state (kept separate as it's used for toggling)
   const [expandedRoomId, setExpandedRoomId] = useState<string | null>(null)
-  const [userSelectedFloorId, setUserSelectedFloorId] = useState<string | null | undefined>(undefined)
-  const [editingRoom, setEditingRoom] = useState<RoomWithDevices | null>(null)
-  const [editingDevice, setEditingDevice] = useState<HAEntity | null>(null)
-  const [showBulkEditRooms, setShowBulkEditRooms] = useState(false)
-  const [showBulkEditDevices, setShowBulkEditDevices] = useState(false)
+  const closeExpandedRoom = useCallback(() => setExpandedRoomId(null), [])
 
-  // Check if there are rooms without a floor that have controllable devices
-  const hasUnassignedRooms = useMemo(() => {
-    return rooms.some((room) => {
-      if (room.floorId) return false
-      const hasControllableDevices = room.devices.some((d) => isEntityVisible(d.entity_id))
-      return hasControllableDevices
-    })
-  }, [rooms, isEntityVisible])
+  // Floor navigation (extracted to hook)
+  const {
+    selectedFloorId,
+    filteredRooms,
+    hasUnassignedRooms,
+    getRoomsForFloor,
+    handleSelectFloor,
+    handleViewUncategorized,
+  } = useFloorNavigation({
+    rooms,
+    floors,
+    hasReceivedData,
+    activeMockScenario,
+    isEntityVisible,
+    onFloorChange: closeExpandedRoom,
+  })
 
-  // Derive selected floor from data - user selection takes precedence, otherwise auto-select
-  const selectedFloorId = useMemo(() => {
-    // If user has made an explicit selection, use it (unless it's stale)
-    if (userSelectedFloorId !== undefined) {
-      // Validate the selection still exists
-      if (userSelectedFloorId === '__uncategorized__') return '__uncategorized__'
-      if (userSelectedFloorId === null) return null // "Other" tab
-      if (floors.some(f => f.floor_id === userSelectedFloorId)) return userSelectedFloorId
-      // Selection is stale, fall through to auto-select
-    }
-
-    // Auto-select based on data
-    if (floors.length > 0) {
-      return floors[0].floor_id
-    }
-    if (hasReceivedData && rooms.length === 0) {
-      return '__uncategorized__'
-    }
-    return null
-  }, [userSelectedFloorId, floors, hasReceivedData, rooms.length])
-
-  // Reset user selection when mock scenario changes
-  useEffect(() => {
-    setUserSelectedFloorId(undefined)
-  }, [activeMockScenario])
-
-  // Filter rooms by selected floor
-  const filteredRooms = useMemo(() => {
-    if (selectedFloorId === null) {
-      return rooms.filter((room) => {
-        if (room.floorId) return false
-        return room.devices.some((d) => isEntityVisible(d.entity_id))
-      })
-    }
-    return rooms.filter((room) => room.floorId === selectedFloorId)
-  }, [rooms, selectedFloorId, isEntityVisible])
-
-  // Get rooms for a specific floor (used by FloorSwipeContainer)
-  const getRoomsForFloor = useCallback((floorId: string | null): RoomWithDevices[] => {
-    if (floorId === null) {
-      // Uncategorized rooms
-      return rooms.filter((room) => {
-        if (room.floorId) return false
-        return room.devices.some((d) => isEntityVisible(d.entity_id))
-      })
-    }
-    return rooms.filter((room) => room.floorId === floorId)
-  }, [rooms, isEntityVisible])
+  // Modal state (extracted to hook)
+  const {
+    editingRoom,
+    editingDevice,
+    showBulkEditRooms,
+    showBulkEditDevices,
+    openRoomEdit,
+    openDeviceEdit,
+    openBulkRooms,
+    openBulkDevices,
+    closeRoomEdit,
+    closeDeviceEdit,
+    closeBulkRooms,
+    closeBulkDevices,
+  } = useModalState()
 
   // Sync room data changes (name/icon updates) while preserving order - replaces useEffect
   const orderedRooms = useMemo(() => {
@@ -193,19 +166,6 @@ function DashboardContent() {
     }
   }, [expandedRoomId, isEditMode, handleExitEditMode])
 
-  const handleViewUncategorized = useCallback(() => {
-    setExpandedRoomId(null) // Close any expanded room
-    setUserSelectedFloorId('__uncategorized__') // Special ID for uncategorized devices view
-  }, [])
-
-  // Handle floor selection (from swipe or tab click) - auto-close expanded rooms
-  const handleSelectFloor = useCallback((floorId: string | null) => {
-    if (floorId !== selectedFloorId) {
-      setExpandedRoomId(null) // Close any expanded room when changing floors
-    }
-    setUserSelectedFloorId(floorId)
-  }, [selectedFloorId])
-
   // Get selected rooms for bulk edit modal
   const selectedRoomsForEdit = useMemo(() => {
     const roomsToSearch = isRoomEditMode ? orderedRooms : filteredRooms
@@ -231,22 +191,22 @@ function DashboardContent() {
       if (isDeviceOrUncategorized) {
         const selectedDevice = selectedDevicesForEdit[0]
         if (selectedDevice) {
-          setEditingDevice(selectedDevice)
+          openDeviceEdit(selectedDevice)
         }
       } else {
         const selectedRoom = selectedRoomsForEdit[0]
         if (selectedRoom) {
-          setEditingRoom(selectedRoom)
+          openRoomEdit(selectedRoom)
         }
       }
     } else {
       if (isDeviceOrUncategorized) {
-        setShowBulkEditDevices(true)
+        openBulkDevices()
       } else {
-        setShowBulkEditRooms(true)
+        openBulkRooms()
       }
     }
-  }, [selectedCount, isDeviceEditMode, isUncategorizedEditMode, selectedDevicesForEdit, selectedRoomsForEdit])
+  }, [selectedCount, isDeviceEditMode, isUncategorizedEditMode, selectedDevicesForEdit, selectedRoomsForEdit, openDeviceEdit, openRoomEdit, openBulkDevices, openBulkRooms])
 
   return (
     <div className="min-h-screen bg-background pt-safe pb-nav">
@@ -352,26 +312,26 @@ function DashboardContent() {
         room={editingRoom}
         allRooms={rooms}
         floors={floors}
-        onClose={() => setEditingRoom(null)}
+        onClose={closeRoomEdit}
       />
 
       <DeviceEditModal
         device={editingDevice}
         rooms={rooms}
-        onClose={() => setEditingDevice(null)}
+        onClose={closeDeviceEdit}
       />
 
       <BulkEditRoomsModal
         rooms={showBulkEditRooms ? selectedRoomsForEdit : []}
         floors={floors}
-        onClose={() => setShowBulkEditRooms(false)}
+        onClose={closeBulkRooms}
         onComplete={clearSelection}
       />
 
       <BulkEditDevicesModal
         devices={showBulkEditDevices ? selectedDevicesForEdit : []}
         rooms={rooms}
-        onClose={() => setShowBulkEditDevices(false)}
+        onClose={closeBulkDevices}
         onComplete={clearSelection}
       />
     </div>

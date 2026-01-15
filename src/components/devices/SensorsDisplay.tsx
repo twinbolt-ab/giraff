@@ -3,7 +3,7 @@ import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
-import { haWebSocket } from '@/lib/ha-websocket'
+import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 
@@ -30,7 +30,7 @@ function SensorItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
 }: SensorItemProps) {
-  const customIcon = haWebSocket.getEntityIcon(sensor.entity_id)
+  const customIcon = getEntityIcon(sensor.entity_id)
 
   const longPress = useLongPress({
     duration: 500,

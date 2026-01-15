@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { haWebSocket } from '../ha-websocket'
+import * as ws from '../ha-websocket'
 import { ORDER_GAP } from '../constants'
 
 export function useRoomOrder() {
@@ -7,18 +7,18 @@ export function useRoomOrder() {
 
   // Subscribe to registry updates
   useEffect(() => {
-    const unsubscribe = haWebSocket.onRegistryUpdate(() => {
+    const unsubscribe = ws.onRegistryUpdate(() => {
       forceUpdate({})
     })
     return () => { unsubscribe() }
   }, [])
 
   const getAreaOrder = useCallback((areaId: string): number => {
-    return haWebSocket.getAreaOrder(areaId)
+    return ws.getAreaOrder(areaId)
   }, [])
 
   const setAreaOrder = useCallback(async (areaId: string, order: number): Promise<void> => {
-    await haWebSocket.setAreaOrder(areaId, order)
+    await ws.setAreaOrder(areaId, order)
   }, [])
 
   // Calculate new order values when reordering
@@ -32,7 +32,7 @@ export function useRoomOrder() {
     // Get current orders
     const itemsWithOrder = items.map(item => ({
       ...item,
-      order: haWebSocket.getAreaOrder(item.areaId)
+      order: ws.getAreaOrder(item.areaId)
     }))
 
     // Move item from fromIndex to toIndex
@@ -77,7 +77,7 @@ export function useRoomOrder() {
 
     // Apply all order changes
     const updates = Array.from(newOrders.entries()).map(([areaId, order]) =>
-      haWebSocket.setAreaOrder(areaId, order)
+      ws.setAreaOrder(areaId, order)
     )
 
     await Promise.all(updates)
