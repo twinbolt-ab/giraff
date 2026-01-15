@@ -394,7 +394,7 @@ export function RoomCard({
       ref={cardRef}
       layout="position"
       initial={false}
-      transition={{ layout: { duration: 0.25, ease: [0.25, 0.1, 0.25, 1] } }}
+      transition={{ layout: { duration: 0.12, ease: [0.25, 0.1, 0.25, 1] } }}
       className={clsx(cardClassName, hasControllableDevices && !isExpanded && 'cursor-pointer')}
       onClick={handleCardClick}
       onPointerDown={handlePointerDown}
