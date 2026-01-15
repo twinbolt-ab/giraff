@@ -6,6 +6,7 @@ import { TextInput } from '@/components/ui/TextInput'
 import { ComboBox } from '@/components/ui/ComboBox'
 import { IconPickerField } from '@/components/ui/IconPickerField'
 import { RoomDeleteDialog } from '@/components/dashboard/RoomDeleteDialog'
+import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
@@ -24,6 +25,7 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
   const [temperatureSensor, setTemperatureSensor] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const { showError } = useToast()
 
   // Get temperature sensors for this room
   const temperatureSensors = useMemo(() => {
@@ -85,6 +87,7 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
       onClose()
     } catch (error) {
       console.error('Failed to update room:', error)
+      showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }

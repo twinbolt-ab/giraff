@@ -72,7 +72,7 @@ export function useHAConnection() {
 
   const callService = useCallback(
     (domain: string, service: string, data?: Record<string, unknown>) => {
-      haWebSocket.callService(domain, service, data)
+      return haWebSocket.callService(domain, service, data)
     },
     []
   )

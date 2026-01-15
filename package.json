@@ -8,6 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
+    "test": "vitest",
+    "test:run": "vitest run",
     "cap:sync": "cap sync",
     "ios": "npm run build && cap sync ios && cap open ios",
     "ios:dev": "npm run build && cap sync ios && cap run ios",
@@ -34,15 +36,20 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.0",
     "eslint": "^8.0.0",
+    "jsdom": "^26.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.0",
     "typescript": "^5.0.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "vitest": "^3.0.0"
   }
 }

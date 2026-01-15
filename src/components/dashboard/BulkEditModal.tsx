@@ -4,6 +4,7 @@ import { FormField } from '@/components/ui/FormField'
 import { Select } from '@/components/ui/Select'
 import { ComboBox } from '@/components/ui/ComboBox'
 import { IconPickerField } from '@/components/ui/IconPickerField'
+import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { RoomWithDevices, HAFloor, HAEntity } from '@/types/ha'
@@ -18,6 +19,7 @@ interface BulkEditRoomsModalProps {
 export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkEditRoomsModalProps) {
   const [floorId, setFloorId] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
+  const { showError } = useToast()
 
   const floorOptions = [
     { value: '', label: '— No change —' },
@@ -43,6 +45,7 @@ export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkE
       onClose()
     } catch (error) {
       console.error('Failed to update rooms:', error)
+      showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }
@@ -98,6 +101,7 @@ export function BulkEditDevicesModal({ devices, rooms, onClose, onComplete }: Bu
   const [icon, setIcon] = useState<string>('')
   const [hidden, setHidden] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
+  const { showError } = useToast()
 
   const roomOptions = [
     { value: '', label: '— No change —' },
@@ -140,6 +144,7 @@ export function BulkEditDevicesModal({ devices, rooms, onClose, onComplete }: Bu
       onClose()
     } catch (error) {
       console.error('Failed to update devices:', error)
+      showError(t.errors.saveFailed)
     } finally {
       setIsSaving(false)
     }

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import { FormField } from '@/components/ui/FormField'
 import { Select } from '@/components/ui/Select'
+import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import { haWebSocket } from '@/lib/ha-websocket'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
@@ -26,6 +27,7 @@ export function RoomDeleteDialog({
   const [mounted, setMounted] = useState(false)
   const [targetRoomId, setTargetRoomId] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+  const { showError } = useToast()
 
   // Only render portal on client
   useEffect(() => {
@@ -113,6 +115,7 @@ export function RoomDeleteDialog({
       onClose()
     } catch (error) {
       console.error('Failed to delete room:', error)
+      showError(t.errors.deleteFailed)
       setIsDeleting(false)
     }
   }
