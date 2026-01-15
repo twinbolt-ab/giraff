@@ -6,9 +6,7 @@ import { registerCallback, notifyMessageHandlers, notifyRegistryHandlers } from 
 import { applyAreasToEntities } from './registry-manager'
 import { ROOM_ORDER_LABEL_PREFIX, TEMPERATURE_SENSOR_LABEL_PREFIX, DEFAULT_ORDER } from '@/lib/constants'
 
-/**
- * Get the order value for an area from its labels
- */
+/** Order is stored in HA labels with a special prefix (e.g., "stuga-room-order-05"). */
 export function getAreaOrder(state: HAWebSocketState, areaId: string): number {
   const area = state.areaRegistry.get(areaId)
   if (!area?.labels) return DEFAULT_ORDER
@@ -24,16 +22,11 @@ export function getAreaOrder(state: HAWebSocketState, areaId: string): number {
   return DEFAULT_ORDER
 }
 
-/**
- * Get the icon for an area
- */
 export function getAreaIcon(state: HAWebSocketState, areaId: string): string | undefined {
   return state.areaRegistry.get(areaId)?.icon
 }
 
-/**
- * Get the selected temperature sensor for an area
- */
+/** Temperature sensor is stored in HA labels (e.g., "stuga-temp-sensor.bedroom_temperature"). */
 export function getAreaTemperatureSensor(state: HAWebSocketState, areaId: string): string | undefined {
   const area = state.areaRegistry.get(areaId)
   if (!area?.labels) return undefined
@@ -48,9 +41,7 @@ export function getAreaTemperatureSensor(state: HAWebSocketState, areaId: string
   return undefined
 }
 
-/**
- * Create or get an order label
- */
+/** Returns existing label ID or creates a new one in HA's label registry. */
 async function ensureOrderLabel(state: HAWebSocketState, prefix: string, order: number): Promise<string> {
   const paddedOrder = order.toString().padStart(2, '0')
   const labelName = `${prefix}${paddedOrder}`
@@ -81,9 +72,6 @@ async function ensureOrderLabel(state: HAWebSocketState, prefix: string, order: 
   })
 }
 
-/**
- * Set the order for an area
- */
 export async function setAreaOrder(state: HAWebSocketState, areaId: string, order: number): Promise<void> {
   const area = state.areaRegistry.get(areaId)
   if (!area) return
@@ -119,9 +107,6 @@ export async function setAreaOrder(state: HAWebSocketState, areaId: string, orde
   })
 }
 
-/**
- * Set the temperature sensor for an area
- */
 export async function setAreaTemperatureSensor(
   state: HAWebSocketState,
   areaId: string,
@@ -211,9 +196,6 @@ export async function setAreaTemperatureSensor(
   })
 }
 
-/**
- * Update area properties (name, floor, icon)
- */
 export async function updateArea(
   state: HAWebSocketState,
   areaId: string,
@@ -274,9 +256,6 @@ export async function updateArea(
   })
 }
 
-/**
- * Create a new area (room)
- */
 export async function createArea(state: HAWebSocketState, name: string, floorId?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const msgId = getNextMessageId(state)
@@ -303,9 +282,6 @@ export async function createArea(state: HAWebSocketState, name: string, floorId?
   })
 }
 
-/**
- * Delete an area
- */
 export async function deleteArea(state: HAWebSocketState, areaId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const msgId = getNextMessageId(state)

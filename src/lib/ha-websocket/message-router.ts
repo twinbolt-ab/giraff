@@ -1,11 +1,8 @@
 import type { HAWebSocketState, MessageHandler, ConnectionHandler, RegistryHandler } from './types'
 
-// Default timeout for WebSocket requests (30 seconds)
 const DEFAULT_TIMEOUT = 30000
 
-/**
- * Register a callback for a pending WebSocket request with automatic timeout
- */
+/** Registers a callback with automatic timeout (default 30s). */
 export function registerCallback(
   state: HAWebSocketState,
   msgId: number,
@@ -21,9 +18,6 @@ export function registerCallback(
   state.pendingCallbacks.set(msgId, { callback, timeout })
 }
 
-/**
- * Handle a pending callback response
- */
 export function handlePendingCallback(
   state: HAWebSocketState,
   msgId: number,
@@ -43,9 +37,7 @@ export function handlePendingCallback(
   return false
 }
 
-/**
- * Clear all pending callbacks (called on disconnect)
- */
+/** Called on disconnect to notify pending requests they won't complete. */
 export function clearPendingCallbacks(state: HAWebSocketState): void {
   for (const [, { callback, timeout }] of state.pendingCallbacks) {
     clearTimeout(timeout)
@@ -54,20 +46,18 @@ export function clearPendingCallbacks(state: HAWebSocketState): void {
   state.pendingCallbacks.clear()
 }
 
-// Handler subscription management
-
+/** Subscribes to entity state changes. Calls handler immediately if entities exist. */
 export function addMessageHandler(state: HAWebSocketState, handler: MessageHandler): () => void {
   state.messageHandlers.add(handler)
-  // Immediately call with current state if entities exist
   if (state.entities.size > 0) {
     handler(state.entities)
   }
   return () => state.messageHandlers.delete(handler)
 }
 
+/** Subscribes to connection status. Calls handler immediately with current state. */
 export function addConnectionHandler(state: HAWebSocketState, handler: ConnectionHandler): () => void {
   state.connectionHandlers.add(handler)
-  // Immediately notify of current state
   handler(state.isAuthenticated)
   return () => state.connectionHandlers.delete(handler)
 }
@@ -76,8 +66,6 @@ export function addRegistryHandler(state: HAWebSocketState, handler: RegistryHan
   state.registryHandlers.add(handler)
   return () => state.registryHandlers.delete(handler)
 }
-
-// Notification functions
 
 export function notifyMessageHandlers(state: HAWebSocketState): void {
   for (const handler of state.messageHandlers) {

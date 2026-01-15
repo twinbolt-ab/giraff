@@ -5,37 +5,23 @@ import { send, getNextMessageId } from './connection'
 import { registerCallback, notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
 import { DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER } from '@/lib/constants'
 
-/**
- * Get all entities
- */
 export function getEntities(state: HAWebSocketState): Map<string, HAEntity> {
   return state.entities
 }
 
-/**
- * Get a specific entity by ID
- */
 export function getEntity(state: HAWebSocketState, entityId: string): HAEntity | undefined {
   return state.entities.get(entityId)
 }
 
-/**
- * Get the entity registry
- */
 export function getEntityRegistry(state: HAWebSocketState): Map<string, EntityRegistryEntry> {
   return state.entityRegistry
 }
 
-/**
- * Get all labels
- */
 export function getLabels(state: HAWebSocketState): Map<string, HALabel> {
   return state.labels
 }
 
-/**
- * Get icon for an entity (from registry or attributes)
- */
+/** Returns icon from entity registry first, falling back to state attributes. */
 export function getEntityIcon(state: HAWebSocketState, entityId: string): string | undefined {
   const registryEntry = state.entityRegistry.get(entityId)
   if (registryEntry?.icon) return registryEntry.icon
@@ -48,9 +34,7 @@ export function getEntityIcon(state: HAWebSocketState, entityId: string): string
   return undefined
 }
 
-/**
- * Get entity order from labels
- */
+/** Order is stored in HA labels with a special prefix (e.g., "stuga-device-order-05"). */
 export function getEntityOrder(state: HAWebSocketState, entityId: string): number {
   const entity = state.entityRegistry.get(entityId)
   if (!entity?.labels) return DEFAULT_ORDER
@@ -66,9 +50,7 @@ export function getEntityOrder(state: HAWebSocketState, entityId: string): numbe
   return DEFAULT_ORDER
 }
 
-/**
- * Create or get an order label
- */
+/** Returns existing label ID or creates a new one in HA's label registry. */
 async function ensureOrderLabel(state: HAWebSocketState, prefix: string, order: number): Promise<string> {
   const paddedOrder = order.toString().padStart(2, '0')
   const labelName = `${prefix}${paddedOrder}`
@@ -99,9 +81,6 @@ async function ensureOrderLabel(state: HAWebSocketState, prefix: string, order: 
   })
 }
 
-/**
- * Set entity order
- */
 export async function setEntityOrder(
   state: HAWebSocketState,
   entityId: string,
@@ -141,9 +120,6 @@ export async function setEntityOrder(
   })
 }
 
-/**
- * Update entity properties (name, area, icon)
- */
 export async function updateEntity(
   state: HAWebSocketState,
   entityId: string,
@@ -211,17 +187,12 @@ export async function updateEntity(
   })
 }
 
-/**
- * Check if an entity is hidden (uses HA's native hidden_by property)
- */
+/** Uses HA's native hidden_by registry field. */
 export function isEntityHidden(state: HAWebSocketState, entityId: string): boolean {
   const entity = state.entityRegistry.get(entityId)
   return !!entity?.hidden_by
 }
 
-/**
- * Get all hidden entity IDs
- */
 export function getHiddenEntities(state: HAWebSocketState): Set<string> {
   const hidden = new Set<string>()
   for (const [entityId, entity] of state.entityRegistry) {
@@ -232,9 +203,7 @@ export function getHiddenEntities(state: HAWebSocketState): Set<string> {
   return hidden
 }
 
-/**
- * Set entity hidden state (uses HA's native hidden_by property)
- */
+/** Sets HA's native hidden_by field to 'user' or null. */
 export async function setEntityHidden(
   state: HAWebSocketState,
   entityId: string,
@@ -269,9 +238,6 @@ export async function setEntityHidden(
   })
 }
 
-/**
- * Delete a scene
- */
 export async function deleteScene(state: HAWebSocketState, entityId: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const msgId = getNextMessageId(state)
@@ -301,9 +267,6 @@ export async function deleteScene(state: HAWebSocketState, entityId: string): Pr
   })
 }
 
-/**
- * Call a Home Assistant service
- */
 export function callService(
   state: HAWebSocketState,
   domain: string,

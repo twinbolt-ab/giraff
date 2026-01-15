@@ -5,31 +5,20 @@ import { send, getNextMessageId } from './connection'
 import { registerCallback, notifyRegistryHandlers } from './message-router'
 import { DEFAULT_ORDER } from '@/lib/constants'
 
-/**
- * Get all floors
- */
 export function getFloors(state: HAWebSocketState): Map<string, HAFloor> {
   return state.floors
 }
 
-/**
- * Get a specific floor by ID
- */
 export function getFloor(state: HAWebSocketState, floorId: string): HAFloor | undefined {
   return state.floors.get(floorId)
 }
 
-/**
- * Get floor order from level
- */
+/** Returns the floor's level field, used for sorting floors in the UI. */
 export function getFloorOrder(state: HAWebSocketState, floorId: string): number {
   const floor = state.floors.get(floorId)
   return floor?.level ?? DEFAULT_ORDER
 }
 
-/**
- * Update floor properties (name, icon)
- */
 export async function updateFloor(
   state: HAWebSocketState,
   floorId: string,
@@ -72,9 +61,7 @@ export async function updateFloor(
   })
 }
 
-/**
- * Set floor order using the built-in level field
- */
+/** Updates HA's built-in level field to persist floor ordering. */
 export async function setFloorOrder(
   state: HAWebSocketState,
   floorId: string,
@@ -104,9 +91,6 @@ export async function setFloorOrder(
   })
 }
 
-/**
- * Create a new floor
- */
 export async function createFloor(state: HAWebSocketState, name: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const msgId = getNextMessageId(state)
