@@ -3,6 +3,7 @@ import type { HAEntity } from '@/types/ha'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 interface SwitchesSectionProps {
   switches: HAEntity[]
@@ -11,6 +12,7 @@ interface SwitchesSectionProps {
   onToggle: (device: HAEntity) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: Map<string, EntityMeta>
 }
 
 export function SwitchesSection({
@@ -20,6 +22,7 @@ export function SwitchesSection({
   onToggle,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: SwitchesSectionProps) {
   if (switches.length === 0) return null
 
@@ -37,6 +40,7 @@ export function SwitchesSection({
             onToggleSelection={() => onToggleSelection(sw.entity_id)}
             onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(sw.entity_id)}
             fallbackIcon={<Power className="w-5 h-5" />}
+            entityMeta={entityMeta?.get(sw.entity_id)}
           />
         ))}
       </div>

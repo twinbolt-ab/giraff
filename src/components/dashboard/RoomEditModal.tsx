@@ -17,9 +17,10 @@ interface RoomEditModalProps {
   allRooms?: RoomWithDevices[]
   floors: HAFloor[]
   onClose: () => void
+  onFloorCreated?: (floorId: string) => void
 }
 
-export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEditModalProps) {
+export function RoomEditModal({ room, allRooms = [], floors, onClose, onFloorCreated }: RoomEditModalProps) {
   const [name, setName] = useState('')
   const [floorId, setFloorId] = useState('')
   const [icon, setIcon] = useState('')
@@ -116,7 +117,11 @@ export function RoomEditModal({ room, allRooms = [], floors, onClose }: RoomEdit
             onChange={setFloorId}
             options={floorOptions}
             placeholder={t.floors.none}
-            onCreate={(name) => createFloor(name)}
+            onCreate={async (name) => {
+              const floorId = await createFloor(name)
+              onFloorCreated?.(floorId)
+              return floorId
+            }}
             createLabel={t.edit.createFloor}
           />
         </FormField>

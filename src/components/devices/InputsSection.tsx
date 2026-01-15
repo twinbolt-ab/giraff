@@ -5,9 +5,11 @@ import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
+import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
@@ -22,6 +24,7 @@ interface InputsSectionProps {
   onNumberChange: (device: HAEntity, value: number) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: Map<string, EntityMeta>
 }
 
 function InputNumberItem({
@@ -31,6 +34,7 @@ function InputNumberItem({
   onNumberChange,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: {
   input: HAEntity
   isInEditMode: boolean
@@ -38,6 +42,7 @@ function InputNumberItem({
   onNumberChange: (device: HAEntity, value: number) => void
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  entityMeta?: EntityMeta
 }) {
   const value = parseFloat(input.state) || 0
   const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
@@ -67,9 +72,18 @@ function InputNumberItem({
               <SlidersHorizontal className="w-5 h-5" />
             )}
           </div>
-          <span className="flex-1 text-sm font-medium text-foreground truncate text-left">
-            {getEntityDisplayName(input)}
-          </span>
+          <div className="flex-1 flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium text-foreground truncate text-left">
+              {getEntityDisplayName(input)}
+            </span>
+            {entityMeta && (
+              <EntityBadges
+                isHidden={entityMeta.isHidden}
+                hasRoom={entityMeta.hasRoom}
+                className="flex-shrink-0"
+              />
+            )}
+          </div>
         </div>
       </button>
     )
@@ -92,11 +106,20 @@ function InputNumberItem({
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-foreground truncate">
-              {getEntityDisplayName(input)}
-            </span>
-            <span className="text-xs text-muted tabular-nums ml-2">
+          <div className="flex items-center justify-between mb-1 gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-sm font-medium text-foreground truncate">
+                {getEntityDisplayName(input)}
+              </span>
+              {entityMeta && (
+                <EntityBadges
+                  isHidden={entityMeta.isHidden}
+                  hasRoom={entityMeta.hasRoom}
+                  className="flex-shrink-0"
+                />
+              )}
+            </div>
+            <span className="text-xs text-muted tabular-nums flex-shrink-0">
               {value}
               {unit}
             </span>
@@ -125,6 +148,7 @@ export function InputsSection({
   onNumberChange,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  entityMeta,
 }: InputsSectionProps) {
   if (inputBooleans.length === 0 && inputNumbers.length === 0) return null
 
@@ -143,6 +167,7 @@ export function InputsSection({
             onToggleSelection={() => onToggleSelection(input.entity_id)}
             onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(input.entity_id)}
             fallbackIcon={<ToggleLeft className="w-5 h-5" />}
+            entityMeta={entityMeta?.get(input.entity_id)}
           />
         ))}
 
@@ -156,6 +181,7 @@ export function InputsSection({
             onNumberChange={onNumberChange}
             onToggleSelection={onToggleSelection}
             onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+            entityMeta={entityMeta?.get(input.entity_id)}
           />
         ))}
       </div>

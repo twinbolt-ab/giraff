@@ -259,7 +259,7 @@ export async function updateArea(
 export async function createArea(state: HAWebSocketState, name: string, floorId?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const msgId = getNextMessageId(state)
-    registerCallback(state, msgId, (success, result) => {
+    registerCallback(state, msgId, (success, result, error) => {
       if (success && isAreaRegistryEntry(result)) {
         // Add to local registries
         state.areaRegistry.set(result.area_id, result)
@@ -267,7 +267,7 @@ export async function createArea(state: HAWebSocketState, name: string, floorId?
         notifyRegistryHandlers(state)
         resolve(result.area_id)
       } else {
-        reject(new Error('Failed to create area'))
+        reject(new Error(error?.message || 'Failed to create area'))
       }
     })
 

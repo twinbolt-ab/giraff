@@ -2,11 +2,9 @@ import { useMemo, useState, useEffect } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { useDevMode } from './useDevMode'
 import * as ws from '../ha-websocket'
-import { getShowHiddenItemsSync } from '../config'
-import { settingsEvents } from '../events'
 import { generateMockData } from '../mock-data'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
-import { DEFAULT_ORDER, STORAGE_KEYS } from '../constants'
+import { DEFAULT_ORDER } from '../constants'
 
 function slugify(name: string): string {
   return name
@@ -23,30 +21,6 @@ export function useRooms() {
   const { entities, isConnected, hasReceivedData } = useHAConnection()
   const { activeMockScenario } = useDevMode()
   const [registryVersion, setRegistryVersion] = useState(0)
-  const [showHiddenItems, setShowHiddenItems] = useState(false)
-
-  // Load showHiddenItems on mount and listen for changes
-  useEffect(() => {
-    setShowHiddenItems(getShowHiddenItemsSync())
-
-    // Listen for localStorage changes (from other tabs)
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEYS.SHOW_HIDDEN_ITEMS) {
-        setShowHiddenItems(e.newValue === 'true')
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-
-    // Listen for same-tab changes via event system (replaces polling)
-    const unsubscribe = settingsEvents.subscribe('showHiddenItems', (value) => {
-      setShowHiddenItems(value as boolean)
-    })
-
-    return () => {
-      window.removeEventListener('storage', handleStorage)
-      unsubscribe()
-    }
-  }, [])
 
   // Subscribe to registry updates for order changes
   useEffect(() => {
@@ -72,8 +46,8 @@ export function useRooms() {
 
     // Group entities by area (we'll extract area from friendly_name or entity_id patterns)
     for (const entity of entities.values()) {
-      // Skip hidden entities (unless showHiddenItems is enabled)
-      if (!showHiddenItems && hiddenEntities.has(entity.entity_id)) continue
+      // Skip hidden entities in normal room view (they're visible in All Devices)
+      if (hiddenEntities.has(entity.entity_id)) continue
 
       const areaName = extractAreaFromEntity(entity)
       if (areaName) {
@@ -173,7 +147,7 @@ export function useRooms() {
     })
 
     return { rooms: result, floors: floorsArray }
-  }, [entities, registryVersion, showHiddenItems, activeMockScenario])
+  }, [entities, registryVersion, activeMockScenario])
 
   // When mock mode is active, always report as connected and data received
   const effectiveIsConnected = activeMockScenario !== 'none' ? true : isConnected

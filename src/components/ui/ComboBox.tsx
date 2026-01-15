@@ -29,13 +29,15 @@ export function ComboBox({
   const [isCreating, setIsCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const [dropdownMaxHeight, setDropdownMaxHeight] = useState(240)
+  // Track just-created item to display before options update
+  const [createdItem, setCreatedItem] = useState<{ value: string; label: string } | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Get display label for current value
+  // Get display label for current value (check created item first, then options)
   const selectedOption = options.find(opt => opt.value === value)
-  const displayValue = selectedOption?.label || ''
+  const displayValue = selectedOption?.label || (createdItem?.value === value ? createdItem.label : '')
 
   // Filter options based on input
   const filteredOptions = inputValue
@@ -92,10 +94,13 @@ export function ComboBox({
   const handleCreate = useCallback(async () => {
     if (!onCreate || !inputValue.trim() || isCreating) return
 
+    const name = inputValue.trim()
     setIsCreating(true)
     setCreateError(null)
     try {
-      const newId = await onCreate(inputValue.trim())
+      const newId = await onCreate(name)
+      // Store the created item so we can display it before options update
+      setCreatedItem({ value: newId, label: name })
       onChange(newId)
       setIsOpen(false)
       setInputValue('')

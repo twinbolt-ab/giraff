@@ -15,9 +15,10 @@ interface BulkEditRoomsModalProps {
   floors: HAFloor[]
   onClose: () => void
   onComplete: () => void
+  onFloorCreated?: (floorId: string) => void
 }
 
-export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkEditRoomsModalProps) {
+export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete, onFloorCreated }: BulkEditRoomsModalProps) {
   const [floorId, setFloorId] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const { showError } = useToast()
@@ -65,7 +66,11 @@ export function BulkEditRoomsModal({ rooms, floors, onClose, onComplete }: BulkE
             onChange={setFloorId}
             options={floorOptions}
             placeholder="— No change —"
-            onCreate={(name) => createFloor(name)}
+            onCreate={async (name) => {
+              const floorId = await createFloor(name)
+              onFloorCreated?.(floorId)
+              return floorId
+            }}
             createLabel={t.edit.createFloor}
           />
         </FormField>

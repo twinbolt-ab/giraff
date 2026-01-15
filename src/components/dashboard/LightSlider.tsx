@@ -4,9 +4,11 @@ import { Lightbulb, LightbulbOff } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
+import { EntityBadges } from '@/components/ui/EntityBadge'
 import { useLightControl } from '@/lib/hooks/useLightControl'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { OPTIMISTIC_DURATION, OVERLAY_HIDE_DELAY } from '@/lib/constants'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 // Minimum drag distance to trigger brightness change
 const DRAG_THRESHOLD = 10
@@ -15,9 +17,10 @@ interface LightSliderProps {
   light: HAEntity
   disabled?: boolean
   compact?: boolean
+  entityMeta?: EntityMeta
 }
 
-export function LightSlider({ light, disabled = false, compact = false }: LightSliderProps) {
+export function LightSlider({ light, disabled = false, compact = false, entityMeta }: LightSliderProps) {
   const { setLightBrightness, toggleLight, getLightBrightness } = useLightControl()
   const initialBrightness = getLightBrightness(light)
   const [localBrightness, setLocalBrightness] = useState(initialBrightness)
@@ -211,10 +214,19 @@ export function LightSlider({ light, disabled = false, compact = false }: LightS
         </button>
 
         {/* Light name and brightness */}
-        <div className="flex-1 min-w-0 flex items-center justify-between">
-          <span className="text-sm font-medium truncate">{displayName}</span>
+        <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm font-medium truncate">{displayName}</span>
+            {entityMeta && (
+              <EntityBadges
+                isHidden={entityMeta.isHidden}
+                hasRoom={entityMeta.hasRoom}
+                className="flex-shrink-0"
+              />
+            )}
+          </div>
           {!compact && (
-            <span className="text-xs text-muted ml-2">
+            <span className="text-xs text-muted flex-shrink-0">
               {isOn ? `${displayBrightness}%` : 'Off'}
             </span>
           )}
