@@ -1,4 +1,4 @@
-import { useCallback, Fragment } from 'react'
+import { useCallback, Fragment, useRef, useState, useLayoutEffect } from 'react'
 import { motion, LayoutGroup } from 'framer-motion'
 import { RoomCard, MemoizedRoomCard } from './RoomCard'
 import { ReorderableGrid } from './ReorderableGrid'
@@ -6,6 +6,8 @@ import { AllDevicesView } from './AllDevicesView'
 import { t } from '@/lib/i18n'
 import { ROOM_EXPAND_DURATION } from '@/lib/constants'
 import type { RoomWithDevices } from '@/types/ha'
+
+const GAP = 12
 
 interface RoomsGridProps {
   selectedFloorId: string | null
@@ -38,6 +40,26 @@ export function RoomsGrid({
 }: RoomsGridProps) {
   // Layout follows expanded state directly (no sequencing - animations happen together)
   const layoutExpandedId = expandedRoomId
+
+  // Measure container width for pixel-based width animations
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  useLayoutEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const updateWidth = () => setContainerWidth(container.offsetWidth)
+    updateWidth()
+
+    const resizeObserver = new ResizeObserver(updateWidth)
+    resizeObserver.observe(container)
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  // Calculate card widths in pixels
+  const singleColumnWidth = (containerWidth - GAP) / 2
+  const fullWidth = containerWidth
 
   // Stable callback that delegates to onToggleExpand - avoids new function refs per card
   // Must be defined before any conditional returns to follow React hooks rules
@@ -106,7 +128,7 @@ export function RoomsGrid({
   // Normal grid view with layout animations
   return (
     <LayoutGroup>
-      <div className="grid grid-cols-2 gap-[12px]">
+      <div ref={containerRef} className="flex flex-wrap gap-[12px]">
         {displayRooms.map((room, index) => {
           // isExpanded controls the card's internal state (height, content)
           const isExpanded = room.id === expandedRoomId
@@ -115,17 +137,29 @@ export function RoomsGrid({
           // Card to the left of a layout-expanded right-column card needs a placeholder
           const needsPlaceholder = layoutExpandedInRightColumn && index === layoutExpandedIndex - 1
 
+          // Use calc() fallback before container is measured
+          const targetWidth = containerWidth
+            ? (isLayoutExpanded ? fullWidth : singleColumnWidth)
+            : (isLayoutExpanded ? '100%' : 'calc(50% - 6px)')
+
           return (
             <Fragment key={room.id}>
               <motion.div
-                layout
+                layout="position"
+                initial={false}
+                animate={{
+                  width: targetWidth,
+                }}
                 transition={{
                   layout: {
                     duration: ROOM_EXPAND_DURATION,
                     ease: [0.25, 0.1, 0.25, 1],
                   },
+                  width: {
+                    duration: ROOM_EXPAND_DURATION,
+                    ease: [0.25, 0.1, 0.25, 1],
+                  },
                 }}
-                className={isLayoutExpanded ? 'col-span-2' : ''}
               >
                 <MemoizedRoomCard
                   room={room}
@@ -137,7 +171,9 @@ export function RoomsGrid({
                 />
               </motion.div>
               {/* Invisible placeholder to preserve gap when right-column card expands */}
-              {needsPlaceholder && <div className="invisible" />}
+              {needsPlaceholder && (
+                <div style={{ width: containerWidth ? singleColumnWidth : 'calc(50% - 6px)' }} className="invisible" />
+              )}
             </Fragment>
           )
         })}
