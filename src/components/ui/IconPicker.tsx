@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Trash2 } from 'lucide-react'
 import { MdiIcon } from './MdiIcon'
@@ -15,6 +15,8 @@ interface IconPickerProps {
 export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIcon, setSelectedIcon] = useState(value)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   // Reset selected icon when value changes
   useEffect(() => {
@@ -60,6 +62,26 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
     }
   }, [isOpen, onClose])
 
+  // Track keyboard height using visualViewport API
+  useEffect(() => {
+    if (!isOpen || !window.visualViewport) return
+
+    const handleResize = () => {
+      const vv = window.visualViewport!
+      // Keyboard height is the difference between window height and visual viewport height
+      const kbHeight = window.innerHeight - vv.height
+      setKeyboardHeight(kbHeight > 50 ? kbHeight : 0) // Ignore small changes
+    }
+
+    window.visualViewport.addEventListener('resize', handleResize)
+    handleResize() // Initial check
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize)
+      setKeyboardHeight(0)
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -76,11 +98,13 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
 
           {/* Full-screen bottom sheet */}
           <motion.div
+            ref={sheetRef}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-2xl shadow-warm-lg max-h-[90vh] flex flex-col"
+            className="fixed left-0 right-0 z-[60] bg-card rounded-t-2xl shadow-warm-lg max-h-[90vh] flex flex-col"
+            style={{ bottom: keyboardHeight }}
           >
             {/* Handle bar */}
             <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
@@ -109,7 +133,7 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t.iconPicker.search}
                   className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder:text-muted focus:border-accent transition-colors"
-                  autoFocus
+                  autoFocus={!window.matchMedia('(pointer: coarse)').matches}
                 />
               </div>
             </div>

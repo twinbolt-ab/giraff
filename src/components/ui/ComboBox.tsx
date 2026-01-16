@@ -69,19 +69,35 @@ export function ComboBox({
     }
   }, [isOpen])
 
-  // Focus input when dropdown opens and calculate available space
+  // Focus input when dropdown opens
+  // Skip autofocus on touch devices to avoid keyboard covering options
+  const isTouchDevice = window.matchMedia('(pointer: coarse)').matches
   useEffect(() => {
-    if (isOpen && inputRef.current) {
+    if (isOpen && inputRef.current && !isTouchDevice) {
       inputRef.current.focus()
     }
+  }, [isOpen, isTouchDevice])
 
-    // Calculate max height based on available space below the trigger
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
-      const viewportHeight = window.innerHeight
+  // Calculate dropdown max height based on available space, accounting for keyboard
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return
+
+    const calculateMaxHeight = () => {
+      const rect = containerRef.current!.getBoundingClientRect()
+      // Use visualViewport height if available (accounts for keyboard)
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight
       const availableBelow = viewportHeight - rect.bottom - 16 // 16px padding from bottom
-      const maxHeight = Math.min(Math.max(availableBelow - 50, 120), 300) // 50px for search input, min 120, max 300
+      // Ensure at least 144px for 3 options (~48px each)
+      const maxHeight = Math.min(Math.max(availableBelow - 50, 144), 300) // 50px for search input
       setDropdownMaxHeight(maxHeight)
+    }
+
+    calculateMaxHeight()
+
+    // Recalculate when keyboard opens/closes
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', calculateMaxHeight)
+      return () => window.visualViewport?.removeEventListener('resize', calculateMaxHeight)
     }
   }, [isOpen])
 
