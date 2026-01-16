@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { App, type URLOpenListenerEvent } from '@capacitor/app'
 import { getValidAccessToken, isUsingOAuth } from '../ha-oauth'
-import { isConnected, configure, connect } from '../ha-websocket'
+import { isConnected, configure, connect, updateToken } from '../ha-websocket'
 import { logger } from '../logger'
 
 /**
@@ -42,6 +42,9 @@ export function useDeepLinks() {
 
       if (result.status === 'valid') {
         // Token is valid (either still fresh or successfully refreshed)
+        // Always update token for next reconnect, even if currently connected
+        updateToken(result.token)
+
         // If WebSocket is disconnected, reconnect with the valid token
         if (!isConnected()) {
           logger.debug('App', 'Reconnecting WebSocket with refreshed token')

@@ -88,6 +88,9 @@ export const disconnect = () => {
   conn.disconnect(state)
 }
 export const isConnected = () => conn.isConnected(state)
+export const updateToken = (token: string) => {
+  state.token = token
+}
 
 // Subscriptions
 export const onMessage = (handler: MessageHandler) => router.addMessageHandler(state, handler)
