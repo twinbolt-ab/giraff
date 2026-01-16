@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import { useEffect, useCallback, useSyncExternalStore } from 'react'
 
 const SETTINGS_KEY = 'stuga-settings'
-const SETTINGS_CHANGE_EVENT = 'stuga-settings-change'
 
 export type ShowScenesOption = 'auto' | 'on' | 'off'
 
@@ -25,7 +24,10 @@ function loadSettings(): Settings {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY)
     if (stored) {
-      return { ...defaultSettings, ...JSON.parse(stored) }
+      const parsed: unknown = JSON.parse(stored)
+      if (typeof parsed === 'object' && parsed !== null) {
+        return { ...defaultSettings, ...(parsed as Partial<Settings>) }
+      }
     }
   } catch {
     // Ignore parse errors

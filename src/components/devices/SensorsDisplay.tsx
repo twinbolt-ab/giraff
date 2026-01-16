@@ -102,8 +102,6 @@ export function SensorsDisplay({
     return null
   }
 
-  const allSensors = [...temperatureSensors, ...humiditySensors]
-
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.sensor}</SectionHeader>

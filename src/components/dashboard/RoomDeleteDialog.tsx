@@ -21,7 +21,7 @@ interface RoomDeleteDialogProps {
 export function RoomDeleteDialog({
   room,
   allRooms,
-  floors,
+  floors: _floors,
   onClose,
   onDeleted,
 }: RoomDeleteDialogProps) {

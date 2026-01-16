@@ -100,7 +100,7 @@ export function RoomCard({
   const handleSceneActivate = useCallback(
     (scene: HAEntity, e: React.MouseEvent) => {
       e.stopPropagation()
-      callService('scene', 'turn_on', { entity_id: scene.entity_id })
+      void callService('scene', 'turn_on', { entity_id: scene.entity_id })
     },
     [callService]
   )
@@ -205,35 +205,39 @@ export function RoomCard({
   )
 
   // Card click - toggle lights (or exit edit mode if blurred)
-  const handleCardClick = useCallback(() => {
-    if (brightnessGesture.didDragRef.current) return
+  const handleCardClick = useCallback(
+    () => {
+      if (brightnessGesture.didDragRef.current) return
 
-    // If this room is blurred (another room in device edit mode), exit edit mode
-    if (shouldBlur) {
-      exitEditMode()
-      return
-    }
+      // If this room is blurred (another room in device edit mode), exit edit mode
+      if (shouldBlur) {
+        exitEditMode()
+        return
+      }
 
-    if (isInEditMode || isExpanded || !hasControllableDevices) return
+      if (isInEditMode || isExpanded || !hasControllableDevices) return
 
-    haptic.light()
-    const willTurnOn = !hasDevicesOn
-    lightsOnState.setOptimistic(willTurnOn)
-    brightnessState.setOptimistic(willTurnOn ? 100 : 0)
-    toggleRoomLights(lights, switches)
-  }, [
-    hasControllableDevices,
-    hasDevicesOn,
-    isInEditMode,
-    isExpanded,
-    shouldBlur,
-    exitEditMode,
-    lightsOnState,
-    brightnessState,
-    toggleRoomLights,
-    lights,
-    switches,
-  ])
+      haptic.light()
+      const willTurnOn = !hasDevicesOn
+      lightsOnState.setOptimistic(willTurnOn)
+      brightnessState.setOptimistic(willTurnOn ? 100 : 0)
+      toggleRoomLights(lights, switches)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      hasControllableDevices,
+      hasDevicesOn,
+      isInEditMode,
+      isExpanded,
+      shouldBlur,
+      exitEditMode,
+      lightsOnState,
+      brightnessState,
+      toggleRoomLights,
+      lights,
+      switches,
+    ]
+  )
 
   // Header click - collapse when expanded
   const handleHeaderClick = useCallback(
@@ -245,6 +249,7 @@ export function RoomCard({
         onToggleExpand(room.id)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [isInEditMode, isExpanded, isDeviceInEditMode, exitEditMode, onToggleExpand, room.id]
   )
 

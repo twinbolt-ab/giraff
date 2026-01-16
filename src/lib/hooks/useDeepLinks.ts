@@ -24,7 +24,7 @@ export function useDeepLinks() {
 
       if (url.host === 'auth' && url.pathname === '/callback') {
         // Navigate to auth callback with the query params
-        navigate(`/auth/callback${url.search}`, { replace: true })
+        void navigate(`/auth/callback${url.search}`, { replace: true })
       }
     }
 
@@ -51,23 +51,23 @@ export function useDeepLinks() {
       } else if (result.status === 'auth-error') {
         // Token refresh failed permanently - redirect to setup
         logger.debug('App', 'Auth error on resume, redirecting to setup')
-        navigate('/setup', { replace: true })
+        void navigate('/setup', { replace: true })
       }
       // For network-error, we keep credentials and let normal reconnect handle it
     }
 
     // Add listener for app URL open events
-    App.addListener('appUrlOpen', handleDeepLink)
+    void App.addListener('appUrlOpen', handleDeepLink)
 
     // Add listener for app state changes (resume from background)
-    App.addListener('appStateChange', ({ isActive }) => {
+    void App.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        handleAppResume()
+        void handleAppResume()
       }
     })
 
     return () => {
-      App.removeAllListeners()
+      void App.removeAllListeners()
     }
   }, [navigate])
 }

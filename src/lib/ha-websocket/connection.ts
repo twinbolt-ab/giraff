@@ -29,7 +29,7 @@ export function connect(state: HAWebSocketState, onMessage: MessageCallback): vo
     }
 
     state.ws.onmessage = (event) => {
-      onMessage(JSON.parse(event.data))
+      onMessage(JSON.parse(event.data as string) as WebSocketMessage)
     }
 
     state.ws.onclose = () => {

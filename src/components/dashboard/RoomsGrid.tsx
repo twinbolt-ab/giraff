@@ -34,6 +34,15 @@ export function RoomsGrid({
   onClickOutside,
   onEnterEditModeWithSelection,
 }: RoomsGridProps) {
+  // Stable callback that delegates to onToggleExpand - avoids new function refs per card
+  // Must be defined before any conditional returns to follow React hooks rules
+  const handleToggleExpand = useCallback(
+    (roomId: string) => {
+      onToggleExpand(roomId)
+    },
+    [onToggleExpand]
+  )
+
   // All devices view
   if (selectedFloorId === '__all_devices__') {
     return <AllDevicesView />
@@ -82,14 +91,6 @@ export function RoomsGrid({
       />
     )
   }
-
-  // Stable callback that delegates to onToggleExpand - avoids new function refs per card
-  const handleToggleExpand = useCallback(
-    (roomId: string) => {
-      onToggleExpand(roomId)
-    },
-    [onToggleExpand]
-  )
 
   // Normal grid view - use MemoizedRoomCard and skip LayoutGroup for better performance
   return (

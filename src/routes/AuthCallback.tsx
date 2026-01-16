@@ -74,7 +74,7 @@ export default function AuthCallback() {
 
         // Navigate to home after short delay
         setTimeout(() => {
-          navigate('/', { replace: true })
+          void navigate('/', { replace: true })
         }, 1500)
       } catch (err) {
         logger.error('OAuth', 'Token exchange failed:', err)
@@ -84,7 +84,7 @@ export default function AuthCallback() {
       }
     }
 
-    handleCallback()
+    void handleCallback()
   }, [searchParams, navigate])
 
   return (

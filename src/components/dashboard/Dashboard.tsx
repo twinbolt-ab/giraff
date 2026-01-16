@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Header } from '@/components/layout/Header'
 import { EditModeHeader } from './EditModeHeader'
+import { ConnectionBanner } from './ConnectionBanner'
 import { RoomsGrid } from './RoomsGrid'
 import { FloorSwipeContainer } from './FloorSwipeContainer'
 import { RoomEditModal } from './RoomEditModal'
@@ -50,8 +51,8 @@ function DashboardContent() {
     enterDeviceEdit,
     enterAllDevicesEdit,
     exitEditMode,
-    clearSelection,
-    toggleSelection,
+    clearSelection: _clearSelection,
+    toggleSelection: _toggleSelection,
     reorderRooms,
   } = useEditMode()
 
@@ -201,7 +202,7 @@ function DashboardContent() {
         // Don't exit floor edit mode from background click - it's handled in Header
         // Don't exit all-devices edit mode from background click - there are no .card elements
         if (isEditMode && !isFloorEditMode && !isAllDevicesEditMode) {
-          handleExitEditMode()
+          void handleExitEditMode()
           return
         }
         if (expandedRoomId) {
@@ -282,6 +283,9 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background pt-safe pb-nav">
+      {/* Connection status banner */}
+      <ConnectionBanner isConnected={isConnected} />
+
       {/* Edit mode header bar */}
       <AnimatePresence>
         {isEditMode && (

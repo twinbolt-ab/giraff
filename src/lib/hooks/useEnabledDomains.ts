@@ -21,7 +21,7 @@ export function useEnabledDomains() {
 
   // Save domains and update state
   const setEnabledDomains = useCallback((domains: ConfigurableDomain[]) => {
-    saveEnabledDomains(domains)
+    void saveEnabledDomains(domains)
     setEnabledDomainsState(domains)
   }, [])
 

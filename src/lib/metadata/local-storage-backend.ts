@@ -31,7 +31,8 @@ export async function initLocalStorageBackend(): Promise<void> {
   const ordersJson = await storage.getItem(STORAGE_KEYS.AREA_ORDERS)
   if (ordersJson) {
     try {
-      areaOrders = new Map(JSON.parse(ordersJson))
+      const parsed = JSON.parse(ordersJson) as [string, number][]
+      areaOrders = new Map(parsed)
     } catch {
       areaOrders = new Map()
     }
@@ -40,7 +41,8 @@ export async function initLocalStorageBackend(): Promise<void> {
   const sensorsJson = await storage.getItem(STORAGE_KEYS.AREA_TEMP_SENSORS)
   if (sensorsJson) {
     try {
-      areaTempSensors = new Map(JSON.parse(sensorsJson))
+      const parsed = JSON.parse(sensorsJson) as [string, string][]
+      areaTempSensors = new Map(parsed)
     } catch {
       areaTempSensors = new Map()
     }
@@ -49,7 +51,8 @@ export async function initLocalStorageBackend(): Promise<void> {
   const entityOrdersJson = await storage.getItem(STORAGE_KEYS.ENTITY_ORDERS)
   if (entityOrdersJson) {
     try {
-      entityOrders = new Map(JSON.parse(entityOrdersJson))
+      const parsed = JSON.parse(entityOrdersJson) as [string, number][]
+      entityOrders = new Map(parsed)
     } catch {
       entityOrders = new Map()
     }

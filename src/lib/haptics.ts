@@ -46,7 +46,7 @@ export const haptic = {
   selection: (): void => {
     try {
       if (isIOS) {
-        Haptics.selectionChanged()
+        void Haptics.selectionChanged()
       } else if (canVibrate) {
         navigator.vibrate(10)
       }
@@ -63,7 +63,7 @@ export const haptic = {
   light: (): void => {
     try {
       if (isIOS) {
-        Haptics.impact({ style: ImpactStyle.Light })
+        void Haptics.impact({ style: ImpactStyle.Light })
       } else if (canVibrate) {
         navigator.vibrate(15)
       }
@@ -80,7 +80,7 @@ export const haptic = {
   medium: (): void => {
     try {
       if (isIOS) {
-        Haptics.impact({ style: ImpactStyle.Medium })
+        void Haptics.impact({ style: ImpactStyle.Medium })
       } else if (canVibrate) {
         navigator.vibrate(30)
       }
@@ -97,7 +97,7 @@ export const haptic = {
   heavy: (): void => {
     try {
       if (isIOS) {
-        Haptics.impact({ style: ImpactStyle.Heavy })
+        void Haptics.impact({ style: ImpactStyle.Heavy })
       } else if (canVibrate) {
         navigator.vibrate(50)
       }
@@ -114,7 +114,7 @@ export const haptic = {
   success: (): void => {
     try {
       if (isIOS) {
-        Haptics.notification({ type: NotificationType.Success })
+        void Haptics.notification({ type: NotificationType.Success })
       } else if (canVibrate) {
         navigator.vibrate([15, 50, 15])
       }
@@ -131,7 +131,7 @@ export const haptic = {
   warning: (): void => {
     try {
       if (isIOS) {
-        Haptics.notification({ type: NotificationType.Warning })
+        void Haptics.notification({ type: NotificationType.Warning })
       } else if (canVibrate) {
         navigator.vibrate([20, 30, 20])
       }
@@ -148,7 +148,7 @@ export const haptic = {
   error: (): void => {
     try {
       if (isIOS) {
-        Haptics.notification({ type: NotificationType.Error })
+        void Haptics.notification({ type: NotificationType.Error })
       } else if (canVibrate) {
         navigator.vibrate([30, 20, 30, 20, 30])
       }

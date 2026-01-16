@@ -90,7 +90,8 @@
     "infoSavesDirectly": "All changes are saved directly to Home Assistant"
   },
   "connection": {
-    "connecting": "Connecting..."
+    "connecting": "Connecting...",
+    "reconnecting": "Reconnecting to Home Assistant"
   },
   "rooms": {
     "title": "Rooms",

@@ -23,6 +23,18 @@ import {
   getRedirectUri,
 } from '@/lib/ha-oauth'
 import { OAuth2Client } from '@byteowls/capacitor-oauth2'
+import type { OAuthTokens } from '@/lib/ha-oauth'
+
+// Type for OAuth2Client response with access token
+interface OAuth2Response {
+  access_token?: string
+  refresh_token?: string
+  expires_in?: number
+  authorization_response?: {
+    code?: string
+    code_verifier?: string
+  }
+}
 import { logger } from '@/lib/logger'
 
 type Step = 'welcome' | 'url' | 'auth-method' | 'token' | 'complete'
@@ -72,7 +84,7 @@ export function SetupWizard() {
 
           ws.onmessage = (event) => {
             try {
-              const data = JSON.parse(event.data)
+              const data = JSON.parse(event.data as string) as { type: string }
 
               if (data.type === 'auth_required') {
                 if (testToken) {
@@ -164,7 +176,7 @@ export function SetupWizard() {
   // Start probing when entering URL step
   useEffect(() => {
     if (step === 'url') {
-      probeUrls()
+      void probeUrls()
     }
   }, [step, probeUrls])
 
@@ -206,7 +218,7 @@ export function SetupWizard() {
 
         if (isHttps) {
           // Use OAuth2Client plugin for HTTPS (handles everything automatically)
-          const response = await OAuth2Client.authenticate({
+          const response = (await OAuth2Client.authenticate({
             authorizationBaseUrl: `${url}/auth/authorize`,
             accessTokenEndpoint: `${url}/auth/token`,
             scope: '',
@@ -229,7 +241,7 @@ export function SetupWizard() {
               responseType: 'code',
               redirectUrl: 'com.twinbolt.stuga:/',
             },
-          })
+          })) as OAuth2Response
 
           // Store the tokens
           logger.debug(
@@ -240,22 +252,22 @@ export function SetupWizard() {
           if (response.access_token) {
             logger.debug('OAuth', 'Storing credentials for URL:', url)
             await storeOAuthCredentials(url, {
-              access_token: response.access_token as string,
-              refresh_token: response.refresh_token as string,
-              expires_in: (response.expires_in as number) || 1800,
+              access_token: response.access_token,
+              refresh_token: response.refresh_token ?? '',
+              expires_in: response.expires_in ?? 1800,
               token_type: 'Bearer',
             })
             logger.debug('OAuth', 'Credentials stored successfully')
 
             // Navigate to home
-            navigate('/', { replace: true })
+            void navigate('/', { replace: true })
           } else {
             throw new Error('No access token received')
           }
         } else {
           // For HTTP (local HA), use OAuth2Client for auth only, then manual token exchange
           // AppAuth doesn't support HTTP token endpoints, so we handle that ourselves
-          const response = await OAuth2Client.authenticate({
+          const response = (await OAuth2Client.authenticate({
             authorizationBaseUrl: `${url}/auth/authorize`,
             // Don't set accessTokenEndpoint - we'll do the token exchange manually
             scope: '',
@@ -278,11 +290,11 @@ export function SetupWizard() {
               responseType: 'code',
               redirectUrl: 'com.twinbolt.stuga:/',
             },
-          })
+          })) as OAuth2Response
 
           // We should get back the authorization code
-          const authCode = response.authorization_response?.code as string
-          const codeVerifier = response.authorization_response?.code_verifier as string
+          const authCode = response.authorization_response?.code
+          const codeVerifier = response.authorization_response?.code_verifier
 
           if (!authCode) {
             throw new Error('No authorization code received')
@@ -311,20 +323,20 @@ export function SetupWizard() {
             throw new Error(`Token exchange failed: ${errorText}`)
           }
 
-          const tokens = await tokenResponse.json()
+          const tokens = (await tokenResponse.json()) as OAuthTokens
 
           logger.debug('OAuth', 'HTTP tokens received, expires_in:', tokens.expires_in)
           logger.debug('OAuth', 'Storing credentials for URL:', url)
           await storeOAuthCredentials(url, {
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
-            expires_in: tokens.expires_in || 1800,
+            expires_in: tokens.expires_in ?? 1800,
             token_type: 'Bearer',
           })
           logger.debug('OAuth', 'Credentials stored successfully')
 
           // Navigate to home
-          navigate('/', { replace: true })
+          void navigate('/', { replace: true })
         }
       } else {
         // On web, use manual redirect flow
@@ -378,7 +390,7 @@ export function SetupWizard() {
     setIsLoading(false)
 
     if (success) {
-      saveCredentials(url, token.trim())
+      void saveCredentials(url, token.trim())
       setStep('complete')
     } else {
       setError(t.setup.token.error)
@@ -386,7 +398,7 @@ export function SetupWizard() {
   }
 
   const handleComplete = () => {
-    navigate('/')
+    void navigate('/')
   }
 
   const slideVariants = {

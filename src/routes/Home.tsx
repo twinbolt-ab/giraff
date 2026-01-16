@@ -17,7 +17,7 @@ export default function Home() {
   const checkSetup = useCallback(async () => {
     const setupComplete = await isSetupComplete()
     if (!setupComplete) {
-      navigate('/setup', { replace: true })
+      void navigate('/setup', { replace: true })
       return
     }
 
@@ -39,13 +39,13 @@ export default function Home() {
   }, [navigate])
 
   useEffect(() => {
-    checkSetup()
+    void checkSetup()
   }, [checkSetup])
 
   const handleSignIn = async () => {
     // Clear credentials and redirect to setup
     await clearCredentials()
-    navigate('/setup', { replace: true })
+    void navigate('/setup', { replace: true })
   }
 
   const handleRetry = async () => {

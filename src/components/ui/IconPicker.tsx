@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, Trash2 } from 'lucide-react'
 import { MdiIcon } from './MdiIcon'
-import { COMMON_ICONS, searchIcons, getIconDisplayName } from '@/lib/icons'
+import { searchIcons, getIconDisplayName } from '@/lib/icons'
 import { t } from '@/lib/i18n'
 
 interface IconPickerProps {

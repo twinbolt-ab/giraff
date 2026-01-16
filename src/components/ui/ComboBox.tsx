@@ -135,7 +135,7 @@ export function ComboBox({
       if (e.key === 'Enter') {
         e.preventDefault()
         if (showCreateOption) {
-          handleCreate()
+          void handleCreate()
         } else if (filteredOptions.length === 1) {
           handleSelect(filteredOptions[0].value)
         }

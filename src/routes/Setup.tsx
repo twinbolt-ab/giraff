@@ -11,12 +11,12 @@ export default function Setup() {
     async function checkSetup() {
       const setupComplete = await isSetupComplete()
       if (setupComplete) {
-        navigate('/', { replace: true })
+        void navigate('/', { replace: true })
       } else {
         setIsReady(true)
       }
     }
-    checkSetup()
+    void checkSetup()
   }, [navigate])
 
   if (!isReady) {

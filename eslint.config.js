@@ -55,6 +55,10 @@ export default tseslint.config(
       // React Refresh (Vite HMR)
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
+      // React Hooks - disable the set-state-in-effect rule which is too strict for common patterns
+      // like client-only mounting (portals), syncing external state (localStorage), and initial setup
+      'react-hooks/set-state-in-effect': 'off',
+
       // Strict rules for catching bugs
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -91,6 +95,12 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
     },
   },
 

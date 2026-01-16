@@ -33,6 +33,18 @@ import { STORAGE_KEYS } from '@/lib/constants'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
 import { OAuth2Client } from '@byteowls/capacitor-oauth2'
 import { logger } from '@/lib/logger'
+import type { OAuthTokens } from '@/lib/ha-oauth'
+
+// Type for OAuth2Client response with access token
+interface OAuth2Response {
+  access_token?: string
+  refresh_token?: string
+  expires_in?: number
+  authorization_response?: {
+    code?: string
+    code_verifier?: string
+  }
+}
 
 interface ConnectionSettingsModalProps {
   isOpen: boolean
@@ -136,7 +148,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
         }
         setIsLoadingCredentials(false)
       }
-      loadCredentials()
+      void loadCredentials()
       setError(null)
       setSuccess(false)
       setShowLogoutConfirm(false)
@@ -160,7 +172,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
 
         ws.onmessage = (event) => {
           try {
-            const data = JSON.parse(event.data)
+            const data = JSON.parse(event.data as string) as { type: string }
             if (data.type === 'auth_required') {
               ws.send(
                 JSON.stringify({
@@ -220,7 +232,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
       await updateUrl(normalizedUrl)
       await updateToken(trimmedToken)
       setSuccess(true)
-      reconnect()
+      void reconnect()
 
       // Auto close after success
       setTimeout(() => {
@@ -244,7 +256,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
         const isHttps = url.startsWith('https://')
 
         if (isHttps) {
-          const response = await OAuth2Client.authenticate({
+          const response = (await OAuth2Client.authenticate({
             authorizationBaseUrl: `${url}/auth/authorize`,
             accessTokenEndpoint: `${url}/auth/token`,
             scope: '',
@@ -267,16 +279,16 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
               responseType: 'code',
               redirectUrl: 'com.twinbolt.stuga:/',
             },
-          })
+          })) as OAuth2Response
 
           if (response.access_token) {
             await storeOAuthCredentials(url, {
-              access_token: response.access_token as string,
-              refresh_token: response.refresh_token as string,
-              expires_in: (response.expires_in as number) || 1800,
+              access_token: response.access_token,
+              refresh_token: response.refresh_token ?? '',
+              expires_in: response.expires_in ?? 1800,
               token_type: 'Bearer',
             })
-            reconnect()
+            void reconnect()
             setSuccess(true)
             setTimeout(() => {
               onClose()
@@ -286,7 +298,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
           }
         } else {
           // For HTTP (local HA), handle token exchange manually
-          const response = await OAuth2Client.authenticate({
+          const response = (await OAuth2Client.authenticate({
             authorizationBaseUrl: `${url}/auth/authorize`,
             scope: '',
             pkceEnabled: true,
@@ -308,10 +320,10 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
               responseType: 'code',
               redirectUrl: 'com.twinbolt.stuga:/',
             },
-          })
+          })) as OAuth2Response
 
-          const authCode = response.authorization_response?.code as string
-          const codeVerifier = response.authorization_response?.code_verifier as string
+          const authCode = response.authorization_response?.code
+          const codeVerifier = response.authorization_response?.code_verifier
 
           if (!authCode) {
             throw new Error('No authorization code received')
@@ -339,14 +351,14 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
             throw new Error(`Token exchange failed: ${errorText}`)
           }
 
-          const tokens = await tokenResponse.json()
+          const tokens = (await tokenResponse.json()) as OAuthTokens
           await storeOAuthCredentials(url, {
             access_token: tokens.access_token,
             refresh_token: tokens.refresh_token,
-            expires_in: tokens.expires_in || 1800,
+            expires_in: tokens.expires_in ?? 1800,
             token_type: 'Bearer',
           })
-          reconnect()
+          void reconnect()
           setSuccess(true)
           setTimeout(() => {
             onClose()
