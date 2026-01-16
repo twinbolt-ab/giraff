@@ -31,6 +31,7 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
   const dragStartRef = useRef<{ x: number; y: number; brightness: number } | null>(null)
   const currentBrightnessRef = useRef(initialBrightness)
   const isDraggingRef = useRef(false)
+  const didDragRef = useRef(false)
   const optimisticTimerRef = useRef<NodeJS.Timeout | null>(null)
 
   const isOn = light.state === 'on'
@@ -40,6 +41,8 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
   // Swipe gesture handlers
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (disabled) return
+
+    didDragRef.current = false
 
     // Use local brightness if dragging or in optimistic period, otherwise use HA value
     const startBrightness = isDragging || useOptimisticValue ? localBrightness : initialBrightness
@@ -91,6 +94,7 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
           return
         }
         isDraggingRef.current = true
+        didDragRef.current = true
         setIsDragging(true)
         setShowBrightnessOverlay(true)
         ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
@@ -138,6 +142,11 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
     toggleLight(light.entity_id)
   }, [light.entity_id, toggleLight, disabled, isDragging])
 
+  const handleCardClick = useCallback(() => {
+    if (disabled || didDragRef.current) return
+    toggleLight(light.entity_id)
+  }, [light.entity_id, toggleLight, disabled])
+
   // Cleanup optimistic timer on unmount
   useEffect(() => {
     return () => {
@@ -153,7 +162,11 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
   return (
     <div
       ref={cardRef}
-      className="relative rounded-lg overflow-hidden bg-card"
+      className={clsx(
+        'relative rounded-lg overflow-hidden bg-card',
+        !disabled && 'cursor-pointer'
+      )}
+      onClick={handleCardClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
