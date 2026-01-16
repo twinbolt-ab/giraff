@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle, X } from 'lucide-react'
+import { haptic } from '@/lib/haptics'
 
 export interface ToastProps {
   id: string
@@ -8,6 +10,11 @@ export interface ToastProps {
 }
 
 export function Toast({ id, message, onDismiss }: ToastProps) {
+  // Haptic feedback when toast appears
+  useEffect(() => {
+    haptic.warning()
+  }, [])
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -100 }}

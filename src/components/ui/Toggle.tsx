@@ -1,3 +1,5 @@
+import { haptic } from '@/lib/haptics'
+
 interface ToggleProps {
   checked: boolean
   onChange: (checked: boolean) => void
@@ -11,7 +13,10 @@ export function Toggle({ checked, onChange, label }: ToggleProps) {
         type="button"
         role="switch"
         aria-checked={checked}
-        onClick={() => onChange(!checked)}
+        onClick={() => {
+          haptic.light()
+          onChange(!checked)
+        }}
         className={`relative w-12 h-7 rounded-full transition-colors ${
           checked ? 'bg-accent' : 'bg-border'
         }`}

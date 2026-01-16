@@ -12,6 +12,7 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useOptimisticState } from '@/lib/hooks/useOptimisticState'
 import { useBrightnessGesture } from '@/lib/hooks/useBrightnessGesture'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
+import { haptic } from '@/lib/haptics'
 import { t, interpolate } from '@/lib/i18n'
 import { LONG_PRESS_DURATION, OPTIMISTIC_DURATION } from '@/lib/constants'
 
@@ -197,6 +198,7 @@ export function RoomCard({
 
     if (isInEditMode || isExpanded || !hasControllableDevices) return
 
+    haptic.light()
     const willTurnOn = !hasDevicesOn
     lightsOnState.setOptimistic(willTurnOn)
     brightnessState.setOptimistic(willTurnOn ? 100 : 0)

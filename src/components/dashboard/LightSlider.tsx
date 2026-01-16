@@ -7,6 +7,7 @@ import { MdiIcon } from '@/components/ui/MdiIcon'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { useLightControl } from '@/lib/hooks/useLightControl'
 import { getEntityIcon } from '@/lib/ha-websocket'
+import { haptic } from '@/lib/haptics'
 import { OPTIMISTIC_DURATION, OVERLAY_HIDE_DELAY } from '@/lib/constants'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -139,6 +140,7 @@ export function LightSlider({ light, disabled = false, compact = false, entityMe
   const handleToggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     if (disabled || isDragging) return
+    haptic.light()
     toggleLight(light.entity_id)
   }, [light.entity_id, toggleLight, disabled, isDragging])
 

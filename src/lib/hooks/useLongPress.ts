@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react'
+import { haptic } from '@/lib/haptics'
 
 interface UseLongPressOptions {
   /** Duration in ms before long-press triggers (default: 500) */
@@ -48,11 +49,8 @@ export function useLongPress({
 
     timerRef.current = setTimeout(() => {
       didLongPressRef.current = true
+      haptic.medium()
       onLongPress()
-      // Provide haptic feedback if available
-      if (navigator.vibrate) {
-        navigator.vibrate(50)
-      }
     }, duration)
   }, [disabled, duration, onLongPress, clearTimer])
 
