@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useHAConnection } from './useHAConnection'
+import { setOptimisticState } from '@/lib/ha-websocket'
 import type { HAEntity } from '@/types/ha'
 
 export function useDeviceHandlers() {
@@ -14,6 +15,8 @@ export function useDeviceHandlers() {
 
   const handleSwitchToggle = useCallback(
     (sw: HAEntity) => {
+      const newState = sw.state === 'on' ? 'off' : 'on'
+      setOptimisticState(sw.entity_id, newState)
       const service = sw.state === 'on' ? 'turn_off' : 'turn_on'
       callService('switch', service, { entity_id: sw.entity_id })
     },
@@ -22,6 +25,8 @@ export function useDeviceHandlers() {
 
   const handleInputBooleanToggle = useCallback(
     (input: HAEntity) => {
+      const newState = input.state === 'on' ? 'off' : 'on'
+      setOptimisticState(input.entity_id, newState)
       const service = input.state === 'on' ? 'turn_off' : 'turn_on'
       callService('input_boolean', service, { entity_id: input.entity_id })
     },
@@ -37,6 +42,8 @@ export function useDeviceHandlers() {
 
   const handleClimateToggle = useCallback(
     (climate: HAEntity) => {
+      const newState = climate.state === 'off' ? 'heat' : 'off'
+      setOptimisticState(climate.entity_id, newState)
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off'
       callService('climate', service, { entity_id: climate.entity_id })
     },
@@ -66,6 +73,8 @@ export function useDeviceHandlers() {
 
   const handleFanToggle = useCallback(
     (fan: HAEntity) => {
+      const newState = fan.state === 'on' ? 'off' : 'on'
+      setOptimisticState(fan.entity_id, newState)
       const service = fan.state === 'on' ? 'turn_off' : 'turn_on'
       callService('fan', service, { entity_id: fan.entity_id })
     },

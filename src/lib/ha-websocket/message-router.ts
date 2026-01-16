@@ -1,6 +1,36 @@
-import type { HAWebSocketState, MessageHandler, ConnectionHandler, RegistryHandler } from './types'
+import type { HAEntity } from '@/types/ha'
+import type { HAWebSocketState, MessageHandler, ConnectionHandler, RegistryHandler, OptimisticOverride } from './types'
 
 const DEFAULT_TIMEOUT = 30000
+
+/** Apply optimistic overrides to an entity map, returning a new map if any overrides exist */
+function applyOptimisticOverrides(
+  entities: Map<string, HAEntity>,
+  overrides: Map<string, OptimisticOverride>
+): Map<string, HAEntity> {
+  if (overrides.size === 0) {
+    return entities
+  }
+
+  const now = Date.now()
+  const result = new Map(entities)
+
+  for (const [entityId, override] of overrides) {
+    if (now > override.expiresAt) continue
+
+    const entity = result.get(entityId)
+    if (!entity) continue
+
+    // Create a copy with overridden state/brightness
+    const updated = { ...entity, state: override.state }
+    if (override.brightness !== undefined) {
+      updated.attributes = { ...entity.attributes, brightness: override.brightness }
+    }
+    result.set(entityId, updated)
+  }
+
+  return result
+}
 
 /** Registers a callback with automatic timeout (default 30s). */
 export function registerCallback(
@@ -50,7 +80,8 @@ export function clearPendingCallbacks(state: HAWebSocketState): void {
 export function addMessageHandler(state: HAWebSocketState, handler: MessageHandler): () => void {
   state.messageHandlers.add(handler)
   if (state.entities.size > 0) {
-    handler(state.entities)
+    const entities = applyOptimisticOverrides(state.entities, state.optimisticOverrides)
+    handler(entities)
   }
   return () => state.messageHandlers.delete(handler)
 }
@@ -68,8 +99,9 @@ export function addRegistryHandler(state: HAWebSocketState, handler: RegistryHan
 }
 
 export function notifyMessageHandlers(state: HAWebSocketState): void {
+  const entities = applyOptimisticOverrides(state.entities, state.optimisticOverrides)
   for (const handler of state.messageHandlers) {
-    handler(state.entities)
+    handler(entities)
   }
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { useHAConnection } from './useHAConnection'
+import { getEntity, setOptimisticState } from '@/lib/ha-websocket'
 import type { HAEntity } from '@/types/ha'
 
 interface UseLightControlOptions {
@@ -91,6 +92,13 @@ export function useLightControl(options: UseLightControlOptions = {}) {
   // Toggle a light on/off
   const toggleLight = useCallback(
     (entityId: string) => {
+      const entity = getEntity(entityId)
+      if (entity) {
+        const newState = entity.state === 'on' ? 'off' : 'on'
+        // For lights going on, default to full brightness
+        const brightness = newState === 'on' ? 255 : undefined
+        setOptimisticState(entityId, newState, brightness)
+      }
       callService('light', 'toggle', { entity_id: entityId })
     },
     [callService]
@@ -101,11 +109,17 @@ export function useLightControl(options: UseLightControlOptions = {}) {
     (lights: HAEntity[], switches: HAEntity[] = []) => {
       // If any light or switch is on, turn all off. Otherwise turn all on.
       const anyOn = lights.some((l) => l.state === 'on') || switches.some((s) => s.state === 'on')
+      const newState = anyOn ? 'off' : 'on'
       const service = anyOn ? 'turn_off' : 'turn_on'
+
+      // Apply optimistic state for all entities
       for (const light of lights) {
+        const brightness = newState === 'on' ? 255 : undefined
+        setOptimisticState(light.entity_id, newState, brightness)
         callService('light', service, { entity_id: light.entity_id })
       }
       for (const sw of switches) {
+        setOptimisticState(sw.entity_id, newState)
         callService('switch', service, { entity_id: sw.entity_id })
       }
     },
