@@ -282,7 +282,7 @@ export function RoomCard({
         <div
           className={clsx(
             'flex items-center relative',
-            isExpanded ? '-mx-4 px-2 mb-2 py-1.5 -mt-4 pt-3 cursor-ew-resize' : '-ml-2 mb-1'
+            isExpanded ? '-mx-4 px-2 mb-2 min-h-14 -mt-4 cursor-ew-resize' : '-ml-2 mb-1'
           )}
           onClick={handleHeaderClick}
           onPointerDown={
@@ -310,7 +310,7 @@ export function RoomCard({
           {/* Brightness fill background for expanded card */}
           {isExpanded && hasLights && displayLightsOn && (
             <motion.div
-              className="absolute inset-0 origin-left pointer-events-none rounded-t-card"
+              className="absolute inset-0 origin-left pointer-events-none rounded-card"
               style={{ backgroundColor: 'var(--brightness-fill)' }}
               initial={false}
               animate={{ scaleX: displayBrightness / 100 }}
@@ -324,7 +324,7 @@ export function RoomCard({
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm pointer-events-none z-20 rounded-t-card"
+                className="absolute inset-0 flex items-center justify-center bg-card/80 backdrop-blur-sm pointer-events-none z-20 rounded-card"
               >
                 <span className="text-3xl font-bold text-accent">{displayBrightness}%</span>
               </motion.div>
