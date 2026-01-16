@@ -310,10 +310,10 @@ export function RoomCard({
           {/* Brightness fill background for expanded card */}
           {isExpanded && hasLights && displayLightsOn && (
             <motion.div
-              className="absolute inset-0 origin-left pointer-events-none rounded-card"
+              className="absolute inset-y-0 left-0 pointer-events-none rounded-card"
               style={{ backgroundColor: 'var(--brightness-fill)' }}
               initial={false}
-              animate={{ scaleX: displayBrightness / 100 }}
+              animate={{ width: `${displayBrightness}%` }}
               transition={{ duration: expandedBrightnessGesture.isDragging ? 0 : 0.3 }}
             />
           )}
