@@ -53,6 +53,10 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
         } else {
           newSelectedIds.add(action.id)
         }
+        // Exit edit mode if all items are deselected
+        if (newSelectedIds.size === 0) {
+          return { type: 'normal' }
+        }
         return { ...state, selectedIds: newSelectedIds }
       }
       return state
@@ -112,6 +116,11 @@ interface EditModeContextValue {
 
 const EditModeContext = createContext<EditModeContextValue | null>(null)
 
+// Stable empty values to avoid unnecessary re-renders
+const EMPTY_SET = new Set<string>()
+const EMPTY_ROOMS: RoomWithDevices[] = []
+const EMPTY_FLOORS: HAFloor[] = []
+
 // Provider component
 interface EditModeProviderProps {
   children: ReactNode
@@ -131,7 +140,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     if (mode.type === 'edit-rooms' || mode.type === 'edit-devices' || mode.type === 'edit-all-devices') {
       return mode.selectedIds
     }
-    return new Set<string>()
+    return EMPTY_SET
   }, [mode])
 
   const selectedCount = selectedIds.size
@@ -140,14 +149,14 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     if (mode.type === 'edit-rooms') {
       return mode.orderedRooms
     }
-    return []
+    return EMPTY_ROOMS
   }, [mode])
 
   const orderedFloors = useMemo(() => {
     if (mode.type === 'edit-floors') {
       return mode.orderedFloors
     }
-    return []
+    return EMPTY_FLOORS
   }, [mode])
 
   const selectedFloorId = useMemo(() => {

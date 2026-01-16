@@ -175,7 +175,7 @@ describe('Device Selection Flow', () => {
       expect(selectedIds).toContain('switch.kitchen')
     })
 
-    it('should remove device from selection when clicking selected device', async () => {
+    it('should exit edit mode when last device is deselected', async () => {
       render(
         <TestWrapper>
           <DeviceSelectionTestHarness
@@ -186,16 +186,18 @@ describe('Device Selection Flow', () => {
         </TestWrapper>
       )
 
-      // Initial: garage is selected
+      // Initial: garage is selected, in edit mode
+      expect(screen.getByTestId('mode')).toHaveTextContent('edit')
       expect(screen.getByTestId('count')).toHaveTextContent('1')
 
-      // Click garage switch to deselect
+      // Click garage switch to deselect (last item)
       const garageButton = screen.getByText('Garage Switch').closest('button')
       await act(async () => {
         fireEvent.click(garageButton!)
       })
 
-      // Should now have 0 selected
+      // Should exit edit mode when selection becomes empty
+      expect(screen.getByTestId('mode')).toHaveTextContent('normal')
       expect(screen.getByTestId('count')).toHaveTextContent('0')
     })
 

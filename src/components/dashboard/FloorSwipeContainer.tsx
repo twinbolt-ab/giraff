@@ -5,9 +5,6 @@ import type { HAFloor } from '@/types/ha'
 // Spring animation config for floor transitions
 const SPRING_CONFIG = { type: 'spring', stiffness: 300, damping: 30 } as const
 
-// Minimum height for swipeable area
-// Account for: safe-area-top + py-4 padding (16px) at top, pb-nav (5rem + safe-area-bottom) at bottom
-const MIN_HEIGHT = 'calc(100vh - env(safe-area-inset-top, 0px) - 16px - 5rem - env(safe-area-inset-bottom, 0px))'
 
 interface FloorSwipeContainerProps {
   /** All floors in order */
@@ -147,11 +144,11 @@ export function FloorSwipeContainer({
   return (
     <div
       className="overflow-hidden"
-      style={{ touchAction: 'pan-y', minHeight: MIN_HEIGHT }}
+      style={{ touchAction: 'pan-y' }}
     >
       <motion.div
-        className="flex h-full"
-        style={{ x, minHeight: MIN_HEIGHT }}
+        className="flex"
+        style={{ x }}
         drag={disabled ? false : 'x'}
         dragControls={dragControls}
         dragListener={false}
@@ -166,7 +163,6 @@ export function FloorSwipeContainer({
             style={{
               width: width > 0 ? width : '100vw',
               flexShrink: 0,
-              minHeight: MIN_HEIGHT,
             }}
           >
             {children(floorId, index)}

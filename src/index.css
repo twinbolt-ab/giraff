@@ -98,6 +98,8 @@ html, body, #root {
   /* Fill entire viewport including safe areas */
   min-height: 100vh;
   min-height: 100dvh;
+  /* Disable overscroll bounce/stretch to feel more app-like */
+  overscroll-behavior: none;
 }
 
 html:not(.dark), html:not(.dark) body, html:not(.dark) #root {
