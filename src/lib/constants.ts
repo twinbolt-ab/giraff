@@ -32,6 +32,9 @@ export const OPTIMISTIC_DURATION = 5000
 // Delay before hiding brightness/overlay UI elements (ms)
 export const OVERLAY_HIDE_DELAY = 300
 
+// Room expand/collapse animation duration (seconds)
+export const ROOM_EXPAND_DURATION = 0.25
+
 // localStorage keys for credentials
 export const STORAGE_KEYS = {
   HA_URL: 'stuga-ha-url',

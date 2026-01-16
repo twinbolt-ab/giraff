@@ -5,6 +5,7 @@ import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { t } from '@/lib/i18n'
+import { ROOM_EXPAND_DURATION } from '@/lib/constants'
 
 import {
   ScenesSection,
@@ -145,7 +146,7 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
       style={{
         height: isExpanded ? measuredHeight : 0,
         overflow: 'hidden',
-        transition: `height 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) ${isExpanded ? '0.12s' : '0s'}`,
+        transition: `height ${ROOM_EXPAND_DURATION}s cubic-bezier(0.25, 0.1, 0.25, 1)`,
       }}
     >
       <motion.div
@@ -153,9 +154,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
         initial={false}
         animate={{ opacity: isExpanded ? 1 : 0 }}
         transition={{
-          duration: 0.15,
+          duration: ROOM_EXPAND_DURATION * 0.5,
           ease: isExpanded ? 'easeOut' : 'easeIn',
-          delay: isExpanded ? 0.12 : 0,
         }}
         className="pt-3 mt-3 border-t border-border pb-1 px-0.5 -mx-0.5"
         onPointerDown={(e) => {
