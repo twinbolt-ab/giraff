@@ -8,6 +8,7 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { LONG_PRESS_DURATION } from '@/lib/constants'
 import { t } from '@/lib/i18n'
+import { haptic } from '@/lib/haptics'
 import type { HAFloor } from '@/types/ha'
 
 interface BottomNavProps {
@@ -39,6 +40,7 @@ function FloorTab({ floor, isActive, onSelect, onLongPress }: FloorTabProps) {
 
   const handleClick = useCallback(() => {
     if (!longPress.didLongPress) {
+      haptic.selection()
       onSelect()
     }
   }, [longPress.didLongPress, onSelect])
@@ -82,7 +84,7 @@ function ReorderableFloorTab({ floor, isActive, isSelected, onTap }: Reorderable
       value={floor}
       onDragStart={() => {
         didDragRef.current = true
-        if (navigator.vibrate) navigator.vibrate(50)
+        haptic.medium()
       }}
       onDragEnd={() => {
         // Reset after a short delay to allow click to be ignored

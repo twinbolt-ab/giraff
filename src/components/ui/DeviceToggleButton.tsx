@@ -5,6 +5,7 @@ import { SelectionCheckbox } from './SelectionCheckbox'
 import { EntityBadges } from './EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { haptic } from '@/lib/haptics'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
 function getEntityDisplayName(entity: HAEntity): string {
@@ -104,7 +105,10 @@ export function DeviceToggleButton({
     >
       {/* Clickable area */}
       <button
-        onClick={onToggle}
+        onClick={() => {
+          haptic.light()
+          onToggle()
+        }}
         className={clsx(
           'flex-1 flex items-center gap-3',
           'touch-feedback'

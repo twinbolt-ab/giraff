@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
+import { haptic } from '@/lib/haptics'
 
 const LONG_PRESS_DURATION = 400
 const MOVE_THRESHOLD = 10
@@ -131,10 +132,7 @@ export function ReorderableGrid<T>({
 
   // Handle drag start (called after long-press completes)
   const handleDragStart = useCallback((index: number, clientX: number, clientY: number) => {
-    // Haptic feedback
-    if (navigator.vibrate) {
-      navigator.vibrate(50)
-    }
+    haptic.medium()
     setDraggedIndex(index)
     setDragStartPos({ x: clientX, y: clientY })
     setDragOffset({ x: 0, y: 0 })

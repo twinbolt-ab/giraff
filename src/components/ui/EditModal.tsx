@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, useMotionValue, animate, PanInfo } from 'framer-motion'
 import { X } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { haptic } from '@/lib/haptics'
 
 const DRAG_CLOSE_THRESHOLD = 150
 
@@ -30,6 +31,7 @@ export function EditModal({ isOpen, onClose, title, children, compact = false }:
     if (isOpen) {
       // Animate in
       animate(y, 0, { type: 'spring', damping: 30, stiffness: 400 })
+      haptic.light()
       // Blur the button that opened the modal to prevent stuck focus/hover state
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur()

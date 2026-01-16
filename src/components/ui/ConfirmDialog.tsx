@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { haptic } from '@/lib/haptics'
 
 interface ConfirmDialogProps {
   isOpen: boolean
@@ -33,6 +34,13 @@ export function ConfirmDialog({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Haptic feedback when destructive dialog opens
+  useEffect(() => {
+    if (isOpen && variant === 'destructive') {
+      haptic.warning()
+    }
+  }, [isOpen, variant])
 
   // Close on escape key
   useEffect(() => {
