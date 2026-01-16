@@ -2,6 +2,7 @@ import type { HAEntity, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry
 import type { HAWebSocketState } from './types'
 import { send, getNextMessageId } from './connection'
 import { notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
+import { clearOptimisticState } from './entity-service'
 import { logger } from '@/lib/logger'
 
 export function subscribeToStateChanges(state: HAWebSocketState): void {
@@ -153,6 +154,9 @@ export function handleRegistryResult(
 }
 
 export function handleStateChange(state: HAWebSocketState, entityId: string, newState: HAEntity | null): void {
+  // Clear optimistic state since real state has arrived
+  clearOptimisticState(state, entityId)
+
   if (newState) {
     // Apply area info if we have it
     const areaName = state.entityAreas.get(entityId)

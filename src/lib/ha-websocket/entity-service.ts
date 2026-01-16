@@ -1,9 +1,55 @@
 import type { HAEntity, HALabel, EntityRegistryEntry } from '@/types/ha'
 import { isHALabel } from '@/types/ha'
-import type { HAWebSocketState } from './types'
+import type { HAWebSocketState, OptimisticOverride } from './types'
 import { send, getNextMessageId } from './connection'
 import { registerCallback, notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
-import { DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER } from '@/lib/constants'
+import { DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER, OPTIMISTIC_DURATION } from '@/lib/constants'
+
+// Timer references for optimistic state cleanup
+const optimisticTimers = new Map<string, NodeJS.Timeout>()
+
+/** Set optimistic state for immediate UI feedback */
+export function setOptimisticState(
+  state: HAWebSocketState,
+  entityId: string,
+  newState: string,
+  brightness?: number
+): void {
+  // Clear any existing timer
+  const existingTimer = optimisticTimers.get(entityId)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+  }
+
+  // Set the override
+  const override: OptimisticOverride = {
+    state: newState,
+    brightness,
+    expiresAt: Date.now() + OPTIMISTIC_DURATION,
+  }
+  state.optimisticOverrides.set(entityId, override)
+
+  // Schedule cleanup
+  const timer = setTimeout(() => {
+    state.optimisticOverrides.delete(entityId)
+    optimisticTimers.delete(entityId)
+    notifyMessageHandlers(state)
+  }, OPTIMISTIC_DURATION)
+  optimisticTimers.set(entityId, timer)
+
+  // Notify immediately so UI updates
+  notifyMessageHandlers(state)
+}
+
+/** Clear optimistic state (called when real state arrives) */
+export function clearOptimisticState(state: HAWebSocketState, entityId: string): void {
+  const existingTimer = optimisticTimers.get(entityId)
+  if (existingTimer) {
+    clearTimeout(existingTimer)
+    optimisticTimers.delete(entityId)
+  }
+  state.optimisticOverrides.delete(entityId)
+}
 
 export function getEntities(state: HAWebSocketState): Map<string, HAEntity> {
   return state.entities

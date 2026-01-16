@@ -1,5 +1,12 @@
 import type { HAEntity, HALabel, HAFloor, AreaRegistryEntry, EntityRegistryEntry } from '@/types/ha'
 
+// Optimistic state override for immediate UI feedback
+export interface OptimisticOverride {
+  state: string
+  brightness?: number // 0-255 for lights
+  expiresAt: number
+}
+
 // Handler types
 export type MessageHandler = (entities: Map<string, HAEntity>) => void
 export type ConnectionHandler = (connected: boolean) => void
@@ -33,6 +40,7 @@ export interface HAWebSocketState {
   // Entities
   entities: Map<string, HAEntity>
   entityAreas: Map<string, string>
+  optimisticOverrides: Map<string, OptimisticOverride>
 
   // Registries
   areas: Map<string, string>
@@ -69,6 +77,7 @@ export function createInitialState(): HAWebSocketState {
 
     entities: new Map(),
     entityAreas: new Map(),
+    optimisticOverrides: new Map(),
 
     areas: new Map(),
     areaRegistry: new Map(),

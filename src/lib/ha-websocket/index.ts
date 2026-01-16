@@ -96,6 +96,8 @@ export const setEntityHidden = (entityId: string, hidden: boolean) =>
 export const deleteScene = (entityId: string) => entitySvc.deleteScene(state, entityId)
 export const callService = (domain: string, service: string, data?: Record<string, unknown>) =>
   entitySvc.callService(state, domain, service, data)
+export const setOptimisticState = (entityId: string, newState: string, brightness?: number) =>
+  entitySvc.setOptimisticState(state, entityId, newState, brightness)
 
 // Areas
 export const getAreaRegistry = () => state.areaRegistry
