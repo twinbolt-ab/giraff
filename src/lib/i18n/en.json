@@ -265,7 +265,9 @@
     "deselectAll": "Clear",
     "editSelected": "Edit",
     "editRoom": "Edit room",
+    "editRooms": "Edit rooms",
     "editDevice": "Edit device",
+    "editDevices": "Edit devices",
     "rooms": {
       "title": "Edit {count} Rooms",
       "moveToFloor": "Move to floor"

@@ -239,7 +239,7 @@ function DashboardContent() {
   }, [selectedCount, isDeviceEditMode, isAllDevicesEditMode, isFloorEditMode, editModeSelectedFloorId, floors, selectedDevicesForEdit, selectedRoomsForEdit, openDeviceEdit, openRoomEdit, openBulkDevices, openBulkRooms])
 
   return (
-    <div className="min-h-screen bg-background pt-safe pb-nav">
+    <div className="min-h-screen min-h-[100dvh] bg-background pt-safe pb-nav">
       {/* Edit mode header bar */}
       <AnimatePresence>
         {isEditMode && (

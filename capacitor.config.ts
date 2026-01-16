@@ -13,6 +13,7 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#0D0D0C',
+    overScrollMode: 'never',
   },
   plugins: {
     Preferences: {

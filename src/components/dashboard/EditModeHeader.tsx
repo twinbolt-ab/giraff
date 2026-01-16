@@ -14,7 +14,6 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
     isAllDevicesEditMode,
     isFloorEditMode,
     selectedCount,
-    clearSelection,
   } = useEditMode()
 
   // Floor edit mode has its own simpler UI
@@ -43,11 +42,10 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
     )
   }
 
+  const isDeviceMode = isDeviceEditMode || isAllDevicesEditMode
   const editButtonLabel = selectedCount === 1
-    ? (isDeviceEditMode || isAllDevicesEditMode)
-      ? t.bulkEdit.editDevice
-      : t.bulkEdit.editRoom
-    : t.bulkEdit.editSelected
+    ? isDeviceMode ? t.bulkEdit.editDevice : t.bulkEdit.editRoom
+    : isDeviceMode ? t.bulkEdit.editDevices : t.bulkEdit.editRooms
 
   return (
     <motion.div
@@ -59,38 +57,28 @@ export function EditModeHeader({ onEditClick, onDone }: EditModeHeaderProps) {
     >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
+          <button
+            onClick={onDone}
+            className="p-1 rounded-full hover:bg-accent/20 transition-colors"
+            aria-label="Exit edit mode"
+          >
+            <X className="w-4 h-4 text-accent" />
+          </button>
           {selectedCount > 0 && (
-            <>
-              <button
-                onClick={clearSelection}
-                className="p-1 rounded-full hover:bg-accent/20 transition-colors"
-                aria-label="Clear selection"
-              >
-                <X className="w-4 h-4 text-accent" />
-              </button>
-              <span className="text-sm font-semibold text-accent">
-                {interpolate(t.bulkEdit.selected, { count: selectedCount })}
-              </span>
-            </>
+            <span className="text-sm font-semibold text-accent">
+              {interpolate(t.bulkEdit.selected, { count: selectedCount })}
+            </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {selectedCount > 0 && (
-            <button
-              onClick={onEditClick}
-              className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
-            >
-              {editButtonLabel}
-            </button>
-          )}
+        {selectedCount > 0 && (
           <button
-            onClick={onDone}
-            className="px-3 py-1.5 rounded-full btn-glass text-foreground text-sm font-medium transition-colors"
+            onClick={onEditClick}
+            className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
           >
-            {t.editMode.done}
+            {editButtonLabel}
           </button>
-        </div>
+        )}
       </div>
     </motion.div>
   )
