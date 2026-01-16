@@ -8,7 +8,7 @@ export function useDeviceHandlers() {
 
   const handleSceneActivate = useCallback(
     (scene: HAEntity) => {
-      callService('scene', 'turn_on', { entity_id: scene.entity_id })
+      void callService('scene', 'turn_on', { entity_id: scene.entity_id })
     },
     [callService]
   )
@@ -18,7 +18,7 @@ export function useDeviceHandlers() {
       const newState = sw.state === 'on' ? 'off' : 'on'
       setOptimisticState(sw.entity_id, newState)
       const service = sw.state === 'on' ? 'turn_off' : 'turn_on'
-      callService('switch', service, { entity_id: sw.entity_id })
+      void callService('switch', service, { entity_id: sw.entity_id })
     },
     [callService]
   )
@@ -28,14 +28,14 @@ export function useDeviceHandlers() {
       const newState = input.state === 'on' ? 'off' : 'on'
       setOptimisticState(input.entity_id, newState)
       const service = input.state === 'on' ? 'turn_off' : 'turn_on'
-      callService('input_boolean', service, { entity_id: input.entity_id })
+      void callService('input_boolean', service, { entity_id: input.entity_id })
     },
     [callService]
   )
 
   const handleInputNumberChange = useCallback(
     (input: HAEntity, value: number) => {
-      callService('input_number', 'set_value', { entity_id: input.entity_id, value })
+      void callService('input_number', 'set_value', { entity_id: input.entity_id, value })
     },
     [callService]
   )
@@ -45,28 +45,28 @@ export function useDeviceHandlers() {
       const newState = climate.state === 'off' ? 'heat' : 'off'
       setOptimisticState(climate.entity_id, newState)
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off'
-      callService('climate', service, { entity_id: climate.entity_id })
+      void callService('climate', service, { entity_id: climate.entity_id })
     },
     [callService]
   )
 
   const handleCoverOpen = useCallback(
     (cover: HAEntity) => {
-      callService('cover', 'open_cover', { entity_id: cover.entity_id })
+      void callService('cover', 'open_cover', { entity_id: cover.entity_id })
     },
     [callService]
   )
 
   const handleCoverClose = useCallback(
     (cover: HAEntity) => {
-      callService('cover', 'close_cover', { entity_id: cover.entity_id })
+      void callService('cover', 'close_cover', { entity_id: cover.entity_id })
     },
     [callService]
   )
 
   const handleCoverStop = useCallback(
     (cover: HAEntity) => {
-      callService('cover', 'stop_cover', { entity_id: cover.entity_id })
+      void callService('cover', 'stop_cover', { entity_id: cover.entity_id })
     },
     [callService]
   )
@@ -76,7 +76,7 @@ export function useDeviceHandlers() {
       const newState = fan.state === 'on' ? 'off' : 'on'
       setOptimisticState(fan.entity_id, newState)
       const service = fan.state === 'on' ? 'turn_off' : 'turn_on'
-      callService('fan', service, { entity_id: fan.entity_id })
+      void callService('fan', service, { entity_id: fan.entity_id })
     },
     [callService]
   )

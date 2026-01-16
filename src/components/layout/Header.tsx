@@ -43,7 +43,9 @@ function FloorTab({ floor, isActive, onSelect, onLongPress }: FloorTabProps) {
       haptic.selection()
       onSelect()
     }
-  }, [longPress.didLongPress, onSelect])
+    // longPress.didLongPress is a getter on a ref - doesn't need to be in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onSelect])
 
   return (
     <button
@@ -198,7 +200,7 @@ export function BottomNav({
   // Handle click outside to exit floor edit mode
   const handleBackgroundClick = useCallback(() => {
     if (isFloorEditMode) {
-      handleSaveFloorOrder()
+      void handleSaveFloorOrder()
       exitEditMode()
     }
   }, [isFloorEditMode, handleSaveFloorOrder, exitEditMode])

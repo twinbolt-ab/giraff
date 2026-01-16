@@ -46,7 +46,7 @@ export function isNativeApp(): boolean {
 // Client ID for the app - must be a URL
 // For native apps: We use twinbolt.se/stuga which has the redirect_uri link tag
 // For web: We use the current origin
-export function getClientId(haUrl?: string): string {
+export function getClientId(_haUrl?: string): string {
   // On native, use the website that has <link rel="redirect_uri" href="com.twinbolt.stuga:/">
   if (isNativeApp()) {
     return 'https://twinbolt.se/stuga'
@@ -61,7 +61,7 @@ export function getClientId(haUrl?: string): string {
 }
 
 // Get the redirect URI for OAuth callback
-export function getRedirectUri(haUrl?: string): string {
+export function getRedirectUri(_haUrl?: string): string {
   // For native apps, use custom URL scheme
   if (isNativeApp()) {
     return 'com.twinbolt.stuga:/'
@@ -105,7 +105,7 @@ export async function exchangeCodeForTokens(
     throw new Error(`Token exchange failed: ${error}`)
   }
 
-  return response.json()
+  return response.json() as Promise<OAuthTokens>
 }
 
 // Refresh the access token using refresh token
@@ -163,7 +163,7 @@ export async function refreshAccessToken(
     throw new NetworkError(`Server error: ${response.status} ${errorText}`)
   }
 
-  const tokens = await response.json()
+  const tokens = (await response.json()) as OAuthTokens
   logger.debug('OAuth', 'Token refreshed successfully')
   return tokens
 }

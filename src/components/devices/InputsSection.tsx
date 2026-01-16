@@ -1,5 +1,4 @@
 import { ToggleLeft, SlidersHorizontal } from 'lucide-react'
-import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'

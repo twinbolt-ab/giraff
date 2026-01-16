@@ -29,7 +29,7 @@ function DismissableHint({ show, storageKey, message }: DismissableHintProps) {
       }
       setIsLoading(false)
     }
-    checkDismissed()
+    void checkDismissed()
   }, [storageKey])
 
   const handleDismiss = async () => {

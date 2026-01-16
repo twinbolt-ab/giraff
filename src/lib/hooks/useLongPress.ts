@@ -13,8 +13,10 @@ interface UseLongPressOptions {
 }
 
 interface UseLongPressReturn {
-  /** Whether a long-press was triggered (use to prevent click handling) */
+  /** Whether a long-press was triggered (use to prevent click handling) - access .current */
   didLongPress: boolean
+  /** Ref for checking if long-press triggered in callbacks */
+  didLongPressRef: React.RefObject<boolean>
   /** Call on pointer down to start detecting */
   onPointerDown: (e: React.PointerEvent) => void
   /** Call on pointer move to check for cancellation */
@@ -84,7 +86,10 @@ export function useLongPress({
   }, [clearTimer])
 
   return {
-    didLongPress: didLongPressRef.current,
+    get didLongPress() {
+      return didLongPressRef.current
+    },
+    didLongPressRef,
     onPointerDown: handlePointerDown,
     onPointerMove: handlePointerMove,
     onPointerUp: handlePointerUp,

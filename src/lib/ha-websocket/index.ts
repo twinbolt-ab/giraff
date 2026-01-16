@@ -34,7 +34,7 @@ const state = createInitialState()
 function handleMessage(message: WebSocketMessage): void {
   switch (message.type) {
     case 'auth_required':
-      conn.authenticate(state)
+      void conn.authenticate(state)
       break
 
     case 'auth_ok':

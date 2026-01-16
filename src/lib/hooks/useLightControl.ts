@@ -13,6 +13,21 @@ export function useLightControl(options: UseLightControlOptions = {}) {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const pendingCallsRef = useRef<Map<string, number>>(new Map())
 
+  // Flush all pending brightness changes
+  const flushPendingCalls = useCallback(() => {
+    for (const [entityId, brightness] of pendingCallsRef.current) {
+      if (brightness === 0) {
+        void callService('light', 'turn_off', { entity_id: entityId })
+      } else {
+        void callService('light', 'turn_on', {
+          entity_id: entityId,
+          brightness_pct: brightness,
+        })
+      }
+    }
+    pendingCallsRef.current.clear()
+  }, [callService])
+
   // Set brightness for a single light
   const setLightBrightness = useCallback(
     (entityId: string, brightnessPct: number, immediate = false) => {
@@ -39,23 +54,8 @@ export function useLightControl(options: UseLightControlOptions = {}) {
         debounceTimerRef.current = null
       }, debounceMs)
     },
-    [callService, debounceMs]
+    [debounceMs, flushPendingCalls]
   )
-
-  // Flush all pending brightness changes
-  const flushPendingCalls = useCallback(() => {
-    for (const [entityId, brightness] of pendingCallsRef.current) {
-      if (brightness === 0) {
-        callService('light', 'turn_off', { entity_id: entityId })
-      } else {
-        callService('light', 'turn_on', {
-          entity_id: entityId,
-          brightness_pct: brightness,
-        })
-      }
-    }
-    pendingCallsRef.current.clear()
-  }, [callService])
 
   // Set brightness for multiple lights at once
   // Can accept either a single brightness value (absolute) or a Map of per-light values (relative)
@@ -103,7 +103,7 @@ export function useLightControl(options: UseLightControlOptions = {}) {
         const brightness = newState === 'on' ? 255 : undefined
         setOptimisticState(entityId, newState, brightness)
       }
-      callService('light', 'toggle', { entity_id: entityId })
+      void callService('light', 'toggle', { entity_id: entityId })
     },
     [callService]
   )
@@ -120,11 +120,11 @@ export function useLightControl(options: UseLightControlOptions = {}) {
       for (const light of lights) {
         const brightness = newState === 'on' ? 255 : undefined
         setOptimisticState(light.entity_id, newState, brightness)
-        callService('light', service, { entity_id: light.entity_id })
+        void callService('light', service, { entity_id: light.entity_id })
       }
       for (const sw of switches) {
         setOptimisticState(sw.entity_id, newState)
-        callService('switch', service, { entity_id: sw.entity_id })
+        void callService('switch', service, { entity_id: sw.entity_id })
       }
     },
     [callService]

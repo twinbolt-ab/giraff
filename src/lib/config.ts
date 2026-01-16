@@ -4,12 +4,7 @@
 import { STORAGE_KEYS } from './constants'
 import { getStorage } from './storage'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
-import {
-  getValidAccessToken,
-  getOAuthCredentials,
-  clearOAuthCredentials,
-  type TokenResult,
-} from './ha-oauth'
+import { getValidAccessToken, getOAuthCredentials, clearOAuthCredentials } from './ha-oauth'
 
 export interface StoredCredentials {
   url: string

@@ -1,4 +1,4 @@
-import type { AreaRegistryEntry, HALabel } from '@/types/ha'
+import type { AreaRegistryEntry, HALabel as _HALabel } from '@/types/ha'
 import { isHALabel, isAreaRegistryEntry } from '@/types/ha'
 import type { HAWebSocketState } from './types'
 import { send, getNextMessageId } from './connection'

@@ -27,7 +27,7 @@ interface RoomExpandedProps {
   isExpanded: boolean
 }
 
-export function RoomExpanded({ room, allRooms, isExpanded }: RoomExpandedProps) {
+export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpandedProps) {
   const { enabledDomains } = useEnabledDomains()
   const handlers = useDeviceHandlers()
   const contentRef = useRef<HTMLDivElement>(null)

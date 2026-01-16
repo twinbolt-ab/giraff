@@ -32,7 +32,7 @@ export function useHAConnection() {
       ws.connect()
     }
 
-    initConnection()
+    void initConnection()
 
     const unsubMessage = ws.onMessage((newEntities) => {
       setEntities(new Map(newEntities))
@@ -44,21 +44,23 @@ export function useHAConnection() {
     })
 
     // Handle visibility change (for web - proactively refresh OAuth token on tab focus)
-    const handleVisibilityChange = async () => {
+    const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible') return
 
-      // Only handle OAuth
-      const usingOAuth = await isUsingOAuth()
-      if (!usingOAuth) return
+      void (async () => {
+        // Only handle OAuth
+        const usingOAuth = await isUsingOAuth()
+        if (!usingOAuth) return
 
-      logger.debug('useHAConnection', 'Tab became visible, checking token')
-      const result = await getValidAccessToken()
+        logger.debug('useHAConnection', 'Tab became visible, checking token')
+        const result = await getValidAccessToken()
 
-      if (result.status === 'valid' && !ws.isConnected()) {
-        logger.debug('useHAConnection', 'Reconnecting with refreshed token')
-        ws.configure(result.haUrl, result.token, true)
-        ws.connect()
-      }
+        if (result.status === 'valid' && !ws.isConnected()) {
+          logger.debug('useHAConnection', 'Reconnecting with refreshed token')
+          ws.configure(result.haUrl, result.token, true)
+          ws.connect()
+        }
+      })()
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
