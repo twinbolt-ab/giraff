@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, useMemo, useState, memo } from 'react'
+import { useRef, useCallback, useEffect, useMemo, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { clsx } from 'clsx'
 import { Lightbulb, LightbulbOff, Thermometer, ChevronDown, Home, Check } from 'lucide-react'
@@ -14,7 +14,7 @@ import { useBrightnessGesture } from '@/lib/hooks/useBrightnessGesture'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
 import { haptic } from '@/lib/haptics'
 import { t, interpolate } from '@/lib/i18n'
-import { LONG_PRESS_DURATION, OPTIMISTIC_DURATION } from '@/lib/constants'
+import { LONG_PRESS_DURATION, OPTIMISTIC_DURATION, ROOM_EXPAND_DURATION } from '@/lib/constants'
 
 interface RoomCardProps {
   room: RoomWithDevices
@@ -57,25 +57,6 @@ export function RoomCard({
   const isOtherRoomInDeviceEdit =
     isDeviceEditMode && mode.type === 'edit-devices' && mode.roomId !== room.id
   const shouldBlur = isOtherRoomInDeviceEdit
-
-  // Delayed width state for sequenced animation
-  // On expand: width changes immediately
-  // On collapse: width changes after height animation (0.2s delay)
-  const [isWidthExpanded, setIsWidthExpanded] = useState(isExpanded)
-  useEffect(() => {
-    if (isExpanded) {
-      // Expand: change width immediately
-      setIsWidthExpanded(true)
-    } else {
-      // Collapse: delay width change until after height animation
-      const timer = setTimeout(() => {
-        setIsWidthExpanded(false)
-      }, 200)
-      return () => {
-        clearTimeout(timer)
-      }
-    }
-  }, [isExpanded])
 
   // Room data
   const lights = room.devices.filter((d) => d.entity_id.startsWith('light.'))
@@ -261,9 +242,9 @@ export function RoomCard({
   const displayBrightness = brightnessState.displayValue
   const displayLightsOn = lightsOnState.displayValue
 
+  // Card styling (col-span is now handled by RoomsGrid for layout animations)
   const cardClassName = clsx(
-    'card w-full text-left relative overflow-hidden',
-    isWidthExpanded ? 'col-span-2' : '',
+    'card text-left relative overflow-hidden w-full',
     isThisRoomSelected && 'ring-2 ring-accent',
     shouldBlur && 'opacity-40 blur-[1px]'
   )
@@ -449,7 +430,7 @@ export function RoomCard({
               className="absolute inset-0 -mx-4 -my-2 px-4 py-2 flex items-center justify-end hover:bg-border/30 transition-colors touch-feedback"
               aria-label={isExpanded ? 'Collapse' : 'Expand'}
             >
-              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: ROOM_EXPAND_DURATION }}>
                 <ChevronDown className="w-4 h-4 text-muted" />
               </motion.div>
             </button>
@@ -468,7 +449,7 @@ export function RoomCard({
       <div
         onClick={handleToggleSelection}
         className={cardClassName}
-        style={{ padding: '6px 16px' }}
+        style={{ padding: '6px 16px', width: '100%' }}
       >
         {cardContent}
       </div>
@@ -476,16 +457,15 @@ export function RoomCard({
   }
 
   // Normal mode: use motion.div with gesture handlers
-  // Note: Removed layout="position" for better swipe performance
   return (
     <motion.div
       ref={cardRef}
       initial={false}
       animate={{
-        padding: isWidthExpanded ? '16px' : '6px 16px',
+        padding: isExpanded ? '16px' : '6px 16px',
       }}
       transition={{
-        padding: { duration: 0.12, ease: [0.25, 0.1, 0.25, 1] },
+        padding: { duration: ROOM_EXPAND_DURATION, ease: [0.25, 0.1, 0.25, 1] },
       }}
       className={clsx(cardClassName, hasControllableDevices && !isExpanded && 'cursor-pointer')}
       onClick={handleCardClick}
