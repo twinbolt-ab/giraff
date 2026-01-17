@@ -41,17 +41,46 @@ import Layout from '../layouts/Layout.astro';
       </div>
     </section>
 
-    <!-- Screenshots/Video Section -->
-    <section class="py-16 px-6 bg-card">
-      <div class="max-w-5xl mx-auto">
-        <div class="aspect-video bg-border/30 rounded-2xl flex items-center justify-center overflow-hidden">
-          <!-- Placeholder for screenshots or video -->
-          <p class="text-muted">Screenshots coming soon</p>
-          <!-- Uncomment when you have a video:
-          <video autoplay muted loop playsinline class="w-full h-full object-cover rounded-2xl">
-            <source src="/demo.mp4" type="video/mp4" />
-          </video>
-          -->
+    <!-- Screenshots Section -->
+    <section class="py-16 px-6 bg-card overflow-hidden">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex gap-4 md:gap-6 justify-center items-end">
+          <div class="flex-shrink-0 w-[140px] sm:w-[180px] md:w-[220px] transform -rotate-2 hover:rotate-0 transition-transform duration-300">
+            <picture>
+              <source srcset="/screenshots-app/full/room-grid.webp" type="image/webp" />
+              <img
+                src="/screenshots-app/full/room-grid.jpg"
+                alt="Room grid overview"
+                class="w-full rounded-2xl shadow-warm-lg border border-border/50"
+                loading="lazy"
+              />
+            </picture>
+            <p class="text-xs text-muted text-center mt-3">Room Overview</p>
+          </div>
+          <div class="flex-shrink-0 w-[160px] sm:w-[200px] md:w-[260px] transform scale-105 z-10">
+            <picture>
+              <source srcset="/screenshots-app/full/kitchen-expanded.webp" type="image/webp" />
+              <img
+                src="/screenshots-app/full/kitchen-expanded.jpg"
+                alt="Expanded room with device controls"
+                class="w-full rounded-2xl shadow-warm-lg border border-border/50"
+                loading="lazy"
+              />
+            </picture>
+            <p class="text-xs text-muted text-center mt-3">Device Controls</p>
+          </div>
+          <div class="flex-shrink-0 w-[140px] sm:w-[180px] md:w-[220px] transform rotate-2 hover:rotate-0 transition-transform duration-300">
+            <picture>
+              <source srcset="/screenshots-app/full/device-editor.webp" type="image/webp" />
+              <img
+                src="/screenshots-app/full/device-editor.jpg"
+                alt="Device editor"
+                class="w-full rounded-2xl shadow-warm-lg border border-border/50"
+                loading="lazy"
+              />
+            </picture>
+            <p class="text-xs text-muted text-center mt-3">In-Place Editing</p>
+          </div>
         </div>
       </div>
     </section>
