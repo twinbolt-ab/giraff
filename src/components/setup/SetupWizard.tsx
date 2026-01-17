@@ -618,14 +618,14 @@ export function SetupWizard() {
                   <div className="w-10 h-10 bg-accent/15 rounded-lg flex items-center justify-center flex-shrink-0">
                     <LogIn className="w-5 h-5 text-accent" />
                   </div>
-                  <div className="text-left flex-1">
-                    <div className="font-medium text-foreground flex items-center gap-2">
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="font-medium text-foreground">
                       {t.setup.authMethod?.oauth || 'Login with Home Assistant'}
                     </div>
                     <p className="text-sm text-muted mt-1">
                       {t.setup.authMethod?.oauthHint || 'Use your existing Home Assistant account'}
                     </p>
-                    <span className="block w-fit text-xs bg-accent/20 text-accent px-2 py-0.5 rounded-full mt-2 font-medium">
+                    <span className="inline-block text-xs text-accent font-medium mt-2">
                       {t.setup.authMethod?.recommended || 'Recommended'}
                     </span>
                   </div>
