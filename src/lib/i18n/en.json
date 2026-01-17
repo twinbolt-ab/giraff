@@ -13,7 +13,9 @@
     "welcome": {
       "title": "Welcome to Stuga",
       "subtitle": "A beautiful dashboard for Home Assistant",
-      "getStarted": "Get Started"
+      "getStarted": "Get Started",
+      "tryDemo": "Try Demo",
+      "tryDemoHint": "Explore with sample data"
     },
     "url": {
       "title": "Connect to Home Assistant",
@@ -323,5 +325,9 @@
     "saveFailed": "Failed to save changes",
     "deleteFailed": "Failed to delete",
     "updateFailed": "Failed to update"
+  },
+  "demo": {
+    "banner": "You're exploring with sample data",
+    "connect": "Connect to Home Assistant"
   }
 }

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { saveCredentials } from '@/lib/config'
 import { t } from '@/lib/i18n'
+import { useDevMode } from '@/lib/hooks/useDevMode'
 import {
   storePendingOAuth,
   storeOAuthCredentials,
@@ -57,6 +58,7 @@ const COMMON_URLS = [
 
 export function SetupWizard() {
   const navigate = useNavigate()
+  const { enableDevMode, setMockScenario } = useDevMode()
   const [step, setStep] = useState<Step>('welcome')
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
@@ -65,6 +67,13 @@ export function SetupWizard() {
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([])
   const [isProbing, setIsProbing] = useState(false)
   const hasProbed = useRef(false)
+
+  // Start demo mode with sample data
+  const startDemo = useCallback(() => {
+    enableDevMode()
+    setMockScenario('apartment')
+    navigate('/')
+  }, [enableDevMode, setMockScenario, navigate])
 
   // Test WebSocket connection to HA (with shorter timeout for probing)
   const testConnection = useCallback(
@@ -442,6 +451,13 @@ export function SetupWizard() {
               >
                 {t.setup.welcome.getStarted}
                 <ArrowRight className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={startDemo}
+                className="mt-6 text-sm text-muted hover:text-accent transition-colors underline underline-offset-2"
+              >
+                {t.setup.welcome.tryDemo}
               </button>
             </motion.div>
           )}

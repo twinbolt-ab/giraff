@@ -3,6 +3,7 @@ import { AnimatePresence } from 'framer-motion'
 import { Header } from '@/components/layout/Header'
 import { EditModeHeader } from './EditModeHeader'
 import { ConnectionBanner } from './ConnectionBanner'
+import { DemoBanner } from './DemoBanner'
 import { RoomsGrid } from './RoomsGrid'
 import { FloorSwipeContainer } from './FloorSwipeContainer'
 import { RoomEditModal } from './RoomEditModal'
@@ -33,7 +34,7 @@ function DashboardContent() {
   const { isEntityVisible } = useEnabledDomains()
   const { showScenes } = useSettings()
   const { setAreaOrder } = useRoomOrder()
-  const { activeMockScenario } = useDevMode()
+  const { activeMockScenario, isDevMode } = useDevMode()
 
   // Edit mode from context
   const {
@@ -283,6 +284,9 @@ function DashboardContent() {
 
   return (
     <div className="min-h-screen min-h-[100dvh] bg-background pt-safe pb-nav">
+      {/* Demo mode banner */}
+      <DemoBanner isVisible={isDevMode && activeMockScenario !== 'none'} />
+
       {/* Connection status banner */}
       <ConnectionBanner isConnected={isConnected} hasReceivedData={hasReceivedData} />
 
