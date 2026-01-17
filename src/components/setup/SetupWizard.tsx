@@ -38,7 +38,9 @@ interface OAuth2Response {
 }
 import { logger } from '@/lib/logger'
 
-type Step = 'welcome' | 'url' | 'auth-method' | 'token' | 'complete'
+type Step = 'welcome' | 'connect' | 'complete'
+
+type AuthMethod = 'oauth' | 'token'
 
 type UrlStatus = 'idle' | 'checking' | 'success' | 'failed'
 
@@ -62,10 +64,12 @@ export function SetupWizard() {
   const [step, setStep] = useState<Step>('welcome')
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('oauth')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([])
   const [isProbing, setIsProbing] = useState(false)
+  const [urlVerified, setUrlVerified] = useState(false)
   const hasProbed = useRef(false)
 
   // Start demo mode with sample data
@@ -182,19 +186,17 @@ export function SetupWizard() {
     }
   }, [testConnection, url])
 
-  // Start probing when entering URL step
+  // Start probing when entering connect step
   useEffect(() => {
-    if (step === 'url') {
+    if (step === 'connect') {
       void probeUrls()
     }
   }, [step, probeUrls])
 
-  const handleUrlSubmit = async () => {
-    setIsLoading(true)
-    setError(null)
-
+  // Verify the URL is reachable (called on blur or when user clicks connect)
+  const verifyUrl = useCallback(async (urlToVerify: string): Promise<boolean> => {
     // Normalize URL
-    let normalizedUrl = url.trim()
+    let normalizedUrl = urlToVerify.trim()
     if (!normalizedUrl.startsWith('http')) {
       normalizedUrl = 'http://' + normalizedUrl
     }
@@ -202,20 +204,41 @@ export function SetupWizard() {
 
     const success = await testConnection(normalizedUrl)
 
-    setIsLoading(false)
-
     if (success) {
       setUrl(normalizedUrl)
-      setStep('auth-method')
+      setUrlVerified(true)
+      setError(null)
+      return true
     } else {
-      setError(t.setup.url.error)
+      setUrlVerified(false)
+      return false
+    }
+  }, [testConnection])
+
+  // Handle connect button click
+  const handleConnect = async () => {
+    setIsLoading(true)
+    setError(null)
+
+    // First verify URL if not already verified
+    if (!urlVerified) {
+      const urlValid = await verifyUrl(url)
+      if (!urlValid) {
+        setError(t.setup.url.error)
+        setIsLoading(false)
+        return
+      }
+    }
+
+    // Now authenticate based on selected method
+    if (authMethod === 'oauth') {
+      await handleOAuthLogin()
+    } else {
+      await handleTokenSubmit()
     }
   }
 
   const handleOAuthLogin = async () => {
-    setIsLoading(true)
-    setError(null)
-
     try {
       if (isNativeApp()) {
         // On native, use OAuth2Client plugin which handles the browser + deep link
@@ -391,9 +414,6 @@ export function SetupWizard() {
   }
 
   const handleTokenSubmit = async () => {
-    setIsLoading(true)
-    setError(null)
-
     const success = await testConnection(url, token.trim())
 
     setIsLoading(false)
@@ -445,7 +465,7 @@ export function SetupWizard() {
 
               <button
                 onClick={() => {
-                  setStep('url')
+                  setStep('connect')
                 }}
                 className="w-full py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback"
               >
@@ -462,10 +482,10 @@ export function SetupWizard() {
             </motion.div>
           )}
 
-          {/* URL Step */}
-          {step === 'url' && (
+          {/* Connect Step - Combined URL + Auth Method */}
+          {step === 'connect' && (
             <motion.div
-              key="url"
+              key="connect"
               variants={slideVariants}
               initial="enter"
               animate="center"
@@ -475,80 +495,211 @@ export function SetupWizard() {
               <h2 className="text-2xl font-bold text-foreground mb-2">{t.setup.url.title}</h2>
               <p className="text-muted mb-6">{t.setup.url.hint}</p>
 
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="ha-url"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t.setup.url.label}
-                  </label>
-                  <input
-                    id="ha-url"
-                    type="url"
-                    value={url}
-                    onChange={(e) => {
-                      setUrl(e.target.value)
-                      setError(null)
-                    }}
-                    placeholder={t.setup.url.placeholder}
-                    className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
-                    autoFocus
-                    autoComplete="url"
-                  />
+              <div className="space-y-6">
+                {/* URL Input */}
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="ha-url"
+                      className="block text-sm font-medium text-foreground mb-2"
+                    >
+                      {t.setup.url.label}
+                    </label>
+                    <input
+                      id="ha-url"
+                      type="url"
+                      value={url}
+                      onChange={(e) => {
+                        setUrl(e.target.value)
+                        setUrlVerified(false)
+                        setError(null)
+                      }}
+                      onBlur={() => {
+                        if (url.trim()) {
+                          void verifyUrl(url)
+                        }
+                      }}
+                      placeholder={t.setup.url.placeholder}
+                      className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+                      autoFocus
+                      autoComplete="url"
+                    />
+                  </div>
+
+                  {/* URL Suggestions */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                      {isProbing ? t.setup.url.scanning : t.setup.url.commonUrls}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {suggestions.map((suggestion) => (
+                        <button
+                          key={suggestion.url}
+                          onClick={() => {
+                            setUrl(suggestion.url)
+                            if (suggestion.status === 'success') {
+                              setUrlVerified(true)
+                            }
+                            setError(null)
+                          }}
+                          disabled={suggestion.status === 'checking'}
+                          className={`
+                            flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all
+                            ${
+                              url === suggestion.url
+                                ? 'bg-accent/20 ring-2 ring-accent'
+                                : suggestion.status === 'success'
+                                  ? 'bg-green-500/10 hover:bg-green-500/20 ring-1 ring-green-500/30'
+                                  : suggestion.status === 'failed'
+                                    ? 'bg-border/30 text-muted'
+                                    : 'bg-border/50'
+                            }
+                          `}
+                        >
+                          {/* Status indicator */}
+                          <div className="flex-shrink-0">
+                            {suggestion.status === 'checking' ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-muted" />
+                            ) : suggestion.status === 'success' ? (
+                              <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 text-white" />
+                              </div>
+                            ) : suggestion.status === 'failed' ? (
+                              <div className="w-4 h-4 rounded-full bg-border flex items-center justify-center">
+                                <X className="w-2.5 h-2.5 text-muted" />
+                              </div>
+                            ) : (
+                              <Wifi className="w-4 h-4 text-muted" />
+                            )}
+                          </div>
+                          <span
+                            className={`truncate ${suggestion.status === 'success' ? 'text-foreground font-medium' : ''}`}
+                          >
+                            {suggestion.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* URL Suggestions */}
-                <div className="space-y-2">
+                {/* Auth Method Selection */}
+                <div className="space-y-3">
                   <p className="text-xs font-medium text-muted uppercase tracking-wide">
-                    {isProbing ? t.setup.url.scanning : t.setup.url.commonUrls}
+                    {t.setup.authMethod?.title || 'Login method'}
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {suggestions.map((suggestion) => (
-                      <button
-                        key={suggestion.url}
-                        onClick={() => {
-                          setUrl(suggestion.url)
-                          setError(null)
-                        }}
-                        disabled={suggestion.status === 'checking'}
-                        className={`
-                          flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm transition-all
-                          ${
-                            url === suggestion.url
-                              ? 'bg-accent/20 ring-2 ring-accent'
-                              : suggestion.status === 'success'
-                                ? 'bg-green-500/10 hover:bg-green-500/20 ring-1 ring-green-500/30'
-                                : suggestion.status === 'failed'
-                                  ? 'bg-border/30 text-muted'
-                                  : 'bg-border/50'
-                          }
-                        `}
-                      >
-                        {/* Status indicator */}
-                        <div className="flex-shrink-0">
-                          {suggestion.status === 'checking' ? (
-                            <Loader2 className="w-4 h-4 animate-spin text-muted" />
-                          ) : suggestion.status === 'success' ? (
-                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                              <Check className="w-2.5 h-2.5 text-white" />
-                            </div>
-                          ) : suggestion.status === 'failed' ? (
-                            <div className="w-4 h-4 rounded-full bg-border flex items-center justify-center">
-                              <X className="w-2.5 h-2.5 text-muted" />
-                            </div>
-                          ) : (
-                            <Wifi className="w-4 h-4 text-muted" />
-                          )}
-                        </div>
-                        <span
-                          className={`truncate ${suggestion.status === 'success' ? 'text-foreground font-medium' : ''}`}
-                        >
-                          {suggestion.label}
+
+                  {/* OAuth Option */}
+                  <button
+                    onClick={() => setAuthMethod('oauth')}
+                    disabled={isLoading}
+                    className={`w-full p-4 bg-card rounded-xl flex items-start gap-4 transition-colors touch-feedback disabled:opacity-50 ${
+                      authMethod === 'oauth'
+                        ? 'border-2 border-accent'
+                        : 'border border-border hover:bg-border/30'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        authMethod === 'oauth' ? 'bg-accent/15' : 'bg-border/50'
+                      }`}
+                    >
+                      <LogIn
+                        className={`w-5 h-5 ${authMethod === 'oauth' ? 'text-accent' : 'text-muted'}`}
+                      />
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      <div className="font-medium text-foreground flex items-center gap-2">
+                        {t.setup.authMethod?.oauth || 'Login with Home Assistant'}
+                        <span className="text-xs text-accent font-medium">
+                          {t.setup.authMethod?.recommended || 'Recommended'}
                         </span>
-                      </button>
-                    ))}
-                  </div>
+                      </div>
+                      <p className="text-sm text-muted mt-1">
+                        {t.setup.authMethod?.oauthHint || 'Use your existing Home Assistant account'}
+                      </p>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        authMethod === 'oauth' ? 'border-accent bg-accent' : 'border-border'
+                      }`}
+                    >
+                      {authMethod === 'oauth' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                  </button>
+
+                  {/* Token Option */}
+                  <button
+                    onClick={() => setAuthMethod('token')}
+                    disabled={isLoading}
+                    className={`w-full p-4 bg-card rounded-xl flex items-start gap-4 transition-colors touch-feedback disabled:opacity-50 ${
+                      authMethod === 'token'
+                        ? 'border-2 border-accent'
+                        : 'border border-border hover:bg-border/30'
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        authMethod === 'token' ? 'bg-accent/15' : 'bg-border/50'
+                      }`}
+                    >
+                      <Key
+                        className={`w-5 h-5 ${authMethod === 'token' ? 'text-accent' : 'text-muted'}`}
+                      />
+                    </div>
+                    <div className="text-left flex-1">
+                      <div className="font-medium text-foreground">
+                        {t.setup.authMethod?.token || 'Use access token'}
+                      </div>
+                      <p className="text-sm text-muted mt-1">
+                        {t.setup.authMethod?.tokenHint || 'Enter a long-lived access token manually'}
+                      </p>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                        authMethod === 'token' ? 'border-accent bg-accent' : 'border-border'
+                      }`}
+                    >
+                      {authMethod === 'token' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                  </button>
+
+                  {/* Token Input - shown when token auth is selected */}
+                  {authMethod === 'token' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pt-2 space-y-3">
+                        <p className="text-sm text-muted">
+                          <a
+                            href={url ? `${url}/profile/security` : '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-accent hover:underline inline-flex items-center gap-1"
+                          >
+                            {t.setup.token.goToProfile}
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>{' '}
+                          {t.setup.token.hint}
+                        </p>
+                        <textarea
+                          id="ha-token"
+                          value={token}
+                          onChange={(e) => {
+                            setToken(e.target.value)
+                            setError(null)
+                          }}
+                          placeholder={t.setup.token.placeholder}
+                          rows={3}
+                          className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors resize-none font-mono text-sm"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
 
                 {error && (
@@ -558,6 +709,7 @@ export function SetupWizard() {
                   </div>
                 )}
 
+                {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => {
@@ -570,193 +722,14 @@ export function SetupWizard() {
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <button
-                    onClick={handleUrlSubmit}
-                    disabled={!url.trim() || isLoading}
+                    onClick={handleConnect}
+                    disabled={!url.trim() || (authMethod === 'token' && !token.trim()) || isLoading}
                     className="flex-1 py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        {t.setup.url.testing}
-                      </>
-                    ) : (
-                      <>
-                        {t.setup.url.testConnection}
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Auth Method Step */}
-          {step === 'auth-method' && (
-            <motion.div
-              key="auth-method"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.2 }}
-            >
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                {t.setup.authMethod?.title || 'Choose login method'}
-              </h2>
-              <p className="text-muted mb-6">
-                {t.setup.authMethod?.subtitle || 'How would you like to authenticate?'}
-              </p>
-
-              <div className="space-y-3">
-                {/* OAuth Login - Recommended */}
-                <button
-                  onClick={handleOAuthLogin}
-                  disabled={isLoading}
-                  className="w-full p-4 bg-card border-2 border-accent rounded-xl flex items-start gap-4 hover:bg-accent/5 transition-colors touch-feedback disabled:opacity-50"
-                >
-                  <div className="w-10 h-10 bg-accent/15 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <LogIn className="w-5 h-5 text-accent" />
-                  </div>
-                  <div className="text-left flex-1 min-w-0">
-                    <div className="font-medium text-foreground">
-                      {t.setup.authMethod?.oauth || 'Login with Home Assistant'}
-                    </div>
-                    <p className="text-sm text-muted mt-1">
-                      {t.setup.authMethod?.oauthHint || 'Use your existing Home Assistant account'}
-                    </p>
-                    <span className="inline-block text-xs text-accent font-medium mt-2">
-                      {t.setup.authMethod?.recommended || 'Recommended'}
-                    </span>
-                  </div>
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 animate-spin text-accent flex-shrink-0" />
-                  ) : (
-                    <ArrowRight className="w-5 h-5 text-accent flex-shrink-0" />
-                  )}
-                </button>
-
-                {/* Manual Token - Alternative */}
-                <button
-                  onClick={() => {
-                    setStep('token')
-                  }}
-                  disabled={isLoading}
-                  className="w-full p-4 bg-card border border-border rounded-xl flex items-start gap-4 hover:bg-border/30 transition-colors touch-feedback disabled:opacity-50"
-                >
-                  <div className="w-10 h-10 bg-border/50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Key className="w-5 h-5 text-muted" />
-                  </div>
-                  <div className="text-left flex-1">
-                    <div className="font-medium text-foreground">
-                      {t.setup.authMethod?.token || 'Use access token'}
-                    </div>
-                    <p className="text-sm text-muted mt-1">
-                      {t.setup.authMethod?.tokenHint || 'Enter a long-lived access token manually'}
-                    </p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted flex-shrink-0" />
-                </button>
-
-                {error && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm mt-2">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <button
-                  onClick={() => {
-                    setStep('url')
-                  }}
-                  disabled={isLoading}
-                  className="mt-4 text-sm text-muted hover:text-foreground transition-colors"
-                >
-                  <span className="flex items-center gap-1">
-                    <ArrowLeft className="w-4 h-4" />
-                    {t.common.back}
-                  </span>
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Token Step */}
-          {step === 'token' && (
-            <motion.div
-              key="token"
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.2 }}
-            >
-              <h2 className="text-2xl font-bold text-foreground mb-2">{t.setup.token.title}</h2>
-              <p className="text-muted mb-4">
-                <a
-                  href={`${url}/profile/security`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent hover:underline inline-flex items-center gap-1"
-                >
-                  {t.setup.token.goToProfile}
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>{' '}
-                {t.setup.token.hint}
-              </p>
-              <p className="text-sm text-muted bg-card border border-border rounded-lg px-3 py-2 mb-6">
-                {t.setup.token.instructions}
-              </p>
-
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="ha-token"
-                    className="block text-sm font-medium text-foreground mb-2"
-                  >
-                    {t.setup.token.label}
-                  </label>
-                  <textarea
-                    id="ha-token"
-                    value={token}
-                    onChange={(e) => {
-                      setToken(e.target.value)
-                      setError(null)
-                    }}
-                    placeholder={t.setup.token.placeholder}
-                    rows={3}
-                    className="w-full px-4 py-3 bg-card border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors resize-none font-mono text-sm"
-                    autoFocus
-                  />
-                </div>
-
-                {error && (
-                  <div className="flex items-center gap-2 text-red-500 text-sm">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setStep('auth-method')
-                    }}
-                    disabled={isLoading}
-                    aria-label={t.common.back}
-                    className="py-4 px-4 bg-card border border-border text-foreground rounded-xl font-medium flex items-center justify-center hover:bg-border/30 transition-colors touch-feedback disabled:opacity-50"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={handleTokenSubmit}
-                    disabled={!token.trim() || isLoading}
-                    className="flex-1 py-4 px-6 bg-accent text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-accent/90 transition-colors touch-feedback disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {t.setup.token.authenticating}
+                        {authMethod === 'oauth' ? t.setup.url.testing : t.setup.token.authenticating}
                       </>
                     ) : (
                       <>
