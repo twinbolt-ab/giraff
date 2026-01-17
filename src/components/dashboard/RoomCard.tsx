@@ -135,27 +135,38 @@ export function RoomCard({
     onLongPress: handleLongPress,
   })
 
-  // Scroll when expanded if card would extend below visible area
+  // Scroll to keep card visible when expanding or collapsing
   useEffect(() => {
-    if (isExpanded && cardRef.current) {
-      const initialRect = cardRef.current.getBoundingClientRect()
-      const initialCardTop = window.scrollY + initialRect.top
+    const card = cardRef.current
+    if (!card) return
 
-      setTimeout(() => {
-        const card = cardRef.current
-        if (!card) return
+    const adjustScroll = () => {
+      const rect = card.getBoundingClientRect()
+      const visibleHeight = window.innerHeight - 80 // Account for bottom nav
+      const cardTop = window.scrollY + rect.top
 
-        const rect = card.getBoundingClientRect()
-        const visibleHeight = window.innerHeight - 80 // Account for bottom nav
-
+      if (isExpanded) {
+        // When expanding, scroll if card would extend below visible area
         if (rect.bottom > visibleHeight) {
           window.scrollTo({
-            top: Math.max(0, initialCardTop - 16),
+            top: Math.max(0, cardTop - 16),
             behavior: 'smooth',
           })
         }
-      }, 300)
+      } else {
+        // When collapsing, scroll if card is above viewport
+        if (rect.top < 80) { // Account for header
+          window.scrollTo({
+            top: Math.max(0, cardTop - 80),
+            behavior: 'smooth',
+          })
+        }
+      }
     }
+
+    // Delay to let animation start
+    const timer = setTimeout(adjustScroll, 50)
+    return () => clearTimeout(timer)
   }, [isExpanded])
 
   // Combined pointer handlers (long-press + brightness gesture)
