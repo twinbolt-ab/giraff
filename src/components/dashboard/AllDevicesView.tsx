@@ -1,10 +1,10 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useRef, useEffect } from 'react'
 import { Layers, EyeOff, Home } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAllEntities, type FilterType } from '@/lib/hooks/useAllEntities'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
-import { SearchInput } from '@/components/ui/SearchInput'
+import { SearchInput, type SearchInputRef } from '@/components/ui/SearchInput'
 import { t } from '@/lib/i18n'
 
 import {
@@ -35,6 +35,36 @@ export function AllDevicesView() {
   // Get edit mode state from context
   const { isAllDevicesEditMode, isSelected, toggleSelection, enterAllDevicesEdit } = useEditMode()
   const isInEditMode = isAllDevicesEditMode
+
+  // Ref for search input to blur on scroll
+  const searchInputRef = useRef<SearchInputRef>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Blur search input when user scrolls or touches outside
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    // Find the scrollable parent (the section element)
+    const scrollContainer = container.closest('section')
+
+    const handleScroll = () => {
+      searchInputRef.current?.blur()
+    }
+
+    // On mobile, touchstart on scroll area should blur
+    const handleTouchMove = () => {
+      searchInputRef.current?.blur()
+    }
+
+    scrollContainer?.addEventListener('scroll', handleScroll, { passive: true })
+    container.addEventListener('touchmove', handleTouchMove, { passive: true })
+
+    return () => {
+      scrollContainer?.removeEventListener('scroll', handleScroll)
+      container.removeEventListener('touchmove', handleTouchMove)
+    }
+  }, [])
 
   // Enter edit mode and select the device (for long-press)
   const handleEnterEditModeWithSelection = useCallback(
@@ -82,22 +112,23 @@ export function AllDevicesView() {
   ]
 
   return (
-    <div className="space-y-4">
-      {/* Sticky header with search and filters */}
-      <div className="sticky -top-4 z-10 -mx-4 px-4 pt-4 pb-3 bg-background/95 backdrop-blur-sm">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-3">
-          <div className="p-3 rounded-xl bg-accent/10">
-            <Layers className="w-6 h-6 text-accent" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">{t.allDevices.title}</h2>
-            <p className="text-sm text-muted">{subtitle}</p>
-          </div>
+    <div ref={containerRef} className="space-y-4">
+      {/* Header - scrolls away */}
+      <div className="flex items-center gap-3">
+        <div className="p-3 rounded-xl bg-accent/10">
+          <Layers className="w-6 h-6 text-accent" />
         </div>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">{t.allDevices.title}</h2>
+          <p className="text-sm text-muted">{subtitle}</p>
+        </div>
+      </div>
 
+      {/* Sticky search and filters */}
+      <div className="sticky top-0 z-10 -mx-4 px-4 pt-2 pb-3 bg-background/95 backdrop-blur-sm">
         {/* Search */}
         <SearchInput
+          ref={searchInputRef}
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder={t.allDevices.searchPlaceholder}

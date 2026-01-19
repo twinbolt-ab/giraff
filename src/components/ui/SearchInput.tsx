@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useImperativeHandle, forwardRef } from 'react'
 import { Search, X } from 'lucide-react'
 
 interface SearchInputProps {
@@ -8,14 +8,21 @@ interface SearchInputProps {
   debounceMs?: number
 }
 
-export function SearchInput({
-  value,
-  onChange,
-  placeholder = 'Search...',
-  debounceMs = 150,
-}: SearchInputProps) {
+export interface SearchInputRef {
+  blur: () => void
+}
+
+export const SearchInput = forwardRef<SearchInputRef, SearchInputProps>(function SearchInput(
+  { value, onChange, placeholder = 'Search...', debounceMs = 150 },
+  ref
+) {
   const [localValue, setLocalValue] = useState(value)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    blur: () => inputRef.current?.blur(),
+  }))
 
   // Sync local value when external value changes
   useEffect(() => {
@@ -50,6 +57,7 @@ export function SearchInput({
     <div className="relative">
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
       <input
+        ref={inputRef}
         type="text"
         value={localValue}
         onChange={(e) => {
@@ -69,4 +77,4 @@ export function SearchInput({
       )}
     </div>
   )
-}
+})
