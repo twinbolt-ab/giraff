@@ -84,12 +84,22 @@ export function RoomCard({
     duration: OPTIMISTIC_DURATION,
   })
 
+  // Brightness change handler that also updates lightsOn state
+  const handleBrightnessChange = useCallback(
+    (brightness: number) => {
+      brightnessState.setOptimistic(brightness)
+      // Also update lightsOn state based on brightness
+      lightsOnState.setOptimistic(brightness > 0)
+    },
+    [brightnessState, lightsOnState]
+  )
+
   // Brightness gesture hook for collapsed card
   const brightnessGesture = useBrightnessGesture({
     lights,
     disabled: isInEditMode || isExpanded || !hasLights,
     currentBrightness: brightnessState.displayValue,
-    onBrightnessChange: brightnessState.setOptimistic,
+    onBrightnessChange: handleBrightnessChange,
     getAverageBrightness,
     getLightBrightnessMap,
     calculateRelativeBrightness,
@@ -101,7 +111,7 @@ export function RoomCard({
     lights,
     disabled: isInEditMode || !isExpanded || !hasLights,
     currentBrightness: brightnessState.displayValue,
-    onBrightnessChange: brightnessState.setOptimistic,
+    onBrightnessChange: handleBrightnessChange,
     getAverageBrightness,
     getLightBrightnessMap,
     calculateRelativeBrightness,
@@ -192,7 +202,9 @@ export function RoomCard({
       if (isInEditMode || isExpanded || !hasControllableDevices) return
 
       haptic.light()
-      const willTurnOn = !hasDevicesOn
+      // Use optimistic display value for toggle direction (important for demo mode)
+      const currentlyOn = lightsOnState.displayValue
+      const willTurnOn = !currentlyOn
       lightsOnState.setOptimistic(willTurnOn)
       brightnessState.setOptimistic(willTurnOn ? 100 : 0)
       toggleRoomLights(lights, switches)
@@ -200,7 +212,6 @@ export function RoomCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       hasControllableDevices,
-      hasDevicesOn,
       isInEditMode,
       isExpanded,
       shouldBlur,

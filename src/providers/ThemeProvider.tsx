@@ -19,8 +19,8 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 function getStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  return (localStorage.getItem('theme') as Theme) || 'dark'
+  if (typeof window === 'undefined') return 'system'
+  return (localStorage.getItem('theme') as Theme) || 'system'
 }
 
 // Subscribe to system theme changes using useSyncExternalStore
@@ -35,7 +35,7 @@ function getSystemThemeSnapshot(): ResolvedTheme {
 }
 
 function getSystemThemeServerSnapshot(): ResolvedTheme {
-  return 'dark' // Default to dark on server
+  return 'dark' // Default to dark on server (no media query access)
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

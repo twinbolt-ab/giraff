@@ -89,11 +89,11 @@
   }
 
   .btn-accent-glow {
-    box-shadow: 0 4px 24px rgba(196, 167, 125, 0.35);
+    box-shadow: 0 4px 16px rgba(196, 167, 125, 0.2);
   }
 
   .dark .btn-accent-glow {
-    box-shadow: 0 4px 24px rgba(212, 184, 150, 0.3);
+    box-shadow: 0 4px 16px rgba(212, 184, 150, 0.15);
   }
 }
 

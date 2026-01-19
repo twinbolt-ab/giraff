@@ -335,13 +335,23 @@ export function SetupWizard() {
   return (
     <div className="flex-1 bg-background flex items-center justify-center p-6 overflow-hidden relative">
       {/* Subtle glow effects */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Primary warm glow - center */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-accent/[0.07] dark:bg-accent/[0.05] blur-[100px]" />
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
+          style={{
+            background: 'rgba(196, 167, 125, 0.12)',
+            filter: 'blur(100px)',
+          }}
+        />
         {/* Secondary subtle glow - bottom right */}
-        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-amber/[0.04] dark:bg-amber/[0.03] blur-[80px] translate-x-1/4 translate-y-1/4" />
-        {/* Tertiary subtle glow - top left */}
-        <div className="absolute top-0 left-0 w-[250px] h-[250px] rounded-full bg-accent/[0.04] dark:bg-accent/[0.03] blur-[60px] -translate-x-1/4 -translate-y-1/4" />
+        <div
+          className="absolute bottom-0 right-0 w-[350px] h-[350px] rounded-full translate-x-1/4 translate-y-1/4"
+          style={{
+            background: 'rgba(212, 165, 116, 0.08)',
+            filter: 'blur(80px)',
+          }}
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10">
