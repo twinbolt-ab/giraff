@@ -88,6 +88,8 @@ export const disconnect = () => {
   conn.disconnect(state)
 }
 export const isConnected = () => conn.isConnected(state)
+export const getUrl = () => state.url
+export const isUsingOAuth = () => state.useOAuth
 export const updateToken = (token: string) => {
   state.token = token
 }

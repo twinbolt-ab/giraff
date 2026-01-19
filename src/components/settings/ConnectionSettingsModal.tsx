@@ -12,15 +12,8 @@ import {
   Key,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { updateUrl, updateToken, clearCredentials } from '@/lib/config'
 import {
-  updateUrl,
-  updateToken,
-  clearCredentials,
-  getAuthMethod,
-  type AuthMethod,
-} from '@/lib/config'
-import {
-  getOAuthCredentials,
   storePendingOAuth,
   isNativeApp,
   getClientId,
@@ -42,8 +35,7 @@ interface ConnectionSettingsModalProps {
 }
 
 export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsModalProps) {
-  const { reconnect, isConnected } = useHAConnection()
-  const [authMethod, setAuthMethod] = useState<AuthMethod | null>(null)
+  const { reconnect, isConnected, url: connectedUrl, isOAuth } = useHAConnection()
   const [url, setUrl] = useState('')
   const [token, setToken] = useState('')
   const [showToken, setShowToken] = useState(false)
@@ -89,58 +81,24 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     }
   }, [isOpen, y])
 
-  // Load current credentials and detect auth method when modal opens
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      const loadCredentials = async () => {
-        try {
-          const method = await getAuthMethod()
-          logger.debug('ConnectionSettings', 'Detected auth method:', method)
-          setAuthMethod(method)
-
-          let loadedUrl = ''
-          let loadedToken = ''
-
-          // Try OAuth credentials first (works on native with secure storage)
-          const oauthCreds = await getOAuthCredentials()
-          if (oauthCreds) {
-            logger.debug('ConnectionSettings', 'Found OAuth credentials, URL:', oauthCreds.ha_url)
-            loadedUrl = oauthCreds.ha_url
-          }
-
-          // Try async storage (Capacitor Preferences on native, localStorage on web)
+      // For token auth, load stored token
+      if (!isOAuth) {
+        const loadToken = async () => {
           const storage = getStorage()
-          const storedUrl = await storage.getItem(STORAGE_KEYS.HA_URL)
           const storedToken = await storage.getItem(STORAGE_KEYS.HA_TOKEN)
-
-          if (storedUrl) {
-            logger.debug('ConnectionSettings', 'Found URL in storage:', storedUrl)
-            if (!loadedUrl) loadedUrl = storedUrl
-          }
-          if (storedToken) {
-            logger.debug('ConnectionSettings', 'Found token in storage')
-            loadedToken = storedToken
-          }
-
-          setUrl(loadedUrl)
-          setToken(loadedToken)
-          logger.debug(
-            'ConnectionSettings',
-            'Final state - URL:',
-            loadedUrl,
-            'Has token:',
-            !!loadedToken
-          )
-        } catch (err) {
-          logger.error('ConnectionSettings', 'Failed to load credentials:', err)
+          if (storedToken) setToken(storedToken)
         }
+        void loadToken()
       }
-      void loadCredentials()
+      setUrl(connectedUrl)
       setError(null)
       setSuccess(false)
       setShowLogoutConfirm(false)
     }
-  }, [isOpen])
+  }, [isOpen, connectedUrl, isOAuth])
 
   // Test connection for token auth
   const testConnection = async (testUrl: string, testToken: string): Promise<boolean> => {
@@ -294,36 +252,27 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
 
   // Auth method icon and label
   const getAuthIcon = () => {
-    switch (authMethod) {
-      case 'oauth':
-        return <LogIn className="w-5 h-5 text-accent" />
-      case 'token':
-      default:
-        return <Key className="w-5 h-5 text-muted" />
+    if (isOAuth) {
+      return <LogIn className="w-5 h-5 text-accent" />
     }
+    return <Key className="w-5 h-5 text-muted" />
   }
 
   const getAuthLabel = () => {
-    switch (authMethod) {
-      case 'oauth':
-        return t.settings.connection.oauth?.label || 'Home Assistant Login'
-      case 'token':
-      default:
-        return t.settings.connection.token?.label || 'Access Token'
+    if (isOAuth) {
+      return t.settings.connection.oauth?.label || 'Home Assistant Login'
     }
+    return t.settings.connection.token?.label || 'Access Token'
   }
 
   const getAuthDescription = () => {
-    switch (authMethod) {
-      case 'oauth':
-        return (
-          t.settings.connection.oauth?.description ||
-          "You're signed in with your Home Assistant account."
-        )
-      case 'token':
-      default:
-        return t.settings.connection.token?.description || 'Using a long-lived access token.'
+    if (isOAuth) {
+      return (
+        t.settings.connection.oauth?.description ||
+        "You're signed in with your Home Assistant account."
+      )
     }
+    return t.settings.connection.token?.description || 'Using a long-lived access token.'
   }
 
   return (
@@ -392,7 +341,11 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                     >
                       {t.settings.connection.urlLabel}
                     </label>
-                    {authMethod === 'token' ? (
+                    {isOAuth ? (
+                      <p className="text-foreground font-mono text-sm break-all">
+                        {connectedUrl || '—'}
+                      </p>
+                    ) : (
                       <input
                         id="connection-url"
                         type="url"
@@ -405,15 +358,11 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                         placeholder="http://homeassistant.local:8123"
                         className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
                       />
-                    ) : (
-                      <p className="text-foreground font-mono text-sm break-all">
-                        {url || '—'}
-                      </p>
                     )}
                   </div>
 
                   {/* Token Field - Only for token auth */}
-                  {authMethod === 'token' && (
+                  {!isOAuth && (
                     <div>
                       <label
                         htmlFor="connection-token"
@@ -463,7 +412,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                   )}
 
                   {/* Action Button - Different for each auth type */}
-                  {authMethod === 'token' && (
+                  {!isOAuth && (
                     <button
                       onClick={handleSave}
                       disabled={!url.trim() || !token.trim() || isLoading}
@@ -485,7 +434,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                     </button>
                   )}
 
-                  {authMethod === 'oauth' && !isConnected && (
+                  {isOAuth && !isConnected && (
                     <button
                       onClick={handleOAuthReauth}
                       disabled={isLoading}

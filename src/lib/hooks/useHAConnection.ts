@@ -184,5 +184,8 @@ export function useHAConnection() {
     getEntitiesByDomain,
     reconnect,
     disconnect,
+    // Connection info (sync access to already-configured values)
+    url: ws.getUrl(),
+    isOAuth: ws.isUsingOAuth(),
   }
 }
