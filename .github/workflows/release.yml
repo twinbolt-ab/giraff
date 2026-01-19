@@ -96,13 +96,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Ruby (for fastlane)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
-          working-directory: android
-
       - name: Install dependencies
         run: npm ci
 
@@ -120,12 +113,18 @@ jobs:
         run: |
           echo "${{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > android/fastlane/play-store-credentials.json
 
+      - name: Setup Ruby (for fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: android
+
       - name: Build and upload to Play Store
         working-directory: android
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          bundle install
           bundle exec fastlane internal
 
       - name: Upload AAB to GitHub Release
