@@ -4,6 +4,7 @@ import type { HAWebSocketState, OptimisticOverride } from './types'
 import { send, getNextMessageId } from './connection'
 import { registerCallback, notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
 import { DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER, OPTIMISTIC_DURATION } from '@/lib/constants'
+import { getDevModeSync } from '@/lib/hooks/useDevMode'
 
 // Timer references for optimistic state cleanup
 const optimisticTimers = new Map<string, NodeJS.Timeout>()
@@ -21,11 +22,15 @@ export function setOptimisticState(
     clearTimeout(existingTimer)
   }
 
+  // In demo mode, use a much longer duration (5 minutes) since no real state will arrive
+  const { isDevMode } = getDevModeSync()
+  const duration = isDevMode ? 300000 : OPTIMISTIC_DURATION
+
   // Set the override
   const override: OptimisticOverride = {
     state: newState,
     brightness,
-    expiresAt: Date.now() + OPTIMISTIC_DURATION,
+    expiresAt: Date.now() + duration,
   }
   state.optimisticOverrides.set(entityId, override)
 
@@ -34,7 +39,7 @@ export function setOptimisticState(
     state.optimisticOverrides.delete(entityId)
     optimisticTimers.delete(entityId)
     notifyMessageHandlers(state)
-  }, OPTIMISTIC_DURATION)
+  }, duration)
   optimisticTimers.set(entityId, timer)
 
   // Notify immediately so UI updates

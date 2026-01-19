@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useDevMode } from './useDevMode'
 
 interface UseOptimisticStateOptions<T> {
   /** The actual value from the server/source */
   actualValue: T
-  /** Duration in ms before optimistic state expires (default: 5000) */
+  /** Duration in ms before optimistic state expires (default: 5000, 5min in demo mode) */
   duration?: number
   /**
    * Custom comparison function for determining if actual matches optimistic.
@@ -44,6 +45,10 @@ export function useOptimisticState<T>({
 }: UseOptimisticStateOptions<T>): UseOptimisticStateReturn<T> {
   const [optimisticValue, setOptimisticValue] = useState<T | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const { isDevMode } = useDevMode()
+
+  // In demo mode, use much longer duration (5 min) since no real state will arrive
+  const effectiveDuration = isDevMode ? 300000 : duration
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -60,9 +65,9 @@ export function useOptimisticState<T>({
       timerRef.current = setTimeout(() => {
         setOptimisticValue(null)
         timerRef.current = null
-      }, duration)
+      }, effectiveDuration)
     },
-    [duration, clearTimer]
+    [effectiveDuration, clearTimer]
   )
 
   const clearOptimistic = useCallback(() => {

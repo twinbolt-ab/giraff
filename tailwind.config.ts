@@ -15,6 +15,7 @@ const config: Config = {
         // Light theme colors
         'warm-white': '#FAFAF9',
         'warm-black': '#0D0D0C',
+        'warm-brown': '#3d2e1f',
         brass: {
           DEFAULT: '#C4A77D',
           hover: '#B8956A',

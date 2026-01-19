@@ -87,6 +87,14 @@
     @apply px-4 py-2 rounded-button font-medium
            transition-colors hover:bg-border/50 active:scale-[0.98];
   }
+
+  .btn-accent-glow {
+    box-shadow: 0 4px 24px rgba(196, 167, 125, 0.35);
+  }
+
+  .dark .btn-accent-glow {
+    box-shadow: 0 4px 24px rgba(212, 184, 150, 0.3);
+  }
 }
 
 /* Touch feedback for mobile */
