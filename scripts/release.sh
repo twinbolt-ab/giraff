@@ -155,6 +155,38 @@ pkg.version = '$NEW_VERSION';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
 
+# Update Android version (not tracked in git, but updated locally for native builds)
+echo -e "${GREEN}Updating Android version...${NC}"
+ANDROID_BUILD_GRADLE="android/app/build.gradle"
+if [[ -f "$ANDROID_BUILD_GRADLE" ]]; then
+  # Extract current versionCode and increment it
+  CURRENT_VERSION_CODE=$(grep -o 'versionCode [0-9]*' "$ANDROID_BUILD_GRADLE" | grep -o '[0-9]*')
+  NEW_VERSION_CODE=$((CURRENT_VERSION_CODE + 1))
+
+  # Update versionCode and versionName
+  sed -i '' "s/versionCode $CURRENT_VERSION_CODE/versionCode $NEW_VERSION_CODE/" "$ANDROID_BUILD_GRADLE"
+  sed -i '' "s/versionName \"[^\"]*\"/versionName \"$NEW_VERSION\"/" "$ANDROID_BUILD_GRADLE"
+  echo "  Android: versionCode $NEW_VERSION_CODE, versionName $NEW_VERSION"
+else
+  echo "  Android: build.gradle not found, skipping"
+fi
+
+# Update iOS version (not tracked in git, but updated locally for native builds)
+echo -e "${GREEN}Updating iOS version...${NC}"
+IOS_PROJECT="ios/App/App.xcodeproj/project.pbxproj"
+if [[ -f "$IOS_PROJECT" ]]; then
+  # Extract current CURRENT_PROJECT_VERSION and increment it
+  CURRENT_BUILD=$(grep -o 'CURRENT_PROJECT_VERSION = [0-9]*' "$IOS_PROJECT" | head -1 | grep -o '[0-9]*')
+  NEW_BUILD=$((CURRENT_BUILD + 1))
+
+  # Update CURRENT_PROJECT_VERSION and MARKETING_VERSION
+  sed -i '' "s/CURRENT_PROJECT_VERSION = $CURRENT_BUILD;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" "$IOS_PROJECT"
+  sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $NEW_VERSION;/g" "$IOS_PROJECT"
+  echo "  iOS: CURRENT_PROJECT_VERSION $NEW_BUILD, MARKETING_VERSION $NEW_VERSION"
+else
+  echo "  iOS: project.pbxproj not found, skipping"
+fi
+
 # Commit with changelog in message body
 # Using a special format that GHA can parse
 git add package.json
