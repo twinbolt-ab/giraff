@@ -5,6 +5,12 @@ interface UseOptimisticStateOptions<T> {
   actualValue: T
   /** Duration in ms before optimistic state expires (default: 5000) */
   duration?: number
+  /**
+   * Custom comparison function for determining if actual matches optimistic.
+   * For numbers: considers values within ±2 as equal (handles rounding from 0-255 conversion)
+   * For other types: uses strict equality
+   */
+  isEqual?: (a: T, b: T) => boolean
 }
 
 interface UseOptimisticStateReturn<T> {
@@ -18,13 +24,23 @@ interface UseOptimisticStateReturn<T> {
   clearOptimistic: () => void
 }
 
+// Default comparison: for numbers, allow ±2 tolerance (handles brightness rounding)
+const defaultIsEqual = <T>(a: T, b: T): boolean => {
+  if (typeof a === 'number' && typeof b === 'number') {
+    return Math.abs(a - b) <= 2
+  }
+  return a === b
+}
+
 /**
  * Hook for managing optimistic UI updates that automatically expire.
  * Useful for showing immediate feedback while waiting for server confirmation.
+ * Automatically clears when the actual value matches the optimistic value.
  */
 export function useOptimisticState<T>({
   actualValue,
   duration = 5000,
+  isEqual = defaultIsEqual,
 }: UseOptimisticStateOptions<T>): UseOptimisticStateReturn<T> {
   const [optimisticValue, setOptimisticValue] = useState<T | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
@@ -53,6 +69,14 @@ export function useOptimisticState<T>({
     clearTimer()
     setOptimisticValue(null)
   }, [clearTimer])
+
+  // Clear optimistic state when actual value matches (real data arrived)
+  useEffect(() => {
+    if (optimisticValue !== null && isEqual(actualValue, optimisticValue)) {
+      clearTimer()
+      setOptimisticValue(null)
+    }
+  }, [actualValue, optimisticValue, isEqual, clearTimer])
 
   // Cleanup on unmount
   useEffect(() => {
