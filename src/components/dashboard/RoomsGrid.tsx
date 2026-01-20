@@ -23,6 +23,8 @@ interface RoomsGridProps {
   orderedRooms?: RoomWithDevices[]
   onReorder?: (rooms: RoomWithDevices[]) => void
   onClickOutside?: () => void
+  /** When true, disables drag-to-reorder in edit mode (items are static) */
+  reorderingDisabled?: boolean
   // Cross-floor drag callbacks
   onDragStart?: (room: RoomWithDevices) => void
   onDragEnd?: (room: RoomWithDevices) => Promise<boolean>
@@ -45,6 +47,7 @@ export function RoomsGrid({
   orderedRooms = [],
   onReorder = noop,
   onClickOutside,
+  reorderingDisabled = false,
   onDragStart,
   onDragEnd,
   onDragPosition,
@@ -113,12 +116,13 @@ export function RoomsGrid({
         items={orderedRooms}
         onReorder={onReorder}
         onClickOutside={onClickOutside}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragPosition={onDragPosition}
-        onEdgeHover={onEdgeHover}
-        externalDragKey={activeDragRoomId}
-        externalDragPosition={activeDragPosition}
+        reorderingDisabled={reorderingDisabled}
+        onDragStart={reorderingDisabled ? undefined : onDragStart}
+        onDragEnd={reorderingDisabled ? undefined : onDragEnd}
+        onDragPosition={reorderingDisabled ? undefined : onDragPosition}
+        onEdgeHover={reorderingDisabled ? undefined : onEdgeHover}
+        externalDragKey={reorderingDisabled ? undefined : activeDragRoomId}
+        externalDragPosition={reorderingDisabled ? undefined : activeDragPosition}
         getKey={(room) => room.id}
         columns={2}
         gap={12}

@@ -11,24 +11,16 @@ import {
   Beaker,
   ChevronDown,
   Palette,
-  Cloud,
-  Loader2,
+  Settings2,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
 import { EditModeInfoModal } from '@/components/settings/EditModeInfoModal'
+import { RoomOrderingDisableDialog } from '@/components/settings/RoomOrderingDisableDialog'
 import { useDevMode } from '@/lib/hooks/useDevMode'
-import {
-  getMetadataStorageMode,
-  setMetadataStorageMode,
-  exportLocalMetadata,
-  setAreaOrder,
-  setAreaTemperatureSensor,
-  setEntityOrder,
-} from '@/lib/metadata'
-import { switchToLocalStorage } from '@/lib/metadata/cleanup'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { clsx } from 'clsx'
 
 interface SettingsMenuProps {
@@ -50,10 +42,11 @@ export function SettingsMenu({
   const [showDomainConfig, setShowDomainConfig] = useState(false)
   const [showDeveloperMenu, setShowDeveloperMenu] = useState(false)
   const [showEditModeInfo, setShowEditModeInfo] = useState(false)
+  const [showRoomOrderingDisable, setShowRoomOrderingDisable] = useState(false)
   const [displayOptionsOpen, setDisplayOptionsOpen] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const { isDevMode, enableDevMode } = useDevMode()
-  const [syncToHA, setSyncToHA] = useState(() => getMetadataStorageMode() === 'ha-labels')
-  const [isMigrating, setIsMigrating] = useState(false)
+  const { roomOrderingEnabled, setRoomOrderingEnabled } = useSettings()
   const y = useMotionValue(0)
   const sheetRef = useRef<HTMLDivElement>(null)
 
@@ -159,36 +152,18 @@ export function SettingsMenu({
     setTheme(isDark ? 'light' : 'dark')
   }
 
-  const handleSyncToggle = async () => {
-    if (isMigrating) return
-
-    setIsMigrating(true)
-    try {
-      if (syncToHA) {
-        // Switching from HA labels to local storage
-        await switchToLocalStorage()
-        setSyncToHA(false)
-      } else {
-        // Switching from local to HA labels - migrate local data to HA
-        const localData = exportLocalMetadata()
-        await setMetadataStorageMode('ha-labels')
-        // Import local data to HA labels
-        for (const [areaId, order] of localData.areaOrders) {
-          await setAreaOrder(areaId, order)
-        }
-        for (const [areaId, sensorId] of localData.areaTempSensors) {
-          await setAreaTemperatureSensor(areaId, sensorId)
-        }
-        for (const [entityId, order] of localData.entityOrders) {
-          await setEntityOrder(entityId, order)
-        }
-        setSyncToHA(true)
-      }
-    } catch (error) {
-      console.error('Failed to toggle sync mode:', error)
-    } finally {
-      setIsMigrating(false)
+  const handleRoomOrderingToggle = () => {
+    if (roomOrderingEnabled) {
+      // Show confirmation dialog before disabling
+      setShowRoomOrderingDisable(true)
+    } else {
+      // Enable immediately
+      setRoomOrderingEnabled(true)
     }
+  }
+
+  const handleRoomOrderingDisabled = () => {
+    setShowRoomOrderingDisable(false)
   }
 
   return (
@@ -315,42 +290,6 @@ export function SettingsMenu({
                             <p className="text-xs text-muted">{t.settings.domains.description}</p>
                           </div>
                         </button>
-
-                        {/* Sync to Home Assistant */}
-                        <button
-                          onClick={handleSyncToggle}
-                          disabled={isMigrating}
-                          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-border/30 transition-colors touch-feedback disabled:opacity-50"
-                        >
-                          <div className="p-2 rounded-lg bg-border/50">
-                            {isMigrating ? (
-                              <Loader2 className="w-4 h-4 text-foreground animate-spin" />
-                            ) : (
-                              <Cloud className="w-4 h-4 text-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 text-left">
-                            <p className="text-sm font-medium text-foreground">
-                              {t.setup.syncToHA?.title || 'Sync to Home Assistant'}
-                            </p>
-                            <p className="text-xs text-muted">
-                              {t.setup.syncToHA?.description ||
-                                'Sync room order across devices via HA labels'}
-                            </p>
-                          </div>
-                          <div
-                            className={clsx(
-                              'px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
-                              syncToHA ? 'bg-accent/15 text-accent' : 'bg-border/50 text-muted'
-                            )}
-                          >
-                            {isMigrating
-                              ? t.setup.syncToHA?.enabling || 'Migrating...'
-                              : syncToHA
-                                ? t.setup.syncToHA?.enabled || 'Syncing'
-                                : t.setup.syncToHA?.disabled || 'Off'}
-                          </div>
-                        </button>
                       </div>
                     </motion.div>
                   )}
@@ -423,6 +362,79 @@ export function SettingsMenu({
                 </div>
               </button>
 
+              {/* Advanced - Collapsible Section */}
+              <div>
+                <button
+                  onClick={() => {
+                    setAdvancedOpen(!advancedOpen)
+                  }}
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+                >
+                  <div className="p-2.5 rounded-xl bg-border/50">
+                    <Settings2 className="w-5 h-5 text-foreground" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-foreground">
+                      {t.settings.advanced?.title || 'Advanced'}
+                    </p>
+                    <p className="text-sm text-muted">
+                      {t.settings.advanced?.description || 'Room ordering settings'}
+                    </p>
+                  </div>
+                  <motion.div
+                    animate={{ rotate: advancedOpen ? 180 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <ChevronDown className="w-5 h-5 text-muted" />
+                  </motion.div>
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {advancedOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="pl-4 border-l-2 border-border/50 ml-7 space-y-1">
+                        {/* Room Ordering Toggle */}
+                        <button
+                          onClick={handleRoomOrderingToggle}
+                          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+                        >
+                          <div className="p-2 rounded-lg bg-border/50">
+                            <Layers className="w-4 h-4 text-foreground" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-medium text-foreground">
+                              {t.settings.advanced?.roomOrdering?.title || 'Room ordering'}
+                            </p>
+                            <p className="text-xs text-muted">
+                              {t.settings.advanced?.roomOrdering?.description ||
+                                'Hold and drag to reorder rooms'}
+                            </p>
+                          </div>
+                          <div
+                            className={clsx(
+                              'px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
+                              roomOrderingEnabled
+                                ? 'bg-accent/15 text-accent'
+                                : 'bg-border/50 text-muted'
+                            )}
+                          >
+                            {roomOrderingEnabled
+                              ? t.settings.advanced?.roomOrdering?.enabled || 'Enabled'
+                              : t.settings.advanced?.roomOrdering?.disabled || 'Disabled'}
+                          </div>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Bottom padding for safe area */}
               <div className="h-4" />
             </div>
@@ -459,6 +471,15 @@ export function SettingsMenu({
               setShowEditModeInfo(false)
             }}
             onConfirm={handleEditConfirm}
+          />
+
+          {/* Room Ordering Disable Dialog */}
+          <RoomOrderingDisableDialog
+            isOpen={showRoomOrderingDisable}
+            onClose={() => {
+              setShowRoomOrderingDisable(false)
+            }}
+            onDisabled={handleRoomOrderingDisabled}
           />
 
           {/* Dev Mode Activation Toast */}

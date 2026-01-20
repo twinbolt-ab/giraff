@@ -4,10 +4,12 @@ const SETTINGS_KEY = 'stuga-settings'
 
 interface Settings {
   groupByFloors: boolean
+  roomOrderingEnabled: boolean
 }
 
 const defaultSettings: Settings = {
   groupByFloors: true,
+  roomOrderingEnabled: true,
 }
 
 // Shared settings store
@@ -88,9 +90,15 @@ export function useSettings() {
     updateSettingsStore({ groupByFloors: value })
   }, [])
 
+  const setRoomOrderingEnabled = useCallback((value: boolean) => {
+    updateSettingsStore({ roomOrderingEnabled: value })
+  }, [])
+
   return {
     groupByFloors: settings.groupByFloors,
     setGroupByFloors,
+    roomOrderingEnabled: settings.roomOrderingEnabled,
+    setRoomOrderingEnabled,
     isLoaded: initialized,
   }
 }

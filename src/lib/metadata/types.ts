@@ -1,8 +1,7 @@
 /**
  * Metadata storage abstraction types
  *
- * Allows Stuga to store room ordering and preferences either in
- * Home Assistant labels or locally on the device.
+ * Stuga stores room ordering and preferences in Home Assistant labels.
  */
 
 export interface MetadataBackend {
@@ -18,5 +17,3 @@ export interface MetadataBackend {
   getEntityOrder(entityId: string): number
   setEntityOrder(entityId: string, order: number): Promise<void>
 }
-
-export type MetadataStorageMode = 'ha-labels' | 'local-storage'

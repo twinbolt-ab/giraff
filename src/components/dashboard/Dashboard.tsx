@@ -18,6 +18,7 @@ import { useRooms } from '@/lib/hooks/useRooms'
 import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDevMode } from '@/lib/hooks/useDevMode'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { useFloorNavigation } from '@/lib/hooks/useFloorNavigation'
 import { useModalState } from '@/lib/hooks/useModalState'
 import { useCrossFloorDrag } from '@/lib/hooks/useCrossFloorDrag'
@@ -32,6 +33,7 @@ function DashboardContent() {
   const { isEntityVisible } = useEnabledDomains()
   const { setAreaOrder } = useRoomOrder()
   const { activeMockScenario, isDevMode } = useDevMode()
+  const { roomOrderingEnabled } = useSettings()
 
   // Edit mode from context
   const {
@@ -333,6 +335,7 @@ function DashboardContent() {
                 orderedRooms={orderedRooms}
                 onReorder={reorderRooms}
                 onClickOutside={handleExitEditMode}
+                reorderingDisabled={!roomOrderingEnabled}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 onDragPosition={handleDragMove}

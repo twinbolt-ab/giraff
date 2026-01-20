@@ -307,9 +307,10 @@ export function BottomNav({
               </Reorder.Group>
             ) : isRoomEditMode ? (
               // Room edit mode - floors show drag targets for cross-floor moves
+              // py-1 -my-1 creates space for ring border and scale without changing layout
               <div
                 ref={floorTabsContainerRef}
-                className="flex items-center overflow-x-auto hide-scrollbar"
+                className="flex items-center overflow-x-auto hide-scrollbar py-1 -my-1"
               >
                 {displayFloors.map((floor) => {
                   const isActive = selectedFloorId === floor.floor_id
