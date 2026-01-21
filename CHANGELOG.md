@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.5] - 2026-01-21
+
+**Improvements**
+- Simplified the login method selection during setup
+
+**Bug Fixes**
+- Fixed missing text for switching between login methods
+
+
 ## [0.3.4] - 2026-01-21
 
 **Improvements**
