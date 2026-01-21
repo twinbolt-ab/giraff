@@ -163,8 +163,11 @@ export function SetupWizard() {
     []
   )
 
-  // Probe common URLs when entering URL step
+  // Probe common URLs when entering URL step (only on native apps - local URLs don't work on web)
   const probeUrls = useCallback(async () => {
+    // Skip probing on web - local addresses won't work due to mixed content/CORS
+    if (!isNativeApp()) return
+
     if (hasProbed.current) return
     hasProbed.current = true
     setIsProbing(true)
@@ -439,7 +442,8 @@ export function SetupWizard() {
                     />
                   </div>
 
-                  {/* URL Suggestions */}
+                  {/* URL Suggestions - only shown on native apps (local URLs don't work on web) */}
+                  {isNativeApp() && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted uppercase tracking-wide">
                       {isProbing ? t.setup.url.scanning : t.setup.url.commonUrls}
@@ -494,6 +498,7 @@ export function SetupWizard() {
                       ))}
                     </div>
                   </div>
+                  )}
                 </div>
 
                 {/* Token Input - shown when token auth is selected */}
