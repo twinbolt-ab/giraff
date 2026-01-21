@@ -3,9 +3,17 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Stuga - An opinionated, beautiful app for Home Assistant">
+  <!-- Header -->
+  <header class="px-4 py-4">
+    <div class="flex items-center justify-center gap-2">
+      <img src="/icon.png" alt="Stuga" class="w-8 h-8 rounded-lg shadow-sm" />
+      <span class="font-bold text-lg">Stuga</span>
+    </div>
+  </header>
+
   <main>
     <!-- Demo First - Let the product speak -->
-    <section class="min-h-[70vh] flex flex-col items-center justify-center px-4 pt-12 pb-8">
+    <section class="min-h-[60vh] flex flex-col items-center justify-center px-4 pb-8">
       <div class="w-full max-w-[280px] sm:max-w-[300px]">
         <div class="relative bg-[#1a1a18] rounded-[2.5rem] p-2 shadow-2xl border border-border/30">
           <div class="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 bg-[#1a1a18] rounded-b-xl z-10"></div>
@@ -28,7 +36,7 @@ import Layout from '../layouts/Layout.astro';
 
     <!-- The Pitch -->
     <section class="px-6 pb-16">
-      <div class="max-w-lg mx-auto">
+      <div class="max-w-lg mx-auto text-center">
         <h1 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
           An opinionated, beautiful app for Home Assistant.
         </h1>

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, RefObject } from 'react'
 import { haptic } from '@/lib/haptics'
 
-const LONG_PRESS_DURATION = 400
+const LONG_PRESS_DURATION = 150
 const MOVE_THRESHOLD = 10
 const EDGE_THRESHOLD = 60
 

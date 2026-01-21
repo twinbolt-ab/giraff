@@ -327,7 +327,7 @@ export function BottomNav({
                       }}
                       className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] flex-shrink-0 transition-all rounded-xl ${
                         isDragTarget
-                          ? 'text-accent bg-accent/20 scale-110 ring-2 ring-accent'
+                          ? 'text-accent bg-accent/30 scale-105'
                           : isActive
                             ? 'text-accent'
                             : 'text-muted'
@@ -387,7 +387,7 @@ export function BottomNav({
                 }}
                 className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] flex-shrink-0 transition-all cursor-pointer rounded-xl ${
                   isRoomEditMode && hoveredFloorId === null
-                    ? 'text-accent bg-accent/20 scale-110 ring-2 ring-accent'
+                    ? 'text-accent bg-accent/30 scale-105'
                     : selectedFloorId === null
                       ? 'text-accent'
                       : 'text-muted hover:text-foreground'
