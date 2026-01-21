@@ -1,0 +1,16 @@
+<!--
+  This hidden form allows Netlify to detect the form at build time.
+  The actual form is in index.astro but Netlify needs this to register it.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Form Detection</title>
+</head>
+<body>
+  <form name="app-waitlist" netlify netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="email" type="email" />
+  </form>
+</body>
+</html>
