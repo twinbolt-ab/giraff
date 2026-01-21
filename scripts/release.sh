@@ -7,7 +7,7 @@ set -e
 # This script:
 # 1. Determines the next version based on bump type
 # 2. Uses Claude to generate a human-readable changelog
-# 3. Updates package.json version
+# 3. Updates package.json version and CHANGELOG.md
 # 4. Creates a git tag with changelog in message
 # 5. Pushes to GitHub (GHA will create the release)
 
@@ -155,6 +155,32 @@ pkg.version = '$NEW_VERSION';
 fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
 "
 
+# Update CHANGELOG.md
+echo -e "${GREEN}Updating CHANGELOG.md...${NC}"
+CHANGELOG_FILE="CHANGELOG.md"
+RELEASE_DATE=$(date +%Y-%m-%d)
+NEW_ENTRY="## [$NEW_VERSION] - $RELEASE_DATE
+
+$CHANGELOG
+"
+
+if [[ -f "$CHANGELOG_FILE" ]]; then
+  # Prepend new entry after the header (first line)
+  HEADER=$(head -1 "$CHANGELOG_FILE")
+  EXISTING=$(tail -n +2 "$CHANGELOG_FILE")
+  echo "$HEADER" > "$CHANGELOG_FILE"
+  echo "" >> "$CHANGELOG_FILE"
+  echo "$NEW_ENTRY" >> "$CHANGELOG_FILE"
+  echo "$EXISTING" >> "$CHANGELOG_FILE"
+else
+  # Create new changelog file
+  cat > "$CHANGELOG_FILE" << EOF
+# Changelog
+
+$NEW_ENTRY
+EOF
+fi
+
 # Update Android version (not tracked in git, but updated locally for native builds)
 echo -e "${GREEN}Updating Android version...${NC}"
 ANDROID_BUILD_GRADLE="android/app/build.gradle"
@@ -189,7 +215,7 @@ fi
 
 # Commit with changelog in message body
 # Using a special format that GHA can parse
-git add package.json
+git add package.json CHANGELOG.md
 if git diff --cached --quiet; then
   echo -e "${YELLOW}No changes to commit (version files may already be updated)${NC}"
   echo "Proceeding with tag creation..."

@@ -1,0 +1,14 @@
+# Changelog
+
+## [0.3.4] - 2026-01-21
+
+**Improvements**
+- Added multi-room drag selection with visual stacking when selecting multiple rooms
+- Added ghost placeholders showing where rooms will be placed during drag
+- Added ability to drag rooms between floors by holding over a floor tab
+- Added option to disable room ordering in Advanced settings
+- Improved visual consistency of floor tabs in edit mode
+
+**Bug Fixes**
+- Fixed floor edit mode exit causing unexpected page animation
+- Fixed edit mode sometimes opening on the wrong floor
