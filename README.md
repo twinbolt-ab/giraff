@@ -23,6 +23,12 @@ Stuga is what I wanted: a fast, polished app that just works. Open it, log in, d
 
 Built for my family to actually use.
 
+<p align="center">
+  <img src="public/screenshots/room-grid.jpg" alt="Room overview" width="200">
+  <img src="public/screenshots/kitchen-expanded.jpg" alt="Room expanded" width="200">
+  <img src="public/screenshots/device-editor.jpg" alt="Device editor" width="200">
+</p>
+
 ---
 
 ## What it does
@@ -31,8 +37,6 @@ Built for my family to actually use.
 - **In-place editing** — Rename rooms, change icons, reorder things. All saved back to HA.
 - **Mobile-first** — Designed for phones. Works on tablets and web too.
 - **Fast** — WebSocket connection, instant updates
-
-https://github.com/twinbolt-ab/stuga/raw/main/public/stuga-demo.mp4
 
 ---
 
