@@ -496,94 +496,8 @@ export function SetupWizard() {
                   </div>
                 </div>
 
-                {/* Auth Method Selection */}
-                <div className="space-y-3">
-                  <p className="text-xs font-medium text-muted uppercase tracking-wide">
-                    {t.setup.authMethod?.title || 'Login method'}
-                  </p>
-
-                  {/* OAuth Option */}
-                  <button
-                    onClick={() => oauthAvailable && setAuthMethod('oauth')}
-                    disabled={isLoading || !oauthAvailable}
-                    className={`w-full p-4 bg-card rounded-xl flex items-start gap-4 transition-colors touch-feedback disabled:opacity-50 ${
-                      authMethod === 'oauth'
-                        ? 'border-2 border-accent'
-                        : 'border border-border hover:bg-border/30'
-                    } ${!oauthAvailable ? 'cursor-not-allowed' : ''}`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        authMethod === 'oauth' ? 'bg-accent/15' : 'bg-border/50'
-                      }`}
-                    >
-                      <LogIn
-                        className={`w-5 h-5 ${authMethod === 'oauth' ? 'text-accent' : 'text-muted'}`}
-                      />
-                    </div>
-                    <div className="text-left flex-1 min-w-0">
-                      <div className="font-medium text-foreground flex items-center gap-2">
-                        {t.setup.authMethod?.oauth || 'Login with Home Assistant'}
-                        {oauthAvailable && (
-                          <span className="text-xs text-accent font-medium">
-                            {t.setup.authMethod?.recommended || 'Recommended'}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted mt-1">
-                        {!oauthAvailable
-                          ? t.setup.authMethod?.oauthHttpDisabled || 'Requires HTTPS connection'
-                          : t.setup.authMethod?.oauthHint ||
-                            'Use your existing Home Assistant account'}
-                      </p>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                        authMethod === 'oauth' ? 'border-accent bg-accent' : 'border-border'
-                      }`}
-                    >
-                      {authMethod === 'oauth' && <Check className="w-3 h-3 text-white" />}
-                    </div>
-                  </button>
-
-                  {/* Token Option */}
-                  <button
-                    onClick={() => setAuthMethod('token')}
-                    disabled={isLoading}
-                    className={`w-full p-4 bg-card rounded-xl flex items-start gap-4 transition-colors touch-feedback disabled:opacity-50 ${
-                      authMethod === 'token'
-                        ? 'border-2 border-accent'
-                        : 'border border-border hover:bg-border/30'
-                    }`}
-                  >
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        authMethod === 'token' ? 'bg-accent/15' : 'bg-border/50'
-                      }`}
-                    >
-                      <Key
-                        className={`w-5 h-5 ${authMethod === 'token' ? 'text-accent' : 'text-muted'}`}
-                      />
-                    </div>
-                    <div className="text-left flex-1">
-                      <div className="font-medium text-foreground">
-                        {t.setup.authMethod?.token || 'Use access token'}
-                      </div>
-                      <p className="text-sm text-muted mt-1">
-                        {t.setup.authMethod?.tokenHint ||
-                          'Enter a long-lived access token manually'}
-                      </p>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                        authMethod === 'token' ? 'border-accent bg-accent' : 'border-border'
-                      }`}
-                    >
-                      {authMethod === 'token' && <Check className="w-3 h-3 text-white" />}
-                    </div>
-                  </button>
-
-                  {/* Token Input - shown when token auth is selected */}
+                {/* Token Input - shown when token auth is selected */}
+                <AnimatePresence>
                   {authMethod === 'token' && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
@@ -592,7 +506,21 @@ export function SetupWizard() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="pt-2 space-y-3">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-medium text-muted uppercase tracking-wide">
+                            {t.setup.authMethod?.token || 'Access Token'}
+                          </p>
+                          <button
+                            onClick={() => {
+                              setAuthMethod('oauth')
+                              setToken('')
+                            }}
+                            className="text-xs text-accent hover:underline"
+                          >
+                            {t.setup.authMethod?.useOAuthInstead || 'Use login instead'}
+                          </button>
+                        </div>
                         <p className="text-sm text-muted">
                           <a
                             href={url ? `${url}/profile/security` : '#'}
@@ -619,7 +547,21 @@ export function SetupWizard() {
                       </div>
                     </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
+
+                {/* Subtle token option link - shown when OAuth is selected */}
+                {authMethod === 'oauth' && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setAuthMethod('token')}
+                      disabled={isLoading}
+                      className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Key className="w-3.5 h-3.5" />
+                      {t.setup.authMethod?.useTokenInstead || 'Use access token instead'}
+                    </button>
+                  </div>
+                )}
 
                 {error && (
                   <div className="flex items-center gap-2 text-red-500 text-sm">
