@@ -61,7 +61,7 @@ export function FloorEditModal({
   }
 
   return (
-    <EditModal isOpen={!!floor} onClose={onClose} title={t.edit.floor.title} compact>
+    <EditModal isOpen={!!floor} onClose={onClose} title={t.edit.floor.title}>
       <div className="space-y-4">
         <FormField label={t.edit.floor.name}>
           <TextInput value={name} onChange={setName} placeholder={floor?.name} />

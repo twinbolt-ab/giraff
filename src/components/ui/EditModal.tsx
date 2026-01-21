@@ -13,11 +13,9 @@ interface EditModalProps {
   onClose: () => void
   title: string
   children: ReactNode
-  /** When true, modal auto-sizes to content instead of using fixed height */
-  compact?: boolean
 }
 
-export function EditModal({ isOpen, onClose, title, children, compact = false }: EditModalProps) {
+export function EditModal({ isOpen, onClose, title, children }: EditModalProps) {
   const isClient = useIsClient()
   const y = useMotionValue(isOpen ? 0 : 1000)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -102,9 +100,7 @@ export function EditModal({ isOpen, onClose, title, children, compact = false }:
           y,
           pointerEvents: isOpen ? 'auto' : 'none',
         }}
-        className={`fixed bottom-0 left-0 right-0 z-[100] bg-card rounded-t-2xl shadow-warm-lg flex flex-col touch-none ${
-          compact ? 'max-h-[90vh]' : 'h-[90vh]'
-        }`}
+        className="fixed bottom-0 left-0 right-0 z-[100] bg-card rounded-t-2xl shadow-warm-lg flex flex-col touch-none max-h-[90vh]"
       >
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-2">
