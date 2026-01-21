@@ -52,9 +52,11 @@
       "oauth": "Login with Home Assistant",
       "oauthHint": "Use your existing Home Assistant account",
       "oauthHttpDisabled": "Not available for HTTP connections",
-      "token": "Use access token",
+      "token": "Access Token",
       "tokenHint": "Enter a long-lived access token manually",
-      "recommended": "Recommended"
+      "recommended": "Recommended",
+      "useTokenInstead": "Use access token instead",
+      "useOAuthInstead": "Use login instead"
     },
     "oauth": {
       "completing": "Completing authentication...",
