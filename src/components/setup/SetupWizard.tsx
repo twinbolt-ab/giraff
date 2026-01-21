@@ -455,14 +455,32 @@ export function SetupWizard() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                          <p className="text-sm text-foreground/80">
+                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                          <p className="text-sm text-foreground/90 font-medium">
                             {t.setup.url.webNote}
+                          </p>
+                          <p className="text-sm text-muted">
+                            {t.setup.url.webNoteApps}
                           </p>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
+
+                  {/* Web setup instructions - always shown on web */}
+                  {!isNativeApp() && (
+                    <div className="p-4 bg-card border border-border rounded-xl space-y-3">
+                      <p className="text-sm font-medium text-foreground">
+                        {t.setup.url.webSetupTitle}
+                      </p>
+                      <p className="text-sm text-muted">
+                        {t.setup.url.webSetupNote}
+                      </p>
+                      <pre className="text-xs bg-background p-3 rounded-lg overflow-x-auto font-mono text-foreground/80">
+                        {t.setup.url.webSetupCode}
+                      </pre>
+                    </div>
+                  )}
 
                   {/* URL Suggestions - only shown on native apps (local URLs don't work on web) */}
                   {isNativeApp() && (
