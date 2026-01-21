@@ -38,25 +38,40 @@ https://github.com/twinbolt-ab/stuga/raw/main/public/stuga-demo.mp4
 
 ## Get Started
 
-### iOS
+### iOS & Android (Recommended)
 
-Coming soon to the App Store. Free.
+Native apps work with any Home Assistant setup, including local-only installs.
 
-### Android
-
-Coming soon to Google Play. Free.
+- **iOS** — Coming soon to the App Store. Free.
+- **Android** — Coming soon to Google Play. Free.
 
 ### Web
 
-Visit [stuga.app](https://stuga.app) and log in with your Home Assistant account.
+Try the web app at [stuga.app/run](https://stuga.app/run).
 
-For local/self-hosted use, you can build and deploy the web app yourself:
+**Requirements:**
+- A public HTTPS URL for your Home Assistant (Nabu Casa, DuckDNS, etc.)
+- Add Stuga to your `configuration.yaml`:
+
+```yaml
+http:
+  cors_allowed_origins:
+    - https://stuga.app
+```
+
+Local addresses like `homeassistant.local` won't work from the web due to browser security. Use the native apps for local-only setups.
+
+### Self-hosted
+
+Run Stuga on your own server or local network:
 
 ```bash
 npm install
 npm run build
-# Serve the dist/ folder with any static host
+# Serve the dist/ folder
 ```
+
+Self-hosting on HTTP allows connecting to local Home Assistant without a public URL.
 
 ---
 
