@@ -67,9 +67,12 @@ export function getRedirectUri(_haUrl?: string): string {
     return 'com.twinbolt.stuga:/'
   }
 
-  // For web, redirect back to our app
+  // For web, redirect back to our app (include base path for subpath deployments like /run)
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/auth/callback`
+    const basePath = import.meta.env.BASE_URL || '/'
+    // Ensure basePath ends without trailing slash for clean URL
+    const base = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath
+    return `${window.location.origin}${base}/auth/callback`
   }
 
   return 'https://stuga.app/auth/callback'
