@@ -5,19 +5,23 @@ import Layout from '../layouts/Layout.astro';
 <Layout title="Stuga - A Home Assistant dashboard that just works">
   <main>
     <!-- Hero Section -->
-    <section class="pt-16 pb-12 px-6">
+    <section class="pt-20 pb-12 px-6">
       <div class="max-w-4xl mx-auto text-center">
-        <img src="/icon.png" alt="Stuga" class="w-20 h-20 mx-auto mb-6 rounded-2xl shadow-warm-lg" />
-        <p class="text-lg text-muted mb-4">I love Home Assistant.</p>
-        <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight">
-          I don't love <span class="text-accent">configuring dashboards.</span>
+        <img src="/icon.png" alt="Stuga" class="w-20 h-20 mx-auto mb-8 rounded-2xl shadow-warm-lg" />
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold mb-6 tracking-tight">
+          An opinionated, beautiful app for Home Assistant.
         </h1>
         <p class="text-lg text-muted max-w-xl mx-auto mb-8">
-          So I built Stuga. Open it, log in, done. Your rooms and devices are already there.
+          Stuga is what I wanted: a fast, polished app that just works. Open it, log in, done. Your rooms and devices are already there. No YAML. No cards. No templates. Free and open source.
         </p>
-        <a href="#download" class="btn-primary inline-block">
-          Run the app
-        </a>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <a href="/run" class="btn-primary inline-block">
+            Run web app
+          </a>
+          <a href="#download" class="btn-secondary inline-block">
+            Get iOS & Android
+          </a>
+        </div>
       </div>
     </section>
 
@@ -80,30 +84,34 @@ import Layout from '../layouts/Layout.astro';
     <!-- Features Section -->
     <section id="features" class="py-20 px-6">
       <div class="max-w-5xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Built for my family to actually use.</h2>
-        <p class="text-muted text-center max-w-2xl mx-auto mb-12">
-          Lights, switches, scenes, climate, covers, fans. More coming.
-        </p>
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-12">Built for my family to actually use.</h2>
 
-        <div class="grid md:grid-cols-3 gap-6">
+        <div class="grid md:grid-cols-4 gap-6">
           <div class="card">
-            <h3 class="text-xl font-bold mb-2">Your rooms are already there</h3>
+            <h3 class="text-xl font-bold mb-2">Zero config</h3>
             <p class="text-muted leading-relaxed">
-              Stuga reads your Home Assistant setup automatically. No YAML. No cards. No templates.
+              Reads your HA setup automatically. Your rooms and devices are already there.
             </p>
           </div>
 
           <div class="card">
-            <h3 class="text-xl font-bold mb-2">Edit everything in place</h3>
+            <h3 class="text-xl font-bold mb-2">In-place editing</h3>
             <p class="text-muted leading-relaxed">
-              Rename rooms, change icons, reorder things. All saved back to Home Assistant.
+              Rename rooms, change icons, reorder things. All saved back to HA.
             </p>
           </div>
 
           <div class="card">
-            <h3 class="text-xl font-bold mb-2">Instant updates</h3>
+            <h3 class="text-xl font-bold mb-2">Mobile-first</h3>
             <p class="text-muted leading-relaxed">
-              Toggle a light and see it change immediately. WebSocket connection, no polling.
+              Designed for phones. Works on tablets and web too.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3 class="text-xl font-bold mb-2">Fast</h3>
+            <p class="text-muted leading-relaxed">
+              WebSocket connection, instant updates. No polling.
             </p>
           </div>
         </div>
@@ -113,42 +121,28 @@ import Layout from '../layouts/Layout.astro';
     <!-- Download Section -->
     <section id="download" class="py-20 px-6">
       <div class="max-w-5xl mx-auto">
-        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Download</h2>
+        <h2 class="text-3xl md:text-4xl font-bold text-center mb-4">Get Stuga</h2>
         <p class="text-muted text-center max-w-2xl mx-auto mb-12">
-          Choose how you want to run Stuga
+          Pick what works for your setup.
         </p>
 
         <div class="grid md:grid-cols-3 gap-6">
-          <!-- Native Apps -->
+          <!-- Web App - Available now -->
           <div class="card">
             <div class="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4">
               <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div class="flex items-center gap-2 mb-2">
-              <h3 class="text-xl font-bold">iOS & Android</h3>
-              <span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-medium rounded-full">Recommended</span>
-            </div>
-            <p class="text-muted leading-relaxed mb-4">
-              Works with any Home Assistant setup, including local-only installs. No public URL required.
-            </p>
-            <p class="text-sm text-muted">Coming soon to App Store and Google Play.</p>
-          </div>
-
-          <!-- Web App -->
-          <div class="card">
-            <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
-              <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
             </div>
-            <h3 class="text-xl font-bold mb-2">Web App</h3>
+            <div class="flex items-center gap-2 mb-2">
+              <h3 class="text-xl font-bold">Web App</h3>
+              <span class="px-2 py-0.5 bg-green-500/10 text-green-500 text-xs font-medium rounded-full">Try now</span>
+            </div>
             <p class="text-muted leading-relaxed mb-4">
-              Requires a public HTTPS URL for your Home Assistant (Nabu Casa, DuckDNS, etc.) and a small config change.
+              Works in any browser. Requires a public HTTPS URL for your Home Assistant (Nabu Casa, Cloudflare Tunnel, etc).
             </p>
-            <a href="/run" class="inline-flex items-center gap-2 text-accent hover:underline text-sm font-medium">
-              Try the web app
+            <a href="/run" class="btn-primary inline-flex items-center gap-2 text-sm">
+              Open web app
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
@@ -164,7 +158,7 @@ import Layout from '../layouts/Layout.astro';
             </div>
             <h3 class="text-xl font-bold mb-2">Self-hosted</h3>
             <p class="text-muted leading-relaxed mb-4">
-              Run Stuga on your own server. Self-hosting on HTTP allows connecting to local Home Assistant without a public URL.
+              Run on your own server. Works with local HTTP Home Assistant setups without exposing anything to the internet.
             </p>
             <a href="https://github.com/twinbolt-ab/stuga" class="inline-flex items-center gap-2 text-accent hover:underline text-sm font-medium">
               View on GitHub
@@ -173,6 +167,41 @@ import Layout from '../layouts/Layout.astro';
               </svg>
             </a>
           </div>
+
+          <!-- Native Apps - Coming soon with email capture -->
+          <div class="card">
+            <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
+              <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold mb-2">iOS & Android</h3>
+            <p class="text-muted leading-relaxed mb-4">
+              Native apps work with any Home Assistant, including local-only setups. No public URL required.
+            </p>
+            <form
+              name="app-waitlist"
+              method="POST"
+              data-netlify="true"
+              netlify-honeypot="bot-field"
+              class="space-y-2"
+            >
+              <input type="hidden" name="form-name" value="app-waitlist" />
+              <p class="hidden">
+                <label>Don't fill this out: <input name="bot-field" /></label>
+              </p>
+              <input
+                type="email"
+                name="email"
+                placeholder="your@email.com"
+                required
+                class="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:border-accent"
+              />
+              <button type="submit" class="w-full px-3 py-2 bg-accent/10 text-accent hover:bg-accent/20 rounded-lg text-sm font-medium transition-colors">
+                Notify me when it's ready
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </section>
@@ -180,12 +209,15 @@ import Layout from '../layouts/Layout.astro';
     <!-- About Section -->
     <section class="py-20 px-6 bg-card">
       <div class="max-w-3xl mx-auto text-center">
-        <h2 class="text-3xl md:text-4xl font-bold mb-4">Free and open source</h2>
+        <h2 class="text-3xl md:text-4xl font-bold mb-4">Your smart home stays yours</h2>
+        <p class="text-muted leading-relaxed mb-2">
+          No accounts. No analytics. No company watching what you turn on at 2am.
+        </p>
         <p class="text-muted leading-relaxed mb-6">
-          Your data stays on your device. No cloud, no tracking, no subscriptions.
+          Stuga connects directly to your Home Assistant. Your data never leaves your network.
         </p>
         <p class="text-sm text-muted">
-          Made by <a href="https://twinbolt.se" class="text-accent hover:underline">Twinbolt</a> in Sweden
+          Free and open source. Made by <a href="https://twinbolt.se" class="text-accent hover:underline">Twinbolt</a> in Sweden.
         </p>
       </div>
     </section>
@@ -196,7 +228,7 @@ import Layout from '../layouts/Layout.astro';
     <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
       <div class="flex items-center gap-3">
         <img src="/icon.png" alt="Stuga" class="w-6 h-6 rounded-md" />
-        <span class="text-muted text-sm">&copy; 2025 Twinbolt AB</span>
+        <span class="text-muted text-sm">&copy; 2026 Twinbolt AB</span>
       </div>
       <div class="flex items-center gap-6 text-sm">
         <a href="/privacy" class="text-muted hover:text-foreground transition-colors">Privacy Policy</a>
