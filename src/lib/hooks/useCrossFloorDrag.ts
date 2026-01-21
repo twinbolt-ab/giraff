@@ -190,8 +190,20 @@ export function useCrossFloorDrag({
         targetFloorId !== undefined && targetFloorId !== selectedFloorId && !isTransitioning
 
       if (shouldMove) {
-        // Move room to target floor (at end position)
-        await onMoveRoomToFloor(room, targetFloorId)
+        // Get all rooms to move (for multi-drag support)
+        const selectedRooms = getSelectedRooms ? getSelectedRooms() : []
+        const roomsToMove =
+          selectedRooms.length > 1 && selectedRooms.some((r) => r.id === room.id)
+            ? selectedRooms
+            : [room]
+
+        // Move all rooms to target floor
+        for (const r of roomsToMove) {
+          await onMoveRoomToFloor(r, targetFloorId)
+        }
+
+        // Navigate to target floor after move
+        onSelectFloor(targetFloorId)
       }
 
       resetDragState()
@@ -203,7 +215,9 @@ export function useCrossFloorDrag({
       isTransitioning,
       clearHoldTimer,
       onMoveRoomToFloor,
+      onSelectFloor,
       resetDragState,
+      getSelectedRooms,
     ]
   )
 

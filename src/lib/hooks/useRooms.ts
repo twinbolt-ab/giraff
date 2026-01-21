@@ -139,11 +139,13 @@ export function useRooms() {
       return a.name.localeCompare(b.name)
     })
 
-    // Get floors sorted by level
+    // Get floors sorted by level (stable sort using floor_id as tiebreaker)
     const floorsArray = Array.from(floorRegistry.values()).sort((a, b) => {
       const levelA = a.level ?? 0
       const levelB = b.level ?? 0
-      return levelA - levelB
+      if (levelA !== levelB) return levelA - levelB
+      // Stable sort: use floor_id as tiebreaker when levels are equal
+      return a.floor_id.localeCompare(b.floor_id)
     })
 
     return { rooms: result, floors: floorsArray }

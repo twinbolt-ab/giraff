@@ -194,7 +194,11 @@ export function ComboBox({
           </div>
 
           {/* Options list - scrollable */}
-          <div className="overflow-y-auto" style={{ maxHeight: dropdownMaxHeight }}>
+          <div
+            className="overflow-y-auto touch-auto"
+            style={{ maxHeight: dropdownMaxHeight }}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             {/* Create new option */}
             {showCreateOption && (
               <button

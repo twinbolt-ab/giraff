@@ -1,4 +1,4 @@
-import { useLayoutEffect, useCallback, useMemo, memo } from 'react'
+import { useLayoutEffect, useCallback, useMemo, memo, useRef } from 'react'
 import {
   motion,
   useMotionValue,
@@ -53,6 +53,8 @@ export function FloorSwipeContainer({
   const width = useWindowWidth()
   const x = useMotionValue(0)
   const dragControls = useDragControls()
+  // Track if we've done the initial position setup (to avoid animating on mount/remount)
+  const hasInitializedRef = useRef(false)
 
   // Build list of floor IDs (including uncategorized at end if present)
   const floorIds = useMemo((): (string | null)[] => {
@@ -77,10 +79,23 @@ export function FloorSwipeContainer({
   useLayoutEffect(() => {
     if (width > 0) {
       const targetX = -currentIndex * width
-      if (prefersReducedMotion) {
+      const currentX = x.get()
+
+      // On initial render (or after remount), set position instantly without animation
+      if (!hasInitializedRef.current) {
+        hasInitializedRef.current = true
         x.set(targetX)
-      } else {
-        animate(x, targetX, SPRING_CONFIG)
+        return
+      }
+
+      // Only animate if we're not already at (or very close to) the target
+      // This prevents unnecessary animations when re-rendering without actual position change
+      if (Math.abs(currentX - targetX) > 1) {
+        if (prefersReducedMotion) {
+          x.set(targetX)
+        } else {
+          animate(x, targetX, SPRING_CONFIG)
+        }
       }
     }
   }, [currentIndex, width, x, prefersReducedMotion])

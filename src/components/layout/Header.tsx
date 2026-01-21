@@ -212,9 +212,9 @@ export function BottomNav({
   )
 
   // Handle click outside to exit floor edit mode
-  const handleBackgroundClick = useCallback(() => {
+  const handleBackgroundClick = useCallback(async () => {
     if (isFloorEditMode) {
-      void handleSaveFloorOrder()
+      await handleSaveFloorOrder()
       exitEditMode()
     }
   }, [isFloorEditMode, handleSaveFloorOrder, exitEditMode])

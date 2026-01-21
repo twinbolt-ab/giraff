@@ -137,23 +137,64 @@ export async function deleteFloor(state: HAWebSocketState, floorId: string): Pro
 }
 
 /**
+ * Sets floor level without triggering registry notification.
+ * Used by saveFloorOrderBatch to batch multiple updates.
+ */
+async function setFloorOrderSilent(
+  state: HAWebSocketState,
+  floorId: string,
+  order: number
+): Promise<void> {
+  const floor = state.floors.get(floorId)
+  if (!floor) return
+
+  return new Promise((resolve, reject) => {
+    const msgId = getNextMessageId(state)
+    registerCallback(state, msgId, (success, _result, error) => {
+      if (success) {
+        // Update local registry but DON'T notify handlers yet
+        floor.level = order
+        resolve()
+      } else {
+        reject(new Error(`Failed to update floor level: ${error?.message || 'Unknown error'}`))
+      }
+    })
+    send(state, {
+      id: msgId,
+      type: 'config/floor_registry/update',
+      floor_id: floorId,
+      level: order,
+    })
+  })
+}
+
+/**
  * Saves floor order to Home Assistant for floors that have changed position.
  * Compares orderedFloors against originalFloors and only updates floors whose index changed.
+ * Batches registry notification to fire only once after all updates complete.
  */
 export async function saveFloorOrderBatch(
   state: HAWebSocketState,
   orderedFloors: HAFloor[],
   originalFloors: HAFloor[]
 ): Promise<void> {
+  let hasChanges = false
+
   for (let i = 0; i < orderedFloors.length; i++) {
     const floor = orderedFloors[i]
     const originalIndex = originalFloors.findIndex((f) => f.floor_id === floor.floor_id)
     if (originalIndex !== i) {
       try {
-        await setFloorOrder(state, floor.floor_id, i * ORDER_GAP)
+        await setFloorOrderSilent(state, floor.floor_id, i * ORDER_GAP)
+        hasChanges = true
       } catch (error) {
         logger.error('FloorService', 'Failed to save floor order:', error)
       }
     }
+  }
+
+  // Notify once after all updates complete
+  if (hasChanges) {
+    notifyRegistryHandlers(state)
   }
 }

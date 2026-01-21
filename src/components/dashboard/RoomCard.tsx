@@ -481,9 +481,8 @@ export function RoomCard({
 // Memoized export to prevent re-renders during swipe navigation
 export const MemoizedRoomCard = memo(RoomCard, (prevProps, nextProps) => {
   // Re-render if any of these change
-  return (
-    prevProps.room === nextProps.room &&
-    prevProps.isExpanded === nextProps.isExpanded &&
-    prevProps.allRooms === nextProps.allRooms
-  )
+  // Note: allRooms is intentionally NOT compared - it's passed through to RoomExpanded
+  // but comparing array references defeats memoization when useRooms recomputes.
+  // The room data that matters is in the `room` prop itself.
+  return prevProps.room === nextProps.room && prevProps.isExpanded === nextProps.isExpanded
 })
