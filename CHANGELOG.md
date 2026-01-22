@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.12] - 2026-01-22
+
+- Improved compatibility with newer Android devices
+
+
 ## [0.3.11] - 2026-01-22
 
 - Fixed Android app build issues
