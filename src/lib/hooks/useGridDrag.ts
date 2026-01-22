@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect, RefObject } from 'react'
 import { haptic } from '@/lib/haptics'
-
-const LONG_PRESS_DURATION = 150
+import { LONG_PRESS_DURATION } from '@/lib/constants'
 const MOVE_THRESHOLD = 10
 const EDGE_THRESHOLD = 60
 
@@ -198,11 +197,6 @@ export function useGridDrag<T>({
     (clientX: number, clientY: number) => {
       if (draggedIndex === null) return
 
-      setDragOffset({
-        x: clientX - dragStartPos.x,
-        y: clientY - dragStartPos.y,
-      })
-
       onDragPosition?.(clientX, clientY)
 
       // Edge detection
@@ -220,8 +214,10 @@ export function useGridDrag<T>({
         }
       }
 
+      // Check if reordering is needed and calculate position adjustment
       const newTargetIndex = getIndexFromPointer(clientX, clientY)
       const isMultiDrag = draggedIndices.length > 1
+      let effectiveDragStartPos = dragStartPos
 
       if (isMultiDrag && draggedIndex !== null) {
         const primaryPositionInSelection = draggedIndices.indexOf(draggedIndex)
@@ -250,12 +246,14 @@ export function useGridDrag<T>({
           const newPrimaryIndex = blockStartIndex + primaryPositionInSelection
           setDraggedIndex(newPrimaryIndex)
 
+          // Calculate adjusted dragStartPos for offset calculation
           const oldPos = getPositionFromIndex(draggedIndex)
           const newPos = getPositionFromIndex(newPrimaryIndex)
-          setDragStartPos((prev) => ({
-            x: prev.x + (newPos.x - oldPos.x),
-            y: prev.y + (newPos.y - oldPos.y),
-          }))
+          effectiveDragStartPos = {
+            x: dragStartPos.x + (newPos.x - oldPos.x),
+            y: dragStartPos.y + (newPos.y - oldPos.y),
+          }
+          setDragStartPos(effectiveDragStartPos)
         }
       } else if (newTargetIndex !== draggedIndex && draggedIndex !== null) {
         const newItems = [...orderedItems]
@@ -265,13 +263,21 @@ export function useGridDrag<T>({
         setDraggedIndex(newTargetIndex)
         setDraggedIndices([newTargetIndex])
 
+        // Calculate adjusted dragStartPos for offset calculation
         const oldPos = getPositionFromIndex(draggedIndex)
         const newPos = getPositionFromIndex(newTargetIndex)
-        setDragStartPos((prev) => ({
-          x: prev.x + (newPos.x - oldPos.x),
-          y: prev.y + (newPos.y - oldPos.y),
-        }))
+        effectiveDragStartPos = {
+          x: dragStartPos.x + (newPos.x - oldPos.x),
+          y: dragStartPos.y + (newPos.y - oldPos.y),
+        }
+        setDragStartPos(effectiveDragStartPos)
       }
+
+      // Calculate offset using the (possibly adjusted) start position
+      setDragOffset({
+        x: clientX - effectiveDragStartPos.x,
+        y: clientY - effectiveDragStartPos.y,
+      })
     },
     [
       draggedIndex,
