@@ -223,9 +223,21 @@ else
   git commit -m "Release $NEW_TAG" -m "CHANGELOG_START" -m "$CHANGELOG" -m "CHANGELOG_END"
 fi
 
-# Create annotated tag
+# Create annotated tag (or update if it exists on current commit)
 echo -e "${GREEN}Creating tag $NEW_TAG...${NC}"
-git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "$CHANGELOG"
+if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
+  EXISTING_TAG_COMMIT=$(git rev-list -n 1 "$NEW_TAG")
+  CURRENT_COMMIT=$(git rev-parse HEAD)
+  if [[ "$EXISTING_TAG_COMMIT" == "$CURRENT_COMMIT" ]]; then
+    echo -e "${YELLOW}Tag $NEW_TAG already exists on current commit, skipping tag creation${NC}"
+  else
+    echo -e "${YELLOW}Tag $NEW_TAG exists on different commit, deleting and recreating...${NC}"
+    git tag -d "$NEW_TAG"
+    git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "$CHANGELOG"
+  fi
+else
+  git tag -a "$NEW_TAG" -m "Release $NEW_TAG" -m "" -m "$CHANGELOG"
+fi
 
 # Push to GitHub
 echo -e "${GREEN}Pushing to GitHub...${NC}"
