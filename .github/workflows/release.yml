@@ -102,70 +102,28 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Add Android platform
+      - name: Sync Capacitor
         run: |
           echo "Checking Capacitor installation..."
           npx cap --version
-          echo "Adding Android platform..."
-          npx cap add android
+          echo "Syncing Android platform..."
+          npx cap sync android
           echo "Verifying android directory exists..."
           ls -la android/
 
-      - name: Sync Capacitor
-        run: npx cap sync android
-
       - name: Decode keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/stuga_keystore.jks
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/stuga_keystore_private.jks
 
-      - name: Setup fastlane configuration
+      - name: Setup fastlane credentials
         run: |
-          mkdir -p android/fastlane
-
-          # Create Gemfile
-          cat > android/Gemfile << 'EOF'
+          # Create Gemfile if not exists
+          if [ ! -f android/Gemfile ]; then
+            cat > android/Gemfile << 'EOF'
           source "https://rubygems.org"
           gem "fastlane"
           EOF
-
-          # Create Appfile
-          cat > android/fastlane/Appfile << 'EOF'
-          json_key_file("fastlane/play-store-credentials.json")
-          package_name("com.twinbolt.stuga")
-          EOF
-
-          # Create Fastfile
-          cat > android/fastlane/Fastfile << 'EOF'
-          default_platform(:android)
-
-          platform :android do
-            desc "Build release AAB"
-            lane :build do
-              gradle(
-                task: "bundle",
-                build_type: "Release",
-                properties: {
-                  "RELEASE_STORE_FILE" => "../stuga_keystore.jks",
-                  "RELEASE_STORE_PASSWORD" => ENV["KEYSTORE_PASSWORD"],
-                  "RELEASE_KEY_ALIAS" => "stuga",
-                  "RELEASE_KEY_PASSWORD" => ENV["KEYSTORE_PASSWORD"]
-                }
-              )
-            end
-
-            desc "Deploy to internal testing track"
-            lane :internal do
-              build
-              upload_to_play_store(
-                track: "internal",
-                aab: "app/build/outputs/bundle/release/app-release.aab",
-                skip_upload_metadata: true,
-                skip_upload_images: true,
-                skip_upload_screenshots: true
-              )
-            end
-          end
-          EOF
+          fi
 
           # Decode Play Store credentials
           echo "${{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > android/fastlane/play-store-credentials.json
@@ -220,9 +178,6 @@ jobs:
 
       - name: Build web assets
         run: npm run build
-
-      - name: Add iOS platform
-        run: npx cap add ios
 
       - name: Sync Capacitor
         run: npx cap sync ios
