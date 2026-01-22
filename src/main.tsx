@@ -6,6 +6,9 @@ import { initMetadataService } from './lib/metadata'
 import App from './App'
 import './index.css'
 
+// Disable right-click context menu globally (mobile-first app)
+document.addEventListener('contextmenu', (e) => e.preventDefault())
+
 async function bootstrap() {
   try {
     await initStorage()

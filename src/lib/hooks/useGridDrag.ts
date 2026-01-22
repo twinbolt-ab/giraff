@@ -390,19 +390,12 @@ export function useGridDrag<T>({
       handleDragEnd()
     }
 
-    // Prevent context menu during long-press/drag on web
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault()
-    }
-
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
-    window.addEventListener('contextmenu', handleContextMenu)
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
-      window.removeEventListener('contextmenu', handleContextMenu)
     }
   }, [draggedIndex, pendingDragIndex, checkLongPressMove, handleDragMove, handleDragEnd])
 
