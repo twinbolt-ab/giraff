@@ -220,6 +220,14 @@ Output only the plain-text changelog:")
 echo "$PLAY_STORE_CHANGELOG" > "$FASTLANE_CHANGELOG_DIR/$NEW_VERSION_CODE.txt"
 echo "  Play Store changelog: changelogs/$NEW_VERSION_CODE.txt"
 
+# Create iOS release notes (App Store uses release_notes.txt, not versioned files)
+echo -e "${GREEN}Creating App Store release notes...${NC}"
+IOS_METADATA_DIR="ios/App/fastlane/metadata/en-US"
+if [[ -d "$IOS_METADATA_DIR" ]]; then
+  echo "$PLAY_STORE_CHANGELOG" > "$IOS_METADATA_DIR/release_notes.txt"
+  echo "  App Store release notes: metadata/en-US/release_notes.txt"
+fi
+
 # Update iOS version (not tracked in git, but updated locally for native builds)
 echo -e "${GREEN}Updating iOS version...${NC}"
 IOS_PROJECT="ios/App/App.xcodeproj/project.pbxproj"
@@ -238,7 +246,7 @@ fi
 
 # Commit with changelog in message body
 # Using a special format that GHA can parse
-git add package.json CHANGELOG.md android/fastlane/metadata/android/en-US/changelogs/
+git add package.json CHANGELOG.md android/fastlane/metadata/android/en-US/changelogs/ ios/App/fastlane/metadata/en-US/release_notes.txt
 if git diff --cached --quiet; then
   echo -e "${YELLOW}No changes to commit (version files may already be updated)${NC}"
   echo "Proceeding with tag creation..."
