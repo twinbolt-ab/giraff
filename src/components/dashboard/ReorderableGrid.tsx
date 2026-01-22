@@ -9,6 +9,8 @@ interface ReorderableGridProps<T> {
   renderItem: (item: T, index: number, isDragging: boolean, isActive: boolean) => React.ReactNode
   onReorder: (items: T[]) => void
   onClickOutside?: () => void
+  /** Optional identifier for this grid (e.g., floor ID). Used for cross-floor drag coordination. */
+  gridId?: string
   /** When true, disables drag-to-reorder (items are static, no long-press activation) */
   reorderingDisabled?: boolean
   /** Callback when dragging near screen edge (for cross-floor navigation) */
@@ -45,6 +47,7 @@ export function ReorderableGrid<T>({
   renderItem,
   onReorder,
   onClickOutside,
+  gridId: _gridId,
   reorderingDisabled = false,
   onEdgeHover,
   onDragStart: onDragStartCallback,

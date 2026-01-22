@@ -1,4 +1,11 @@
 import { useState, useRef, useLayoutEffect, useCallback, RefObject } from 'react'
+import {
+  getPositionFromIndex as getPositionFromIndexPure,
+  getIndexFromPosition,
+  getContainerHeight,
+  getCellWidthOrFallback,
+  type GridGeometry,
+} from './useGridGeometry'
 
 interface CellSize {
   width: number
@@ -74,20 +81,16 @@ export function useGridMeasurement({
     }
   }, [cellSize.width, cellSize.height])
 
-  // Calculate pixel position from index
+  // Build geometry object for pure functions
+  const geometry: GridGeometry = { cellSize, columns, gap }
+
+  // Calculate pixel position from index (using pure function)
   const getPositionFromIndex = useCallback(
-    (index: number) => {
-      const col = index % columns
-      const row = Math.floor(index / columns)
-      return {
-        x: col * (cellSize.width + gap),
-        y: row * (cellSize.height + gap),
-      }
-    },
-    [columns, cellSize, gap]
+    (index: number) => getPositionFromIndexPure(geometry, index),
+    [geometry]
   )
 
-  // Calculate index from pointer position
+  // Calculate index from pointer position (using pure function)
   const getIndexFromPointer = useCallback(
     (clientX: number, clientY: number): number => {
       if (!containerRef.current || cellSize.width === 0) return 0
@@ -96,24 +99,18 @@ export function useGridMeasurement({
       const x = clientX - rect.left
       const y = clientY - rect.top
 
-      const col = Math.min(columns - 1, Math.max(0, Math.floor(x / (cellSize.width + gap))))
-      const row = Math.max(0, Math.floor(y / (cellSize.height + gap)))
-      const index = row * columns + col
-
-      return Math.min(itemCount - 1, Math.max(0, index))
+      return getIndexFromPosition(geometry, x, y, itemCount)
     },
-    [columns, gap, cellSize, itemCount]
+    [geometry, cellSize.width, itemCount]
   )
 
-  // Get cell width as number or CSS calc fallback
-  const getCellWidth = useCallback(() => {
-    return cellSize.width > 0
-      ? cellSize.width
-      : `calc((100% - ${gap * (columns - 1)}px) / ${columns})`
-  }, [cellSize.width, gap, columns])
+  // Get cell width as number or CSS calc fallback (using pure function)
+  const getCellWidth = useCallback(
+    () => getCellWidthOrFallback(geometry),
+    [geometry]
+  )
 
-  const rows = Math.ceil(itemCount / columns)
-  const containerHeight = rows * cellSize.height + (rows - 1) * gap
+  const containerHeight = getContainerHeight(geometry, itemCount)
   const isReady = cellSize.width > 0 && cellSize.height > 0
 
   return {

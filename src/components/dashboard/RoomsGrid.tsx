@@ -117,6 +117,7 @@ export function RoomsGrid({
     return (
       <ReorderableGrid
         items={orderedRooms}
+        gridId={selectedFloorId ?? 'uncategorized'}
         onReorder={onReorder}
         onClickOutside={onClickOutside}
         reorderingDisabled={reorderingDisabled}
