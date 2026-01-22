@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, RefObject } from 'react'
 import { haptic } from '@/lib/haptics'
 import { LONG_PRESS_DURATION } from '@/lib/constants'
 const MOVE_THRESHOLD = 10
-const EDGE_THRESHOLD = 60
+const EDGE_THRESHOLD_PERCENT = 0.08 // 8% of screen width
 
 interface Position {
   x: number
@@ -199,12 +199,13 @@ export function useGridDrag<T>({
 
       onDragPosition?.(clientX, clientY)
 
-      // Edge detection
+      // Edge detection (density-independent threshold)
       if (onEdgeHover) {
+        const edgeThreshold = window.innerWidth * EDGE_THRESHOLD_PERCENT
         let currentEdge: 'left' | 'right' | null = null
-        if (clientX < EDGE_THRESHOLD) {
+        if (clientX < edgeThreshold) {
           currentEdge = 'left'
-        } else if (clientX > window.innerWidth - EDGE_THRESHOLD) {
+        } else if (clientX > window.innerWidth - edgeThreshold) {
           currentEdge = 'right'
         }
 

@@ -216,8 +216,7 @@ export function ReorderableGrid<T>({
             data-grid-item
             className={clsx(
               'absolute',
-              isPrimaryDrag && 'z-50',
-              isSecondaryDrag && `z-[${stackZIndex}]`
+              isPrimaryDrag && 'z-50'
             )}
             style={{
               top: 0,
