@@ -22,7 +22,7 @@ import { useSettings } from '@/lib/hooks/useSettings'
 import { useFloorNavigation } from '@/lib/hooks/useFloorNavigation'
 import { useModalState } from '@/lib/hooks/useModalState'
 import { useCrossFloorDrag } from '@/lib/hooks/useCrossFloorDrag'
-import { saveFloorOrderBatch, updateArea } from '@/lib/ha-websocket'
+import { saveFloorOrderBatch, updateArea, createFloor, setFloorOrder } from '@/lib/ha-websocket'
 import { ORDER_GAP, DEFAULT_ORDER } from '@/lib/constants'
 import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
 
@@ -80,6 +80,20 @@ function DashboardContent() {
     isEntityVisible,
     onFloorChange: closeExpandedRoom,
   })
+
+  // Handler to add a new floor (added at the end)
+  const handleAddFloor = useCallback(async () => {
+    // Calculate the order for the new floor (after all existing floors)
+    const maxLevel = floors.reduce((max, f) => Math.max(max, f.level ?? 0), 0)
+    const newLevel = (maxLevel + 1) * ORDER_GAP
+
+    const newFloorId = await createFloor('New Floor')
+    // Set the floor's level to be last
+    await setFloorOrder(newFloorId, newLevel)
+    // Exit floor edit mode and navigate to the new floor
+    exitEditMode()
+    handleSelectFloor(newFloorId)
+  }, [floors, exitEditMode, handleSelectFloor])
 
   // Modal state (extracted to hook)
   const {
@@ -321,7 +335,11 @@ function DashboardContent() {
       {/* Edit mode header bar - hidden while dragging a room */}
       <AnimatePresence>
         {isEditMode && !draggedRoom && (
-          <EditModeHeader onEditClick={handleEditButtonClick} onDone={handleExitEditMode} />
+          <EditModeHeader
+            onEditClick={handleEditButtonClick}
+            onDone={handleExitEditMode}
+            onAddFloor={handleAddFloor}
+          />
         )}
       </AnimatePresence>
 

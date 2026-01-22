@@ -258,6 +258,11 @@ input[type='range']::-moz-range-thumb {
   bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 10px);
 }
 
+/* Floating element above the floating bar */
+.floating-bar-above {
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 10px + 56px);
+}
+
 /* Glass button style */
 .btn-glass {
   background: rgba(0, 0, 0, 0.08);
