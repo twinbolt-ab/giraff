@@ -47,7 +47,7 @@ Built for my family to actually use.
 Native apps work with any Home Assistant setup, including local-only installs.
 
 - **iOS** — Coming soon to the App Store. Free.
-- **Android** — Coming soon to Google Play. Free.
+- **Android** — [Get it on Google Play](https://play.google.com/store/apps/details?id=com.twinbolt.stuga). Free.
 
 ### Web
 
