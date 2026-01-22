@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.15] - 2026-01-22
+
+- Improved Android app versioning for more reliable updates
+
+
 ## [0.3.14] - 2026-01-22
 
 - Added screenshot gallery to the landing page
