@@ -279,4 +279,5 @@ echo ""
 echo -e "${GREEN}✓ Pushed $NEW_TAG${NC}"
 echo ""
 echo "GitHub Actions will now create the release automatically."
-echo "Watch progress: https://github.com/$(git remote get-url origin | sed -E 's/.*[:/]([^/]+\/[^/]+)(\.git)?$/\1/')/actions"
+REPO_URL=$(gh repo view --json url -q .url 2>/dev/null || git remote get-url origin | sed -E 's/.*[:/]([^/]+\/[^/]+)(\.git)?$/https:\/\/github.com\/\1/')
+echo "Watch progress: ${REPO_URL}/actions"
