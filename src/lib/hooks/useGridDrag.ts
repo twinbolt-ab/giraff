@@ -322,13 +322,14 @@ export function useGridDrag<T>({
     [handlePointerDown]
   )
 
-  // Touch move/end event listeners
+  // Touch move/end event listeners - attached to document during active drag
+  // This mirrors the mouse event pattern and allows touch events to persist across floor switches
   useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
+    if (draggedIndex === null && pendingDragIndex === null) return
 
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0]
+      if (!touch) return
       if (checkLongPressMove(touch.clientX, touch.clientY)) return
       if (draggedIndex === null) return
       e.preventDefault()
@@ -339,14 +340,16 @@ export function useGridDrag<T>({
       handleDragEnd()
     }
 
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd)
+    document.addEventListener('touchmove', handleTouchMove, { passive: false })
+    document.addEventListener('touchend', handleTouchEnd)
+    document.addEventListener('touchcancel', handleTouchEnd)
 
     return () => {
-      container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchmove', handleTouchMove)
+      document.removeEventListener('touchend', handleTouchEnd)
+      document.removeEventListener('touchcancel', handleTouchEnd)
     }
-  }, [draggedIndex, checkLongPressMove, handleDragMove, handleDragEnd, containerRef])
+  }, [draggedIndex, pendingDragIndex, checkLongPressMove, handleDragMove, handleDragEnd])
 
   // Mouse handlers
   const handleMouseDown = useCallback(
