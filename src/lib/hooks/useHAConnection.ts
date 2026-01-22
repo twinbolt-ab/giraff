@@ -7,6 +7,8 @@ import type { HAEntity } from '@/types/ha'
 
 // Refresh token 5 minutes before expiry
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
+// Minimum delay between refresh attempts to prevent infinite loops
+const MIN_REFRESH_DELAY_MS = 30 * 1000
 
 export function useHAConnection() {
   const [isConnected, setIsConnected] = useState(() => ws.isConnected())
@@ -34,7 +36,13 @@ export function useHAConnection() {
 
       // Calculate when to refresh (5 minutes before expiry)
       const refreshAt = creds.expires_at - TOKEN_REFRESH_BUFFER_MS
-      const delay = Math.max(0, refreshAt - Date.now())
+      const delay = Math.max(MIN_REFRESH_DELAY_MS, refreshAt - Date.now())
+
+      // If token is already expired, don't schedule proactive refresh - it will refresh on demand
+      if (creds.expires_at <= Date.now()) {
+        logger.debug('useHAConnection', 'Token already expired, skipping proactive refresh scheduling')
+        return
+      }
 
       logger.debug(
         'useHAConnection',
