@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.6] - 2026-01-22
+
+- Shows floor name when swiping between floors
+- Added floating 'Create floor' button in floor edit mode
+- Replaced dropdown with segmented control for hide options
+- Fixed keyboard covering search results on iOS
+- Fixed cards jumping when dragging to reorder
+- Fixed drag and drop working correctly across floors
+- Improved authentication loading screen
+- Various performance and stability improvements
+
+
 ## [0.3.5] - 2026-01-21
 
 **Improvements**
