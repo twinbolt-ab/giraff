@@ -121,6 +121,12 @@ jobs:
             cp -r /tmp/fastlane-backup android/fastlane
           fi
 
+          # Add signing config to build.gradle
+          sed -i 's/android {/android {\n    signingConfigs {\n        release {\n            if (project.hasProperty('\''RELEASE_STORE_FILE'\'')) {\n                storeFile file(RELEASE_STORE_FILE)\n                storePassword RELEASE_STORE_PASSWORD\n                keyAlias RELEASE_KEY_ALIAS\n                keyPassword RELEASE_KEY_PASSWORD\n            }\n        }\n    }/' android/app/build.gradle
+
+          # Add signingConfig to release buildType
+          sed -i 's/minifyEnabled false/minifyEnabled false\n            if (project.hasProperty('\''RELEASE_STORE_FILE'\'')) {\n                signingConfig signingConfigs.release\n            }/' android/app/build.gradle
+
           echo "Syncing Android platform..."
           npx cap sync android
           echo "Verifying android directory..."
