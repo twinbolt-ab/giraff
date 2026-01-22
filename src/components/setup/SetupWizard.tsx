@@ -665,12 +665,7 @@ export function SetupWizard() {
                     className="flex-1 py-4 px-6 bg-accent text-warm-brown rounded-xl text-lg font-semibold flex items-center justify-center gap-2 hover:bg-brass-hover transition-colors touch-feedback btn-accent-glow disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {authMethod === 'oauth'
-                          ? t.setup.url.testing
-                          : t.setup.token.authenticating}
-                      </>
+                      <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <>
                         {t.setup.token.authenticate}
