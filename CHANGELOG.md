@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.8] - 2026-01-22
+
+- Added reviewer instructions for Google Play to help with app store approval
+
+
 ## [0.3.7] - 2026-01-22
 
 - No user-facing changes in this release
