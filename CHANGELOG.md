@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.11] - 2026-01-22
+
+- Fixed Android app build issues
+
+
 ## [0.3.10] - 2026-01-22
 
 - No user-facing changes in this release
