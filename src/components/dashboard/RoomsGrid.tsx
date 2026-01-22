@@ -94,13 +94,13 @@ export function RoomsGrid({
   if (displayRooms.length === 0) {
     // Determine the appropriate message
     let emptyMessage: string
-    if (!isConnected) {
+    if (selectedFloorId && allRooms.length > 0) {
+      // We have rooms elsewhere, this floor is just empty
+      emptyMessage = t.rooms.emptyFloor
+    } else if (!isConnected) {
       emptyMessage = t.rooms.connectingToHA
     } else if (allRooms.length === 0) {
       emptyMessage = t.rooms.loading
-    } else if (selectedFloorId) {
-      // Connected, has rooms elsewhere, but this floor is empty
-      emptyMessage = t.rooms.emptyFloor
     } else {
       emptyMessage = t.rooms.noRoomsOnFloor
     }
