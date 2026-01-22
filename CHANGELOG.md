@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.14] - 2026-01-22
+
+- Added screenshot gallery to the landing page
+
+
 ## [0.3.13] - 2026-01-22
 
 - Added promotional video to app store listing
