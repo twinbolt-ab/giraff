@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Header } from '@/components/layout/Header'
 import { EditModeHeader } from './EditModeHeader'
 import { ConnectionBanner } from './ConnectionBanner'
-import { DemoBanner } from './DemoBanner'
 import { RoomsGrid } from './RoomsGrid'
 import { AllDevicesView } from './AllDevicesView'
 import { FloorSwipeContainer } from './FloorSwipeContainer'
@@ -326,9 +325,6 @@ function DashboardContent() {
 
   return (
     <div className="flex-1 flex flex-col bg-background pt-safe overflow-hidden">
-      {/* Demo mode banner */}
-      <DemoBanner isVisible={isDevMode && activeMockScenario !== 'none'} />
-
       {/* Connection status banner */}
       <ConnectionBanner isConnected={isConnected} hasReceivedData={hasReceivedData} />
 

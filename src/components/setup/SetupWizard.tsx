@@ -253,12 +253,13 @@ export function SetupWizard() {
     }
   }, [testConnection])
 
-  // Start probing when entering connect step
+  // Start probing immediately on welcome screen (native only)
+  // This gives us a head start so results are ready when user clicks "Get Started"
   useEffect(() => {
-    if (step === 'connect') {
+    if (isNativeApp() && step === 'welcome') {
       void probeUrls()
     }
-  }, [step, probeUrls])
+  }, [probeUrls, step])
 
   // Verify the URL is reachable (called on blur or when user clicks connect)
   const verifyUrl = useCallback(

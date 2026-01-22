@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useMotionValue, animate, PanInfo } from 'framer-motion'
 import { ChevronDown, Plus, Loader2, X, Search } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { t } from '@/lib/i18n'
+
+const DRAG_CLOSE_THRESHOLD = 150
 
 interface ComboBoxOption {
   value: string
@@ -37,6 +39,8 @@ export function ComboBox({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const mobileSheetRef = useRef<HTMLDivElement>(null)
+  const mobileY = useMotionValue(0)
 
   // Detect touch device for full-screen picker
   const isTouchDevice = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
@@ -107,17 +111,40 @@ export function ComboBox({
   useEffect(() => {
     if (isTouchDevice && isOpen) {
       document.body.style.overflow = 'hidden'
+      // Reset drag position when opening
+      mobileY.set(0)
       return () => {
         document.body.style.overflow = ''
       }
     }
-  }, [isOpen, isTouchDevice])
+  }, [isOpen, isTouchDevice, mobileY])
 
   const handleClose = useCallback(() => {
     setIsOpen(false)
     setInputValue('')
     setCreateError(null)
   }, [])
+
+  const handleMobileDragEnd = useCallback(
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      // Release any pointer capture
+      if (mobileSheetRef.current && 'pointerId' in event) {
+        try {
+          mobileSheetRef.current.releasePointerCapture(event.pointerId)
+        } catch {
+          // Ignore if pointer capture wasn't held
+        }
+      }
+
+      if (info.offset.y > DRAG_CLOSE_THRESHOLD || info.velocity.y > 500) {
+        handleClose()
+      } else {
+        // Reset y if not closing
+        animate(mobileY, 0, { type: 'spring', damping: 30, stiffness: 400 })
+      }
+    },
+    [handleClose, mobileY]
+  )
 
   const handleSelect = useCallback(
     (optionValue: string) => {
@@ -267,12 +294,23 @@ export function ComboBox({
           <AnimatePresence>
             {isOpen && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 z-[200] bg-card flex flex-col"
+                ref={mobileSheetRef}
+                initial={{ opacity: 0, y: '100%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: '100%' }}
+                transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0.1, bottom: 0.5 }}
+                onDragEnd={handleMobileDragEnd}
+                style={{ y: mobileY }}
+                className="fixed inset-0 z-[200] bg-card flex flex-col touch-none"
               >
+                {/* Handle bar */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 bg-border rounded-full" />
+                </div>
+
                 {/* Header */}
                 <div className="flex-shrink-0 pt-safe">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-border">
@@ -308,8 +346,13 @@ export function ComboBox({
                   </div>
                 </div>
 
-                {/* Options list - scrollable */}
-                <div className="flex-1 overflow-y-auto pb-safe">{optionsList}</div>
+                {/* Options list - scrollable, with touch-auto to allow scrolling */}
+                <div className="overflow-y-auto touch-auto" style={{ maxHeight: '60vh' }}>
+                  {optionsList}
+                </div>
+
+                {/* Empty drag zone below options - swipe down here to close */}
+                <div className="flex-1 pb-safe" />
               </motion.div>
             )}
           </AnimatePresence>,
