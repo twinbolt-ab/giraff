@@ -27,13 +27,25 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# Capacitor (ignore build artifacts, but track fastlane metadata)
+# Capacitor (ignore build artifacts, but track fastlane and customized resources)
 /ios/*
 !/ios/App/
 /ios/App/*
 !/ios/App/fastlane/
 /android/*
 !/android/fastlane/
+!/android/app/
+/android/app/*
+!/android/app/src/
+/android/app/src/*
+!/android/app/src/main/
+/android/app/src/main/*
+!/android/app/src/main/AndroidManifest.xml
+!/android/app/src/main/res/
+/android/app/src/main/res/*
+!/android/app/src/main/res/mipmap*/
+!/android/app/src/main/res/drawable*/
+!/android/app/src/main/res/values/
 
 # Vite
 .vite
