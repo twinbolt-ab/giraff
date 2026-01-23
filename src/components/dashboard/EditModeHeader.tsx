@@ -34,7 +34,7 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
           {t.edit.createFloor}
         </motion.button>
 
-        {/* Text card with close button */}
+        {/* Text card with close button and edit button */}
         <motion.div
           initial={{ y: 60 }}
           animate={{ y: 0 }}
@@ -42,15 +42,23 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
           transition={{ type: 'spring', damping: 25, stiffness: 400 }}
           className="fixed left-4 right-4 z-20 floating-bar rounded-2xl shadow-lg glass"
         >
-          <div className="flex items-center gap-2 px-4 py-3">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onDone}
+                className="p-1 rounded-full hover:bg-accent/20 transition-colors"
+                aria-label="Exit floor edit mode"
+              >
+                <X className="w-4 h-4 text-accent" />
+              </button>
+              <span className="text-sm text-muted">{t.rooms.floorReorderHint}</span>
+            </div>
             <button
-              onClick={onDone}
-              className="p-1 rounded-full hover:bg-accent/20 transition-colors"
-              aria-label="Exit floor edit mode"
+              onClick={onEditClick}
+              className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors"
             >
-              <X className="w-4 h-4 text-accent" />
+              {t.edit.editFloor}
             </button>
-            <span className="text-sm text-muted">{t.rooms.floorReorderHint}</span>
           </div>
         </motion.div>
       </motion.div>

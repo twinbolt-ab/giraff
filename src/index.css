@@ -260,7 +260,7 @@ input[type='range']::-moz-range-thumb {
 
 /* Floating element above the floating bar */
 .floating-bar-above {
-  bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 10px + 56px);
+  bottom: calc(5rem + env(safe-area-inset-bottom, 0px) + 24px + 56px);
 }
 
 /* Glass button style */

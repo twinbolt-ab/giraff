@@ -110,7 +110,7 @@
     "loading": "Loading rooms...",
     "connectingToHA": "Connecting to Home Assistant...",
     "reorderHint": "Drag to reorder, tap to edit",
-    "floorReorderHint": "Tap a floor to edit, drag to reorder",
+    "floorReorderHint": "Drag to reorder floors",
     "noDevices": "No controllable devices in this room",
     "noRoomsOnFloor": "No rooms on this floor",
     "emptyFloor": "This floor is empty. Long-press a room to move it here, or browse All Devices.",
@@ -128,8 +128,7 @@
       "description": "Theme and visible devices",
       "temperature": "Show temperature",
       "humidity": "Show humidity",
-      "columns": "Grid columns",
-      "columnsAuto": "Auto"
+      "columns": "Grid columns"
     },
     "theme": {
       "title": "Theme",
@@ -278,7 +277,8 @@
     "saving": "Saving...",
     "cancel": "Cancel",
     "createRoom": "Create room",
-    "createFloor": "Create floor"
+    "createFloor": "Create floor",
+    "editFloor": "Edit floor"
   },
   "iconPicker": {
     "title": "Select Icon",

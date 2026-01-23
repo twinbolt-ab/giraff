@@ -78,39 +78,45 @@ function FloorTab({ floor, isActive, onSelect, onLongPress }: FloorTabProps) {
   )
 }
 
-// Reorderable floor tab for floor edit mode - drag is immediate (no long-press needed)
+// Reorderable floor tab for floor edit mode - only selected floor can be dragged
 interface ReorderableFloorTabProps {
   floor: HAFloor
-  isActive: boolean
   isSelected: boolean
-  onTap: () => void
+  onExit: () => void
 }
 
-function ReorderableFloorTab({ floor, onTap }: ReorderableFloorTabProps) {
+function ReorderableFloorTab({ floor, isSelected, onExit }: ReorderableFloorTabProps) {
   const didDragRef = useRef(false)
 
   return (
     <Reorder.Item
       value={floor}
+      dragListener={isSelected}
       onDragStart={() => {
         didDragRef.current = true
         haptic.medium()
       }}
       onDragEnd={() => {
-        // Reset after a short delay to allow click to be ignored
         setTimeout(() => {
           didDragRef.current = false
         }, 100)
       }}
-      className="flex-shrink-0 list-none cursor-grab active:cursor-grabbing"
-      style={{ border: 'none', outline: 'none', boxShadow: 'none', background: 'transparent' }}
-      whileDrag={{ scale: 1.1, zIndex: 50 }}
+      className={`flex-shrink-0 list-none rounded-xl ${isSelected ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} ${
+        isSelected ? 'border-2 border-accent bg-background' : ''
+      }`}
+      whileDrag={isSelected ? { scale: 1.1, zIndex: 50 } : undefined}
     >
       <div
         onClick={() => {
-          if (!didDragRef.current) onTap()
+          if (!didDragRef.current && !isSelected) {
+            onExit()
+          }
         }}
-        className="flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] transition-colors text-foreground"
+        className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] transition-all rounded-xl ${
+          isSelected
+            ? 'text-accent'
+            : 'text-muted opacity-50'
+        }`}
       >
         {floor.icon ? (
           <MdiIcon icon={floor.icon} className="w-6 h-6" />
@@ -198,19 +204,6 @@ export function BottomNav({
     await saveFloorOrderBatch(contextOrderedFloors, floors)
   }, [isFloorEditMode, contextOrderedFloors, floors])
 
-  // Handle tap on floor in floor edit mode - open edit modal, or close if already open
-  const handleFloorEditTap = useCallback(
-    (floor: HAFloor) => {
-      if (editingFloorId) {
-        // Modal is open - close it
-        onEditFloor?.(null)
-      } else {
-        onEditFloor?.(floor)
-      }
-    },
-    [editingFloorId, onEditFloor]
-  )
-
   // Handle click outside to exit floor edit mode
   const handleBackgroundClick = useCallback(async () => {
     if (isFloorEditMode) {
@@ -285,22 +278,18 @@ export function BottomNav({
                 axis="x"
                 values={contextOrderedFloors}
                 onReorder={handleReorder}
-                className="flex items-center overflow-x-auto list-none p-0 m-0 border-0 hide-scrollbar"
+                className="flex items-center overflow-x-auto overflow-y-visible list-none p-0 m-0 border-0 hide-scrollbar py-2 -my-2"
               >
                 {contextOrderedFloors.map((floor) => {
                   // Use fresh data from floors prop if available (for immediate updates after edit)
                   const freshFloor = floors.find((f) => f.floor_id === floor.floor_id) || floor
-                  const isActive = selectedFloorId === floor.floor_id
                   const isSelected = editSelectedFloorId === floor.floor_id
                   return (
                     <ReorderableFloorTab
                       key={floor.floor_id}
                       floor={freshFloor}
-                      isActive={isActive}
                       isSelected={isSelected}
-                      onTap={() => {
-                        handleFloorEditTap(freshFloor)
-                      }}
+                      onExit={handleBackgroundClick}
                     />
                   )
                 })}
