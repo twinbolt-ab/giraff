@@ -110,29 +110,32 @@ if [[ -z "$COMMITS" || "$COMMIT_COUNT" -eq 0 ]]; then
 fi
 echo ""
 
-# Generate changelog with Claude
-echo -e "${CYAN}Generating changelog with Claude...${NC}"
+# Generate announcement with Claude
+echo -e "${CYAN}Generating release announcement with Claude...${NC}"
 
-CHANGELOG=$(claude -p "You are writing release notes for a mobile app (iOS/Android) called Stuga - a Home Assistant dashboard.
+CHANGELOG=$(claude -p "You are writing a release announcement for a mobile app (iOS/Android) called Stuga - a Home Assistant dashboard.
 
-Given these git commit messages since the last release, write a concise, user-friendly changelog.
+Given these git commit messages since the last release, write a friendly release announcement.
+
+Format:
+1. Start with a brief, conversational intro sentence summarizing what's in this release (e.g., 'This release focuses on...' or 'We've squashed some bugs and...')
+2. Then list the changes using bullet points (-)
 
 Rules:
-- Group related changes under categories if appropriate (e.g., 'Improvements', 'Bug Fixes')
 - Use simple language that end users can understand
 - Focus on what changed from the user's perspective, not technical details
 - Keep it brief - one line per change
-- Use bullet points (-)
 - Don't include commit hashes or technical jargon
 - If a commit is clearly internal/refactoring with no user impact, skip it
+- Group related changes under categories if appropriate (e.g., '**Improvements**', '**Bug Fixes**')
 
 Commits:
 $COMMITS
 
-Write ONLY the changelog content, no headers or intro text:")
+Write ONLY the announcement text:")
 
 echo ""
-echo -e "${BOLD}Generated Changelog:${NC}"
+echo -e "${BOLD}Generated Announcement:${NC}"
 echo "─────────────────────────────────────"
 echo "$CHANGELOG"
 echo "─────────────────────────────────────"
@@ -186,26 +189,29 @@ while true; do
       echo ""
       ;;
     r|R)
-      echo -e "${CYAN}Regenerating changelog...${NC}"
-      CHANGELOG=$(claude -p "You are writing release notes for a mobile app (iOS/Android) called Stuga - a Home Assistant dashboard.
+      echo -e "${CYAN}Regenerating announcement...${NC}"
+      CHANGELOG=$(claude -p "You are writing a release announcement for a mobile app (iOS/Android) called Stuga - a Home Assistant dashboard.
 
-Given these git commit messages since the last release, write a concise, user-friendly changelog.
+Given these git commit messages since the last release, write a friendly release announcement.
+
+Format:
+1. Start with a brief, conversational intro sentence summarizing what's in this release (e.g., 'This release focuses on...' or 'We've squashed some bugs and...')
+2. Then list the changes using bullet points (-)
 
 Rules:
-- Group related changes under categories if appropriate (e.g., 'Improvements', 'Bug Fixes')
 - Use simple language that end users can understand
 - Focus on what changed from the user's perspective, not technical details
 - Keep it brief - one line per change
-- Use bullet points (-)
 - Don't include commit hashes or technical jargon
 - If a commit is clearly internal/refactoring with no user impact, skip it
+- Group related changes under categories if appropriate (e.g., '**Improvements**', '**Bug Fixes**')
 
 Commits:
 $COMMITS
 
-Write ONLY the changelog content, no headers or intro text:")
+Write ONLY the announcement text:")
       echo ""
-      echo -e "${BOLD}Regenerated Changelog:${NC}"
+      echo -e "${BOLD}Regenerated Announcement:${NC}"
       echo "─────────────────────────────────────"
       echo "$CHANGELOG"
       echo "─────────────────────────────────────"
