@@ -161,9 +161,22 @@ while true; do
       ;;
     e|E)
       # Save to temp file for editing
-      TEMP_CHANGELOG=$(mktemp)
+      TEMP_CHANGELOG=$(mktemp).md
       echo "$CHANGELOG" > "$TEMP_CHANGELOG"
-      ${EDITOR:-vim} "$TEMP_CHANGELOG"
+      # Try editors in order of preference
+      if command -v code &> /dev/null; then
+        code --wait "$TEMP_CHANGELOG"
+      elif command -v nano &> /dev/null; then
+        nano "$TEMP_CHANGELOG"
+      elif command -v vim &> /dev/null; then
+        vim "$TEMP_CHANGELOG"
+      elif [[ -n "$EDITOR" ]] && command -v "$EDITOR" &> /dev/null; then
+        $EDITOR "$TEMP_CHANGELOG"
+      else
+        echo -e "${RED}No editor found. Set \$EDITOR or install nano/vim/code${NC}"
+        rm "$TEMP_CHANGELOG"
+        continue
+      fi
       CHANGELOG=$(cat "$TEMP_CHANGELOG")
       rm "$TEMP_CHANGELOG"
       echo ""
