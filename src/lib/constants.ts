@@ -14,6 +14,9 @@ export const DOMAINS_LABEL_PREFIX = `${STUGA_PREFIX}domains-`
 // Label prefix for selected temperature sensor per area (stores entity_id)
 export const TEMPERATURE_SENSOR_LABEL_PREFIX = `${STUGA_PREFIX}temp-`
 
+// Label for excluding a switch from room toggle
+export const NO_ROOM_TOGGLE_LABEL = `${STUGA_PREFIX}no-room-toggle`
+
 // Default order value for items without explicit order
 export const DEFAULT_ORDER = 99
 

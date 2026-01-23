@@ -16,6 +16,8 @@ import {
   setEntityHidden,
   deleteScene,
   createArea,
+  isExcludedFromRoomToggle,
+  setExcludedFromRoomToggle,
 } from '@/lib/ha-websocket'
 import { logger } from '@/lib/logger'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
@@ -31,6 +33,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   const [icon, setIcon] = useState('')
   const [roomId, setRoomId] = useState('')
   const [hidden, setHidden] = useState(false)
+  const [independent, setIndependent] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -39,6 +42,13 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   // Determine if this is a scene
   const isScene = useMemo(() => {
     return device?.entity_id.startsWith('scene.') ?? false
+  }, [device])
+
+  // Determine if this is a toggleable device (light or switch)
+  const isToggleable = useMemo(() => {
+    return (
+      (device?.entity_id.startsWith('switch.') || device?.entity_id.startsWith('light.')) ?? false
+    )
   }, [device])
 
   // Get the appropriate translations
@@ -62,6 +72,9 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
 
       // Get hidden state
       setHidden(isEntityHidden(deviceId))
+
+      // Get independent state (relevant for lights and switches)
+      setIndependent(isExcludedFromRoomToggle(deviceId))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceId])
@@ -90,6 +103,11 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
 
       // Update hidden state
       await setEntityHidden(device.entity_id, hidden)
+
+      // Update independent state (for lights and switches)
+      if (isToggleable) {
+        await setExcludedFromRoomToggle(device.entity_id, independent)
+      }
 
       onClose()
     } catch (error) {
@@ -143,6 +161,12 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
           <FormField label={labels.hidden} hint={labels.hiddenHint}>
             <Toggle checked={hidden} onChange={setHidden} />
           </FormField>
+
+          {isToggleable && (
+            <FormField label={t.edit.device.independent} hint={t.edit.device.independentHint}>
+              <Toggle checked={independent} onChange={setIndependent} />
+            </FormField>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

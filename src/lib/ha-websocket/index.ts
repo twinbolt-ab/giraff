@@ -124,6 +124,10 @@ export const callService = (domain: string, service: string, data?: Record<strin
 export const setOptimisticState = (entityId: string, newState: string, brightness?: number) => {
   entitySvc.setOptimisticState(state, entityId, newState, brightness)
 }
+export const isExcludedFromRoomToggle = (entityId: string) =>
+  entitySvc.isExcludedFromRoomToggle(state, entityId)
+export const setExcludedFromRoomToggle = (entityId: string, excluded: boolean) =>
+  entitySvc.setExcludedFromRoomToggle(state, entityId, excluded)
 
 // Areas
 export const getAreaRegistry = () => state.areaRegistry

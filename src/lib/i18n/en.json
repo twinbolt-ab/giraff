@@ -251,7 +251,9 @@
       "icon": "Icon",
       "room": "Room",
       "hidden": "Hidden",
-      "hiddenHint": "Hide this device"
+      "hiddenHint": "Hide this device",
+      "independent": "Independent",
+      "independentHint": "Don't toggle with room"
     },
     "scene": {
       "title": "Edit Scene",
@@ -298,7 +300,10 @@
       "moveToRoom": "Move to room",
       "setIcon": "Set icon",
       "hide": "Hide all",
-      "unhide": "Unhide all"
+      "unhide": "Unhide all",
+      "independent": "Independent",
+      "makeIndependent": "Make independent",
+      "makeDependent": "Include in room toggle"
     }
   },
   "delete": {

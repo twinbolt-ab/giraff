@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { useHAConnection } from './useHAConnection'
-import { getEntity, setOptimisticState } from '@/lib/ha-websocket'
+import { getEntity, setOptimisticState, isExcludedFromRoomToggle } from '@/lib/ha-websocket'
 import type { HAEntity } from '@/types/ha'
 
 interface UseLightControlOptions {
@@ -111,18 +111,24 @@ export function useLightControl(options: UseLightControlOptions = {}) {
   // Toggle all lights and switches in a room on/off
   const toggleRoomLights = useCallback(
     (lights: HAEntity[], switches: HAEntity[] = []) => {
-      // If any light or switch is on, turn all off. Otherwise turn all on.
-      const anyOn = lights.some((l) => l.state === 'on') || switches.some((s) => s.state === 'on')
+      // Filter out devices that are marked as independent (excluded from room toggle)
+      const includedLights = lights.filter((l) => !isExcludedFromRoomToggle(l.entity_id))
+      const includedSwitches = switches.filter((sw) => !isExcludedFromRoomToggle(sw.entity_id))
+
+      // If any included light or switch is on, turn all off. Otherwise turn all on.
+      const anyOn =
+        includedLights.some((l) => l.state === 'on') ||
+        includedSwitches.some((s) => s.state === 'on')
       const newState = anyOn ? 'off' : 'on'
       const service = anyOn ? 'turn_off' : 'turn_on'
 
-      // Apply optimistic state for all entities
-      for (const light of lights) {
+      // Apply optimistic state for included entities only
+      for (const light of includedLights) {
         const brightness = newState === 'on' ? 255 : undefined
         setOptimisticState(light.entity_id, newState, brightness)
         void callService('light', service, { entity_id: light.entity_id })
       }
-      for (const sw of switches) {
+      for (const sw of includedSwitches) {
         setOptimisticState(sw.entity_id, newState)
         void callService('switch', service, { entity_id: sw.entity_id })
       }
