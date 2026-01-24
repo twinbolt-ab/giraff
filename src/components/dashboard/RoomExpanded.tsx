@@ -136,10 +136,32 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
   // Measure content height whenever it might change
   useLayoutEffect(() => {
-    if (contentRef.current) {
-      setMeasuredHeight(contentRef.current.scrollHeight)
+    const element = contentRef.current
+    if (!element) return
+
+    const measure = () => {
+      // Include margin-top (mt-3 = 12px) in the height calculation
+      // scrollHeight doesn't include margins
+      const style = getComputedStyle(element)
+      const marginTop = parseFloat(style.marginTop) || 0
+      setMeasuredHeight(element.scrollHeight + marginTop)
     }
-  }, [lights, switches, scenes, inputBooleans, inputNumbers, climates, covers, fans, hasDevices])
+
+    // Initial measurement
+    measure()
+
+    // Re-measure after a frame to catch grid layout
+    const rafId = requestAnimationFrame(measure)
+
+    // Use ResizeObserver to catch layout changes (e.g., grid reflow)
+    const resizeObserver = new ResizeObserver(measure)
+    resizeObserver.observe(element)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      resizeObserver.disconnect()
+    }
+  }, [lights, switches, scenes, inputBooleans, inputNumbers, climates, covers, fans, hasDevices, isExpanded])
 
   return (
     <div
@@ -157,7 +179,7 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           duration: ROOM_EXPAND_DURATION * 0.5,
           ease: isExpanded ? 'easeOut' : 'easeIn',
         }}
-        className="pt-3 mt-3 border-t border-border pb-1 px-0.5 -mx-0.5 [&>*:last-child]:mb-0"
+        className="mt-3 pt-3 border-t border-border pb-1 px-0.5 -mx-0.5 [&>*:last-child]:mb-0"
         onPointerDown={(e) => {
           e.stopPropagation()
         }}

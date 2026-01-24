@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { motion, AnimatePresence, useMotionValue, PanInfo } from 'framer-motion'
 import { X, Search, Trash2 } from 'lucide-react'
 import { MdiIcon } from './MdiIcon'
 import { searchIcons, getIconDisplayName } from '@/lib/icons'
@@ -15,18 +15,25 @@ interface IconPickerProps {
 export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedIcon, setSelectedIcon] = useState(value)
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  const y = useMotionValue(0)
+  const sheetRef = useRef<HTMLDivElement>(null)
 
   // Reset selected icon when value changes
   useEffect(() => {
     setSelectedIcon(value)
   }, [value])
 
-  // Reset search when opening
+  // Reset search and motion value when opening
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('')
+      y.set(0)
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
     }
-  }, [isOpen])
+  }, [isOpen, y])
 
   // Filter icons based on search
   const filteredIcons = useMemo(() => {
@@ -48,6 +55,27 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
     onClose()
   }, [onChange, onClose])
 
+  const handleDragEnd = useCallback(
+    (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (sheetRef.current && 'pointerId' in event) {
+        try {
+          sheetRef.current.releasePointerCapture(event.pointerId)
+        } catch {
+          // Ignore
+        }
+      }
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur()
+      }
+      if (info.offset.y > 100 || info.velocity.y > 500) {
+        onClose()
+      } else {
+        y.set(0)
+      }
+    },
+    [onClose, y]
+  )
+
   // Close on escape and lock body scroll
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -63,19 +91,62 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
     }
   }, [isOpen, onClose])
 
+  // Handle keyboard appearance on mobile
+  useEffect(() => {
+    if (!isOpen || !window.visualViewport) return
+
+    const viewport = window.visualViewport
+
+    const handleResize = () => {
+      // Calculate how much the keyboard is pushing up the viewport
+      const offset = window.innerHeight - viewport.height
+      setKeyboardOffset(offset)
+    }
+
+    viewport.addEventListener('resize', handleResize)
+    viewport.addEventListener('scroll', handleResize)
+
+    return () => {
+      viewport.removeEventListener('resize', handleResize)
+      viewport.removeEventListener('scroll', handleResize)
+      setKeyboardOffset(0)
+    }
+  }, [isOpen])
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[60] bg-card flex flex-col"
-        >
-          {/* Header - fixed at top */}
-          <div className="flex-shrink-0 pt-safe relative z-10">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0, pointerEvents: 'none' as const }}
+            animate={{ opacity: 1, pointerEvents: 'auto' as const }}
+            exit={{ opacity: 0, pointerEvents: 'none' as const }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+            onClick={onClose}
+          />
+
+          {/* Bottom Sheet */}
+          <motion.div
+            ref={sheetRef}
+            initial={{ y: '100%', pointerEvents: 'none' as const }}
+            animate={{ y: 0, pointerEvents: 'auto' as const }}
+            exit={{ y: '100%', pointerEvents: 'none' as const }}
+            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.5 }}
+            onDragEnd={handleDragEnd}
+            style={{ y, bottom: keyboardOffset }}
+            className="fixed left-0 right-0 z-[70] bg-card rounded-t-2xl shadow-warm-lg max-h-[85vh] flex flex-col transition-[bottom] duration-200"
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
+              <div className="w-10 h-1 bg-border rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 pb-3 flex-shrink-0">
               <h2 className="text-lg font-semibold text-foreground">{t.iconPicker.title}</h2>
               <button
                 onClick={onClose}
@@ -87,7 +158,7 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
             </div>
 
             {/* Search */}
-            <div className="px-4 py-3 border-b border-border">
+            <div className="px-4 pb-3 flex-shrink-0">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                 <input
@@ -102,7 +173,7 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
 
             {/* Clear button */}
             {value && (
-              <div className="px-4 py-2 border-b border-border">
+              <div className="px-4 pb-2 flex-shrink-0">
                 <button
                   onClick={handleClear}
                   className="flex items-center gap-2 px-3 py-2 text-sm text-muted hover:text-foreground transition-colors"
@@ -112,35 +183,35 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
                 </button>
               </div>
             )}
-          </div>
 
-          {/* Icon grid - scrollable, keyboard covers bottom naturally */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-safe">
-            {filteredIcons.length === 0 ? (
-              <div className="py-8 text-center text-muted">{t.iconPicker.noResults}</div>
-            ) : (
-              <div className="grid grid-cols-5 gap-2 py-4">
-                {filteredIcons.map((icon) => {
-                  const isSelected = icon === selectedIcon
-                  return (
-                    <button
-                      key={icon}
-                      onClick={() => handleSelect(icon)}
-                      className={`aspect-square flex flex-col items-center justify-center p-2 rounded-xl transition-colors touch-feedback ${
-                        isSelected
-                          ? 'bg-accent/20 text-accent ring-2 ring-accent'
-                          : 'bg-background hover:bg-border/50 text-foreground'
-                      }`}
-                      title={getIconDisplayName(icon)}
-                    >
-                      <MdiIcon icon={icon} className="w-6 h-6" />
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </motion.div>
+            {/* Icon grid - scrollable */}
+            <div className="flex-1 min-h-0 overflow-y-auto touch-pan-y px-4 pb-safe">
+              {filteredIcons.length === 0 ? (
+                <div className="py-8 text-center text-muted">{t.iconPicker.noResults}</div>
+              ) : (
+                <div className="grid grid-cols-5 gap-2 py-2">
+                  {filteredIcons.map((icon) => {
+                    const isSelected = icon === selectedIcon
+                    return (
+                      <button
+                        key={icon}
+                        onClick={() => handleSelect(icon)}
+                        className={`aspect-square flex flex-col items-center justify-center p-2 rounded-xl transition-colors touch-feedback ${
+                          isSelected
+                            ? 'bg-accent/20 text-accent ring-2 ring-accent'
+                            : 'bg-background hover:bg-border/50 text-foreground'
+                        }`}
+                        title={getIconDisplayName(icon)}
+                      >
+                        <MdiIcon icon={icon} className="w-6 h-6" />
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   )
