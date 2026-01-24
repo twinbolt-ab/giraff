@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react'
 import { ToggleLeft, SlidersHorizontal } from 'lucide-react'
 import type { HAEntity } from '@/types/ha'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -43,7 +44,7 @@ function InputNumberItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
 }) {
-  const value = parseFloat(input.state) || 0
+  const entityValue = parseFloat(input.state) || 0
   const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
   const max = typeof input.attributes.max === 'number' ? input.attributes.max : 100
   const step = typeof input.attributes.step === 'number' ? input.attributes.step : 1
@@ -53,11 +54,39 @@ function InputNumberItem({
       : ''
   const inputIcon = getEntityIcon(input.entity_id)
 
+  // Use local state while dragging to prevent flickering from HA state updates
+  const [localValue, setLocalValue] = useState(entityValue)
+  const isDraggingRef = useRef(false)
+
+  // Sync local value with entity value when not dragging
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      setLocalValue(entityValue)
+    }
+  }, [entityValue])
+
   const longPress = useLongPress({
     duration: 500,
     disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(input.entity_id),
   })
+
+  const handleSliderStart = () => {
+    isDraggingRef.current = true
+  }
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value)
+    setLocalValue(newValue)
+  }
+
+  const handleSliderEnd = () => {
+    isDraggingRef.current = false
+    // Only call onNumberChange when drag ends
+    if (localValue !== entityValue) {
+      onNumberChange(input, localValue)
+    }
+  }
 
   if (isInEditMode) {
     return (
@@ -124,7 +153,7 @@ function InputNumberItem({
               )}
             </div>
             <span className="text-xs text-muted tabular-nums flex-shrink-0">
-              {value}
+              {localValue}
               {unit}
             </span>
           </div>
@@ -133,10 +162,12 @@ function InputNumberItem({
             min={min}
             max={max}
             step={step}
-            value={value}
-            onChange={(e) => {
-              onNumberChange(input, parseFloat(e.target.value))
-            }}
+            value={localValue}
+            onPointerDown={handleSliderStart}
+            onTouchStart={handleSliderStart}
+            onChange={handleSliderChange}
+            onPointerUp={handleSliderEnd}
+            onTouchEnd={handleSliderEnd}
             className="w-full h-1.5 bg-border rounded-full appearance-none cursor-pointer accent-accent"
           />
         </div>
