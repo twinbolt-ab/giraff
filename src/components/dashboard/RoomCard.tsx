@@ -390,7 +390,12 @@ export function RoomCard({
           </div>
 
           {/* Room name */}
-          <h3 className="font-semibold text-foreground truncate flex-1 text-center pl-2 pr-1 relative z-10">
+          <h3
+            className={clsx(
+              'font-semibold text-foreground truncate flex-1 text-center pl-2 pr-1 relative z-10',
+              !isExpanded && 'text-sm'
+            )}
+          >
             {room.name}
           </h3>
         </div>

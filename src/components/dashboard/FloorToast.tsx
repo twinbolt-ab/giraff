@@ -14,7 +14,8 @@ export function FloorToast({ floorName, show }: FloorToastProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="absolute top-12 left-0 right-0 flex justify-center z-50 pointer-events-none"
+          className="absolute left-0 right-0 flex justify-center z-50 pointer-events-none"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
         >
           <div className="bg-card/95 backdrop-blur-sm border border-border rounded-full px-4 py-2 shadow-warm-lg">
             <span className="text-sm font-medium text-foreground">{floorName}</span>

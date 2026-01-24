@@ -129,6 +129,7 @@ export function RoomsGrid({
         onClickOutside={onClickOutside}
         reorderingDisabled={reorderingDisabled}
         selectedKeys={selectedIds}
+        className="mt-4"
         onDragStart={reorderingDisabled ? undefined : onDragStart}
         onDragEnd={reorderingDisabled ? undefined : onDragEnd}
         onDragPosition={reorderingDisabled ? undefined : onDragPosition}
@@ -159,7 +160,7 @@ export function RoomsGrid({
 
   // Normal grid view with width animations (no layout FLIP for better performance)
   return (
-    <div ref={containerRef} className="flex flex-wrap gap-[12px]">
+    <div ref={containerRef} className="flex flex-wrap gap-[12px] mt-4">
       {displayRooms.map((room, index) => {
         // isExpanded controls the card's internal state (height, content)
         const isExpanded = room.id === expandedRoomId

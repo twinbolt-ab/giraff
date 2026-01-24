@@ -426,7 +426,7 @@ function DashboardContent() {
             </motion.div>
           ) : (
             // Normal mode: swipeable floor container
-            <div className="pt-8 flex-1 flex flex-col">
+            <div className="pt-10 flex-1 flex flex-col">
               <FloorSwipeContainer
                 floors={floors}
                 hasUncategorized={hasUnassignedRooms}
