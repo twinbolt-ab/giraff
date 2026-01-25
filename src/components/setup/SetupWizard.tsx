@@ -308,7 +308,7 @@ const COMMON_URLS = [
   { url: 'http://localhost:8123', label: 'localhost' },
 ]
 
-// Generate URL variants to try (handles missing protocol and protocol switching)
+// Generate URL variants to try (handles missing protocol, protocol switching, and port variations)
 function getUrlVariants(inputUrl: string): string[] {
   const trimmed = inputUrl.trim().replace(/\/+$/, '')
 
@@ -316,22 +316,55 @@ function getUrlVariants(inputUrl: string): string[] {
   const hasHttp = trimmed.toLowerCase().startsWith('http://')
   const hasHttps = trimmed.toLowerCase().startsWith('https://')
 
+  // Normalize to have a protocol for easier manipulation
+  let baseUrl = trimmed
+  let preferHttps = true
+
   if (!hasHttp && !hasHttps) {
-    // No protocol - try https first (preferred), then http
-    return [`https://${trimmed}`, `http://${trimmed}`]
+    // No protocol - will try https first
+    baseUrl = trimmed
+  } else if (hasHttps) {
+    baseUrl = trimmed.replace(/^https:\/\//i, '')
+    preferHttps = true
+  } else if (hasHttp) {
+    baseUrl = trimmed.replace(/^http:\/\//i, '')
+    preferHttps = false
   }
 
-  if (hasHttps) {
-    // Has https - also try http as fallback
-    return [trimmed, trimmed.replace(/^https:\/\//i, 'http://')]
+  // Check if URL has port 8123
+  const hasPort8123 = /:8123(\/|$)/.test(baseUrl)
+  const hasAnyPort = /:\d+(\/|$)/.test(baseUrl)
+
+  // Generate port variants
+  const portVariants: string[] = [baseUrl]
+  if (hasPort8123) {
+    // Has :8123 - also try without it
+    portVariants.push(baseUrl.replace(/:8123/, ''))
+  } else if (!hasAnyPort) {
+    // No port - also try with :8123
+    // Insert port before any path
+    const slashIndex = baseUrl.indexOf('/')
+    if (slashIndex > 0) {
+      portVariants.push(baseUrl.slice(0, slashIndex) + ':8123' + baseUrl.slice(slashIndex))
+    } else {
+      portVariants.push(baseUrl + ':8123')
+    }
   }
 
-  if (hasHttp) {
-    // Has http - also try https as fallback
-    return [trimmed, trimmed.replace(/^http:\/\//i, 'https://')]
+  // Generate protocol variants for each port variant
+  const results: string[] = []
+  for (const variant of portVariants) {
+    if (preferHttps || (!hasHttp && !hasHttps)) {
+      results.push(`https://${variant}`)
+      results.push(`http://${variant}`)
+    } else {
+      results.push(`http://${variant}`)
+      results.push(`https://${variant}`)
+    }
   }
 
-  return [trimmed]
+  // Remove duplicates while preserving order
+  return [...new Set(results)]
 }
 
 // Component for showing CORS config on web
@@ -678,9 +711,8 @@ export function SetupWizard() {
     setAlternativeUrl(null)
     setLiveDiagnostic({ show: false, httpsStatus: 'idle', websocketStatus: 'idle' })
 
-    // Generate URL variants to try (handles missing protocol and protocol switching)
+    // Generate URL variants to try (handles missing protocol, protocol switching, and port variations)
     const urlVariants = getUrlVariants(url)
-    const originalInput = url.trim().replace(/\/+$/, '')
 
     // First verify URL if not already verified
     if (!urlVerified) {
@@ -722,14 +754,10 @@ export function SetupWizard() {
       }
 
       if (workingUrl) {
-        // Check if working URL is different from what user entered
-        const userEnteredProtocol =
-          originalInput.toLowerCase().startsWith('http://') ||
-          originalInput.toLowerCase().startsWith('https://')
-
-        if (userEnteredProtocol && workingUrl !== urlVariants[0]) {
-          // User explicitly entered a protocol but we connected with a different one
-          // Ask for confirmation
+        // Check if working URL is different from what we first tried
+        // (i.e., we had to try an alternative protocol or port)
+        if (workingUrl !== urlVariants[0]) {
+          // We connected with a different URL than expected - ask for confirmation
           setAlternativeUrl({ original: urlVariants[0], working: workingUrl })
           setIsLoading(false)
           return
@@ -738,6 +766,14 @@ export function SetupWizard() {
         // Success! Proceed with the working URL
         setUrl(workingUrl)
         setUrlVerified(true)
+
+        // Authenticate with the working URL (pass directly since state update is async)
+        if (authMethod === 'oauth') {
+          await handleOAuthLogin(workingUrl)
+        } else {
+          await handleTokenSubmit(workingUrl)
+        }
+        return
       } else {
         // All variants failed - run diagnostics on the first URL
         await runLiveDiagnostics(urlVariants[0])
@@ -746,7 +782,7 @@ export function SetupWizard() {
       }
     }
 
-    // Now authenticate based on selected method
+    // URL already verified, authenticate with current url state
     if (authMethod === 'oauth') {
       await handleOAuthLogin()
     } else {
@@ -758,16 +794,17 @@ export function SetupWizard() {
   const handleAcceptAlternativeUrl = async () => {
     if (!alternativeUrl) return
 
-    setUrl(alternativeUrl.working)
+    const workingUrl = alternativeUrl.working
+    setUrl(workingUrl)
     setUrlVerified(true)
     setAlternativeUrl(null)
     setIsLoading(true)
 
-    // Now authenticate based on selected method
+    // Authenticate with the working URL (pass directly since state update is async)
     if (authMethod === 'oauth') {
-      await handleOAuthLogin()
+      await handleOAuthLogin(workingUrl)
     } else {
-      await handleTokenSubmit()
+      await handleTokenSubmit(workingUrl)
     }
   }
 
@@ -784,11 +821,12 @@ export function SetupWizard() {
     setUrlVerified(false)
   }, [])
 
-  const handleOAuthLogin = async () => {
+  const handleOAuthLogin = async (urlToUse?: string) => {
+    const haUrl = urlToUse || url
     try {
       if (isNativeApp()) {
         // On native, use in-app browser for OAuth (works for both HTTP and HTTPS)
-        const result = await authenticateWithInAppBrowser(url)
+        const result = await authenticateWithInAppBrowser(haUrl)
 
         if (!result.success) {
           throw new Error(result.error || 'Authentication failed')
@@ -798,8 +836,8 @@ export function SetupWizard() {
           throw new Error('No tokens received')
         }
 
-        logger.debug('OAuth', 'Storing credentials for URL:', url)
-        await storeOAuthCredentials(url, {
+        logger.debug('OAuth', 'Storing credentials for URL:', haUrl)
+        await storeOAuthCredentials(haUrl, {
           access_token: result.tokens.access_token,
           refresh_token: result.tokens.refresh_token,
           expires_in: result.tokens.expires_in,
@@ -816,19 +854,19 @@ export function SetupWizard() {
         const state = generateState()
 
         // Store pending OAuth data for validation after redirect
-        await storePendingOAuth(state, verifier, url)
+        await storePendingOAuth(state, verifier, haUrl)
 
         // Build and redirect to authorization URL
         const params = new URLSearchParams({
-          client_id: getClientId(url),
-          redirect_uri: getRedirectUri(url),
+          client_id: getClientId(haUrl),
+          redirect_uri: getRedirectUri(haUrl),
           state,
           response_type: 'code',
           code_challenge: challenge,
           code_challenge_method: 'S256',
         })
 
-        window.location.href = `${url}/auth/authorize?${params.toString()}`
+        window.location.href = `${haUrl}/auth/authorize?${params.toString()}`
       }
     } catch (err) {
       logger.error('OAuth', 'Failed:', err)
@@ -838,13 +876,14 @@ export function SetupWizard() {
     }
   }
 
-  const handleTokenSubmit = async () => {
-    const success = await testConnection(url, token.trim())
+  const handleTokenSubmit = async (urlToUse?: string) => {
+    const haUrl = urlToUse || url
+    const success = await testConnection(haUrl, token.trim())
 
     setIsLoading(false)
 
     if (success) {
-      await saveCredentials(url, token.trim())
+      await saveCredentials(haUrl, token.trim())
       setStep('complete')
     } else {
       setError(t.setup.token.error)
