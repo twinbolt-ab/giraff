@@ -17,7 +17,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { saveCredentials } from '@/lib/config'
-import { t } from '@/lib/i18n'
+import { t, interpolate } from '@/lib/i18n'
 import { type ConnectionErrorType, type DiagnosticResult } from '@/lib/connection-diagnostics'
 import { logError, setCustomKey, log } from '@/lib/crashlytics'
 import { EditModal } from '@/components/ui/EditModal'
@@ -92,12 +92,12 @@ function getTroubleshootingSteps(errorType: ConnectionErrorType): string[] {
       'Check that your device is connected to the internet or local network',
       'Verify the Home Assistant URL is correct (e.g., http://homeassistant.local:8123)',
       'Make sure Home Assistant is running and accessible',
-      'If using a local address, ensure you\'re on the same network as Home Assistant',
+      "If using a local address, ensure you're on the same network as Home Assistant",
       'Try accessing the URL directly in a web browser to verify it works',
     ],
     'websocket-blocked': [
       'WebSocket connections are being blocked by your network or a proxy',
-      'If you\'re on a corporate or public WiFi, try using mobile data instead',
+      "If you're on a corporate or public WiFi, try using mobile data instead",
       'Check if you have a VPN running that might block WebSocket connections',
       'If using a reverse proxy (like nginx), ensure WebSocket upgrade is enabled',
       'Add these lines to your nginx config:\n  proxy_http_version 1.1;\n  proxy_set_header Upgrade $http_upgrade;\n  proxy_set_header Connection "upgrade";',
@@ -308,6 +308,32 @@ const COMMON_URLS = [
   { url: 'http://localhost:8123', label: 'localhost' },
 ]
 
+// Generate URL variants to try (handles missing protocol and protocol switching)
+function getUrlVariants(inputUrl: string): string[] {
+  const trimmed = inputUrl.trim().replace(/\/+$/, '')
+
+  // Check if URL has a protocol
+  const hasHttp = trimmed.toLowerCase().startsWith('http://')
+  const hasHttps = trimmed.toLowerCase().startsWith('https://')
+
+  if (!hasHttp && !hasHttps) {
+    // No protocol - try https first (preferred), then http
+    return [`https://${trimmed}`, `http://${trimmed}`]
+  }
+
+  if (hasHttps) {
+    // Has https - also try http as fallback
+    return [trimmed, trimmed.replace(/^https:\/\//i, 'http://')]
+  }
+
+  if (hasHttp) {
+    // Has http - also try https as fallback
+    return [trimmed, trimmed.replace(/^http:\/\//i, 'https://')]
+  }
+
+  return [trimmed]
+}
+
 // Component for showing CORS config on web
 function WebCorsConfig() {
   const [copied, setCopied] = useState(false)
@@ -373,6 +399,10 @@ export function SetupWizard() {
   const [suggestions, setSuggestions] = useState<UrlSuggestion[]>([])
   const [isProbing, setIsProbing] = useState(false)
   const [urlVerified, setUrlVerified] = useState(false)
+  const [alternativeUrl, setAlternativeUrl] = useState<{
+    original: string
+    working: string
+  } | null>(null)
   const hasProbed = useRef(false)
   const userHasTyped = useRef(false)
 
@@ -538,62 +568,65 @@ export function SetupWizard() {
   )
 
   // Run live diagnostics with progress updates
-  const runLiveDiagnostics = useCallback(async (testUrl: string): Promise<DiagnosticResult> => {
-    void log('Setup: Running connection diagnostics')
+  const runLiveDiagnostics = useCallback(
+    async (testUrl: string): Promise<DiagnosticResult> => {
+      void log('Setup: Running connection diagnostics')
 
-    // Show diagnostic panel
-    setLiveDiagnostic({
-      show: true,
-      httpsStatus: 'checking',
-      websocketStatus: 'idle',
-    })
+      // Show diagnostic panel
+      setLiveDiagnostic({
+        show: true,
+        httpsStatus: 'checking',
+        websocketStatus: 'idle',
+      })
 
-    // Test HTTPS first
-    const httpsOk = await testHttpsReachable(testUrl)
-    setLiveDiagnostic((prev) => ({
-      ...prev,
-      httpsStatus: httpsOk ? 'success' : 'failed',
-      websocketStatus: httpsOk ? 'checking' : 'idle',
-    }))
+      // Test HTTPS first
+      const httpsOk = await testHttpsReachable(testUrl)
+      setLiveDiagnostic((prev) => ({
+        ...prev,
+        httpsStatus: httpsOk ? 'success' : 'failed',
+        websocketStatus: httpsOk ? 'checking' : 'idle',
+      }))
 
-    if (!httpsOk) {
+      if (!httpsOk) {
+        const result: DiagnosticResult = {
+          httpsReachable: false,
+          websocketReachable: false,
+          authValid: false,
+          errorType: 'network',
+          timestamp: Date.now(),
+        }
+        setLiveDiagnostic((prev) => ({ ...prev, errorType: 'network' }))
+        // Log to Crashlytics
+        void logSetupDiagnostic(result, testUrl)
+        return result
+      }
+
+      // Test WebSocket
+      const wsOk = await testConnection(testUrl, undefined, 8000)
+      const errorType: ConnectionErrorType = wsOk ? 'unknown' : 'websocket-blocked'
+      setLiveDiagnostic((prev) => ({
+        ...prev,
+        websocketStatus: wsOk ? 'success' : 'failed',
+        errorType: wsOk ? undefined : errorType,
+      }))
+
       const result: DiagnosticResult = {
-        httpsReachable: false,
-        websocketReachable: false,
-        authValid: false,
-        errorType: 'network',
+        httpsReachable: true,
+        websocketReachable: wsOk,
+        authValid: false, // Not tested yet
+        errorType,
         timestamp: Date.now(),
       }
-      setLiveDiagnostic((prev) => ({ ...prev, errorType: 'network' }))
-      // Log to Crashlytics
-      void logSetupDiagnostic(result, testUrl)
+
+      // Log to Crashlytics if failed
+      if (!wsOk) {
+        void logSetupDiagnostic(result, testUrl)
+      }
+
       return result
-    }
-
-    // Test WebSocket
-    const wsOk = await testConnection(testUrl, undefined, 8000)
-    const errorType: ConnectionErrorType = wsOk ? 'unknown' : 'websocket-blocked'
-    setLiveDiagnostic((prev) => ({
-      ...prev,
-      websocketStatus: wsOk ? 'success' : 'failed',
-      errorType: wsOk ? undefined : errorType,
-    }))
-
-    const result: DiagnosticResult = {
-      httpsReachable: true,
-      websocketReachable: wsOk,
-      authValid: false, // Not tested yet
-      errorType,
-      timestamp: Date.now(),
-    }
-
-    // Log to Crashlytics if failed
-    if (!wsOk) {
-      void logSetupDiagnostic(result, testUrl)
-    }
-
-    return result
-  }, [testConnection])
+    },
+    [testConnection]
+  )
 
   // Log diagnostic result to Crashlytics
   const logSetupDiagnostic = async (result: DiagnosticResult, testUrl: string) => {
@@ -640,49 +673,72 @@ export function SetupWizard() {
 
     setIsLoading(true)
     setError(null)
+    setAlternativeUrl(null)
     setLiveDiagnostic({ show: false, httpsStatus: 'idle', websocketStatus: 'idle' })
 
-    // Normalize URL
-    let normalizedUrl = url.trim()
-    if (!normalizedUrl.startsWith('http')) {
-      normalizedUrl = 'http://' + normalizedUrl
-    }
-    normalizedUrl = normalizedUrl.replace(/\/+$/, '')
+    // Generate URL variants to try (handles missing protocol and protocol switching)
+    const urlVariants = getUrlVariants(url)
+    const originalInput = url.trim().replace(/\/+$/, '')
 
     // First verify URL if not already verified
     if (!urlVerified) {
-      // Start a timer - show diagnostics after 500ms if still connecting
-      let showDiagnosticsTimer: ReturnType<typeof setTimeout> | null = null
-      let diagnosticPromise: Promise<DiagnosticResult> | null = null
+      let workingUrl: string | null = null
 
-      // Run connection test
-      const connectionPromise = testConnection(normalizedUrl, undefined, 10000)
+      // Try each URL variant
+      for (let i = 0; i < urlVariants.length; i++) {
+        const testUrl = urlVariants[i]
 
-      // After 500ms, start showing live diagnostics
-      showDiagnosticsTimer = setTimeout(() => {
-        diagnosticPromise = runLiveDiagnostics(normalizedUrl)
-      }, 500)
+        // Start a timer - show diagnostics after 500ms if still connecting (only for first URL)
+        let showDiagnosticsTimer: ReturnType<typeof setTimeout> | null = null
 
-      const connected = await connectionPromise
+        // Run connection test
+        const connectionPromise = testConnection(testUrl, undefined, 10000)
 
-      // Clear the timer if connection completed quickly
-      if (showDiagnosticsTimer) {
-        clearTimeout(showDiagnosticsTimer)
+        // After 500ms, start showing live diagnostics (only for first attempt)
+        if (i === 0) {
+          showDiagnosticsTimer = setTimeout(() => {
+            void runLiveDiagnostics(testUrl)
+          }, 500)
+        }
+
+        const connected = await connectionPromise
+
+        // Clear the timer if connection completed quickly
+        if (showDiagnosticsTimer) {
+          clearTimeout(showDiagnosticsTimer)
+        }
+
+        if (connected) {
+          workingUrl = testUrl
+          // Hide diagnostics on success
+          setLiveDiagnostic({ show: false, httpsStatus: 'idle', websocketStatus: 'idle' })
+          break
+        } else if (i === 0 && urlVariants.length > 1) {
+          // First URL failed, will try alternative - clear diagnostics
+          setLiveDiagnostic({ show: false, httpsStatus: 'idle', websocketStatus: 'idle' })
+        }
       }
 
-      if (connected) {
-        // Success! Hide diagnostics and proceed
-        setLiveDiagnostic({ show: false, httpsStatus: 'idle', websocketStatus: 'idle' })
-        setUrl(normalizedUrl)
+      if (workingUrl) {
+        // Check if working URL is different from what user entered
+        const userEnteredProtocol =
+          originalInput.toLowerCase().startsWith('http://') ||
+          originalInput.toLowerCase().startsWith('https://')
+
+        if (userEnteredProtocol && workingUrl !== urlVariants[0]) {
+          // User explicitly entered a protocol but we connected with a different one
+          // Ask for confirmation
+          setAlternativeUrl({ original: urlVariants[0], working: workingUrl })
+          setIsLoading(false)
+          return
+        }
+
+        // Success! Proceed with the working URL
+        setUrl(workingUrl)
         setUrlVerified(true)
       } else {
-        // Connection failed - if diagnostics already started, wait for them
-        if (diagnosticPromise) {
-          await diagnosticPromise
-        } else {
-          // Diagnostics didn't start (failed within 500ms), run them now
-          await runLiveDiagnostics(normalizedUrl)
-        }
+        // All variants failed - run diagnostics on the first URL
+        await runLiveDiagnostics(urlVariants[0])
         setIsLoading(false)
         return
       }
@@ -694,6 +750,29 @@ export function SetupWizard() {
     } else {
       await handleTokenSubmit()
     }
+  }
+
+  // Handle user accepting the alternative URL
+  const handleAcceptAlternativeUrl = async () => {
+    if (!alternativeUrl) return
+
+    setUrl(alternativeUrl.working)
+    setUrlVerified(true)
+    setAlternativeUrl(null)
+    setIsLoading(true)
+
+    // Now authenticate based on selected method
+    if (authMethod === 'oauth') {
+      await handleOAuthLogin()
+    } else {
+      await handleTokenSubmit()
+    }
+  }
+
+  // Handle user rejecting the alternative URL
+  const handleRejectAlternativeUrl = () => {
+    setAlternativeUrl(null)
+    setUrlVerified(false)
   }
 
   // Retry connection after diagnostic
@@ -1033,6 +1112,53 @@ export function SetupWizard() {
                 <AnimatePresence>
                   {liveDiagnostic.show && (
                     <DiagnosticDetails state={liveDiagnostic} onRetry={handleRetryConnection} />
+                  )}
+                </AnimatePresence>
+
+                {/* Alternative URL Confirmation */}
+                <AnimatePresence>
+                  {alternativeUrl && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl space-y-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                            <Check className="w-4 h-4 text-green-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">
+                              {interpolate(
+                                t.setup.url.alternativeFound ||
+                                  "We couldn't connect to {original}, but found Home Assistant at:",
+                                { original: alternativeUrl.original }
+                              )}
+                            </p>
+                            <p className="font-mono text-sm text-accent mt-1 break-all">
+                              {alternativeUrl.working}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleRejectAlternativeUrl}
+                            className="flex-1 py-3 px-4 bg-border/50 text-foreground rounded-xl font-medium hover:bg-border transition-colors text-sm"
+                          >
+                            {t.setup.url.keepOriginal || 'Try original again'}
+                          </button>
+                          <button
+                            onClick={handleAcceptAlternativeUrl}
+                            className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors text-sm"
+                          >
+                            {t.setup.url.useAlternative || 'Use this URL'}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
 

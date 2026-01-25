@@ -1,12 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence, useMotionValue, useDragControls, PanInfo } from 'framer-motion'
 import { X, Check, Loader2, AlertCircle, Eye, EyeOff, LogOut, LogIn, Key } from 'lucide-react'
-import { t } from '@/lib/i18n'
+import { t, interpolate } from '@/lib/i18n'
 import { updateUrl, updateToken, clearCredentials } from '@/lib/config'
 import { getStorage } from '@/lib/storage'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
 import { logger } from '@/lib/logger'
+
+// Generate URL variants to try (handles missing protocol and protocol switching)
+function getUrlVariants(inputUrl: string): string[] {
+  const trimmed = inputUrl.trim().replace(/\/+$/, '')
+
+  // Check if URL has a protocol
+  const hasHttp = trimmed.toLowerCase().startsWith('http://')
+  const hasHttps = trimmed.toLowerCase().startsWith('https://')
+
+  if (!hasHttp && !hasHttps) {
+    // No protocol - try https first (preferred), then http
+    return [`https://${trimmed}`, `http://${trimmed}`]
+  }
+
+  if (hasHttps) {
+    // Has https - also try http as fallback
+    return [trimmed, trimmed.replace(/^https:\/\//i, 'http://')]
+  }
+
+  if (hasHttp) {
+    // Has http - also try https as fallback
+    return [trimmed, trimmed.replace(/^http:\/\//i, 'https://')]
+  }
+
+  return [trimmed]
+}
 
 interface ConnectionSettingsModalProps {
   isOpen: boolean
@@ -22,6 +48,10 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const [alternativeUrl, setAlternativeUrl] = useState<{
+    original: string
+    working: string
+  } | null>(null)
 
   const y = useMotionValue(0)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -73,6 +103,7 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
       setError(null)
       setSuccess(false)
       setShowLogoutConfirm(false)
+      setAlternativeUrl(null)
     }
   }, [isOpen, connectedUrl, isOAuth])
 
@@ -143,15 +174,41 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     setIsLoading(true)
     setError(null)
     setSuccess(false)
+    setAlternativeUrl(null)
 
-    const normalizedUrl = url.trim().replace(/\/+$/, '')
     const trimmedToken = token.trim()
+    const urlVariants = getUrlVariants(url)
+    const originalInput = url.trim().replace(/\/+$/, '')
 
-    const isValid = await testConnection(normalizedUrl, trimmedToken)
+    let workingUrl: string | null = null
 
-    if (isValid) {
-      await updateUrl(normalizedUrl)
+    // Try each URL variant
+    for (const testUrl of urlVariants) {
+      const isValid = await testConnection(testUrl, trimmedToken)
+      if (isValid) {
+        workingUrl = testUrl
+        break
+      }
+    }
+
+    if (workingUrl) {
+      // Check if working URL is different from what user entered
+      const userEnteredProtocol =
+        originalInput.toLowerCase().startsWith('http://') ||
+        originalInput.toLowerCase().startsWith('https://')
+
+      if (userEnteredProtocol && workingUrl !== urlVariants[0]) {
+        // User explicitly entered a protocol but we connected with a different one
+        // Ask for confirmation
+        setAlternativeUrl({ original: urlVariants[0], working: workingUrl })
+        setIsLoading(false)
+        return
+      }
+
+      // Success! Save the working URL
+      await updateUrl(workingUrl)
       await updateToken(trimmedToken)
+      setUrl(workingUrl)
       setSuccess(true)
       void reconnect()
 
@@ -164,6 +221,33 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
     }
 
     setIsLoading(false)
+  }
+
+  // Handle user accepting the alternative URL
+  const handleAcceptAlternativeUrl = async () => {
+    if (!alternativeUrl) return
+
+    setIsLoading(true)
+    const trimmedToken = token.trim()
+
+    await updateUrl(alternativeUrl.working)
+    await updateToken(trimmedToken)
+    setUrl(alternativeUrl.working)
+    setAlternativeUrl(null)
+    setSuccess(true)
+    void reconnect()
+
+    // Auto close after success
+    setTimeout(() => {
+      onClose()
+    }, 1500)
+
+    setIsLoading(false)
+  }
+
+  // Handle user rejecting the alternative URL
+  const handleRejectAlternativeUrl = () => {
+    setAlternativeUrl(null)
   }
 
   const handleLogout = async () => {
@@ -331,6 +415,53 @@ export function ConnectionSettingsModal({ isOpen, onClose }: ConnectionSettingsM
                   </div>
                 </div>
               )}
+
+              {/* Alternative URL Confirmation */}
+              <AnimatePresence>
+                {alternativeUrl && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                          <Check className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground">
+                            {interpolate(
+                              t.setup?.url?.alternativeFound ||
+                                "We couldn't connect to {original}, but found Home Assistant at:",
+                              { original: alternativeUrl.original }
+                            )}
+                          </p>
+                          <p className="font-mono text-sm text-accent mt-1 break-all">
+                            {alternativeUrl.working}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={handleRejectAlternativeUrl}
+                          className="flex-1 py-3 px-4 bg-border/50 text-foreground rounded-xl font-medium hover:bg-border transition-colors text-sm"
+                        >
+                          {t.setup?.url?.keepOriginal || 'Try original again'}
+                        </button>
+                        <button
+                          onClick={handleAcceptAlternativeUrl}
+                          className="flex-1 py-3 px-4 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 transition-colors text-sm"
+                        >
+                          {t.setup?.url?.useAlternative || 'Use this URL'}
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Error Message */}
               {error && (

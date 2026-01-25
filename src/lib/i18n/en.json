@@ -33,7 +33,10 @@
       "success": "Connected!",
       "error": "Could not connect. Check the URL and try again.",
       "scanning": "Scanning network...",
-      "commonUrls": "Common addresses"
+      "commonUrls": "Common addresses",
+      "alternativeFound": "We couldn't connect to {original}, but found Home Assistant at:",
+      "useAlternative": "Use this URL",
+      "keepOriginal": "Try original again"
     },
     "token": {
       "title": "Authentication",
