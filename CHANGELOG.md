@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.19] - 2026-01-25
+
+This release makes connecting to your Home Assistant a smoother experience.
+
+**Improvements**
+- Smarter URL handling when setting up your connection - the app now automatically tries different protocols (http/https) and suggests alternatives if your initial URL doesn't work
+- When multiple connection options are found, you can now easily pick the one that works best for you
+
+**Bug Fixes**
+- Fixed an issue where the setup wizard wouldn't scroll properly when the keyboard appeared
+- Fixed a timing issue that could cause connection testing to behave unexpectedly
+
+
 ## [0.3.18] - 2026-01-25
 
 This release brings improved stability and better error reporting to help us fix issues faster.
