@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.3.18] - 2026-01-25
+
+This release brings improved stability and better error reporting to help us fix issues faster.
+
+**Improvements**
+- Added connection diagnostics to help troubleshoot connectivity issues
+- Updated privacy policy to reflect our crash reporting practices
+
+**Bug Fixes**
+- Fixed compatibility issues on Huawei Android 12 devices
+- Fixed modal sheets sometimes closing unexpectedly when swiping
+- Fixed slider controls flickering while dragging
+- Fixed icon picker scrolling issues on Android
+- Fixed room card layout and sizing inconsistencies
+
+
 ## [0.3.17] - 2026-01-23
 
 This release brings a refreshed editing experience and more control over how your rooms display information.
