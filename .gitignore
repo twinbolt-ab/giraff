@@ -27,25 +27,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# Capacitor (ignore build artifacts, but track fastlane and customized resources)
-/ios/*
-!/ios/App/
-/ios/App/*
-!/ios/App/fastlane/
-/android/*
-!/android/fastlane/
-!/android/app/
-/android/app/*
-!/android/app/src/
-/android/app/src/*
-!/android/app/src/main/
-/android/app/src/main/*
-!/android/app/src/main/AndroidManifest.xml
-!/android/app/src/main/res/
-/android/app/src/main/res/*
-!/android/app/src/main/res/mipmap*/
-!/android/app/src/main/res/drawable*/
-!/android/app/src/main/res/values/
+# Capacitor (generated platforms - use *-overrides/ folders for customizations)
+/ios/
+/android/
 
 # Vite
 .vite
@@ -53,4 +37,5 @@ yarn-error.log*
 CLAUDE.md
 *.jks
 android/fastlane/play-store-credentials.json
+android-overrides/fastlane/play-store-credentials.json
 .claude

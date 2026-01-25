@@ -16,6 +16,7 @@ const config: CapacitorConfig = {
   android: {
     backgroundColor: '#0D0D0C',
     overScrollMode: 'never',
+    useLegacyBridge: true, // Use addJavascriptInterface for better Huawei WebView compatibility
   },
   plugins: {
     Preferences: {
