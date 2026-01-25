@@ -405,6 +405,8 @@ export function SetupWizard() {
   } | null>(null)
   const hasProbed = useRef(false)
   const userHasTyped = useRef(false)
+  const urlInputRef = useRef<HTMLInputElement>(null)
+  const tokenInputRef = useRef<HTMLTextAreaElement>(null)
 
   // Check if OAuth is available for current URL
   const oauthAvailable = isOAuthAvailable(url)
@@ -860,9 +862,9 @@ export function SetupWizard() {
   }
 
   return (
-    <div className="flex-1 bg-background flex items-center justify-center p-6 overflow-hidden relative">
+    <div className="flex-1 bg-background flex flex-col items-center justify-start p-6 overflow-y-auto relative">
       {/* Subtle glow effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         {/* Primary warm glow - center */}
         <div
           className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full"
@@ -880,6 +882,9 @@ export function SetupWizard() {
           }}
         />
       </div>
+
+      {/* Spacer to help center content vertically when there's room */}
+      <div className="flex-1 min-h-8" />
 
       <div className="w-full max-w-md relative z-10">
         <AnimatePresence mode="wait">
@@ -946,6 +951,7 @@ export function SetupWizard() {
                       {t.setup.url.label}
                     </label>
                     <input
+                      ref={urlInputRef}
                       id="ha-url"
                       type="url"
                       value={url}
@@ -954,6 +960,15 @@ export function SetupWizard() {
                         setUrl(e.target.value)
                         setUrlVerified(false)
                         setError(null)
+                      }}
+                      onFocus={() => {
+                        // Scroll input into view when keyboard opens
+                        setTimeout(() => {
+                          urlInputRef.current?.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                          })
+                        }, 300)
                       }}
                       onBlur={() => {
                         if (url.trim()) {
@@ -1093,11 +1108,21 @@ export function SetupWizard() {
                           {t.setup.token.hint}
                         </p>
                         <textarea
+                          ref={tokenInputRef}
                           id="ha-token"
                           value={token}
                           onChange={(e) => {
                             setToken(e.target.value)
                             setError(null)
+                          }}
+                          onFocus={() => {
+                            // Scroll input into view when keyboard opens
+                            setTimeout(() => {
+                              tokenInputRef.current?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'center',
+                              })
+                            }, 300)
                           }}
                           placeholder={t.setup.token.placeholder}
                           rows={3}
@@ -1255,6 +1280,9 @@ export function SetupWizard() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Spacer to help center content vertically when there's room */}
+      <div className="flex-1 min-h-8" />
     </div>
   )
 }
