@@ -27,6 +27,8 @@ import * as floorSvc from './floor-service'
 import * as entitySvc from './entity-service'
 import * as labelSvc from './label-service'
 import { logger } from '@/lib/logger'
+import { getConnectionType } from '@/lib/crashlytics'
+import { logConnectionSuccess, logConnectionFailure } from '@/lib/analytics'
 
 // Module-private singleton state
 const state = createInitialState()
@@ -38,7 +40,7 @@ function handleMessage(message: WebSocketMessage): void {
       void conn.authenticate(state)
       break
 
-    case 'auth_ok':
+    case 'auth_ok': {
       logger.debug('HA WS', 'Authenticated')
       state.isAuthenticated = true
       state.isInitialConnection = false // Successful connection, future failures are reconnects
@@ -48,12 +50,29 @@ function handleMessage(message: WebSocketMessage): void {
       registry.fetchAllRegistries(state)
       // Set user context for crash reporting (counts may be 0 initially, updated later)
       conn.setConnectionContext(state)
+      // Log analytics event
+      const httpUrl = state.url.replace(/^ws/, 'http').replace('/api/websocket', '')
+      void logConnectionSuccess(
+        getConnectionType(httpUrl),
+        state.useOAuth ? 'oauth' : 'token',
+        state.entities?.size,
+        state.areas?.size
+      )
       break
+    }
 
-    case 'auth_invalid':
+    case 'auth_invalid': {
       logger.error('HA WS', 'Authentication failed')
+      // Log analytics event
+      const httpUrlInvalid = state.url.replace(/^ws/, 'http').replace('/api/websocket', '')
+      void logConnectionFailure(
+        getConnectionType(httpUrlInvalid),
+        state.useOAuth ? 'oauth' : 'token',
+        'auth_invalid'
+      )
       conn.disconnect(state)
       break
+    }
 
     case 'result':
       if (message.id) {

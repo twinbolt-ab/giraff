@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import * as ws from '../ha-websocket'
 import * as metadata from '../metadata'
 import { ORDER_GAP } from '../constants'
+import { logRoomReorder } from '../analytics'
 
 export function useRoomOrder() {
   const [, forceUpdate] = useState({})
@@ -88,6 +89,7 @@ export function useRoomOrder() {
       )
 
       await Promise.all(updates)
+      void logRoomReorder()
     },
     [calculateNewOrders]
   )

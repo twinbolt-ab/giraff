@@ -19,6 +19,7 @@ import {
 } from '@/lib/ha-websocket'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { logger } from '@/lib/logger'
+import { logDeviceEdit } from '@/lib/analytics'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 
 interface DeviceEditModalProps {
@@ -109,6 +110,7 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
         onDeviceHidden?.(device.entity_id)
       }
 
+      void logDeviceEdit()
       onClose()
     } catch (error) {
       logger.error('DeviceEdit', 'Failed to update device:', error)

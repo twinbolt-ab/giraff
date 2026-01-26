@@ -8,6 +8,7 @@ import { FloorDeleteDialog } from '@/components/dashboard/FloorDeleteDialog'
 import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
 import { updateFloor } from '@/lib/ha-websocket'
+import { logFloorEdit } from '@/lib/analytics'
 import { logger } from '@/lib/logger'
 import type { HAFloor, RoomWithDevices } from '@/types/ha'
 
@@ -51,6 +52,7 @@ export function FloorEditModal({
         name: name.trim() || floor.name,
         icon: icon.trim() || null,
       })
+      void logFloorEdit()
       onClose()
     } catch (error) {
       logger.error('FloorEdit', 'Failed to update floor:', error)

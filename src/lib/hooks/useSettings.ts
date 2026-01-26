@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useSyncExternalStore } from 'react'
+import { logSettingChange } from '../analytics'
 
 const SETTINGS_KEY = 'stuga-settings'
 
@@ -102,22 +103,27 @@ export function useSettings() {
 
   const setRoomOrderingEnabled = useCallback((value: boolean) => {
     updateSettingsStore({ roomOrderingEnabled: value })
+    void logSettingChange('room_ordering', value)
   }, [])
 
   const setShowTemperature = useCallback((value: boolean) => {
     updateSettingsStore({ showTemperature: value })
+    void logSettingChange('show_temperature', value)
   }, [])
 
   const setShowHumidity = useCallback((value: boolean) => {
     updateSettingsStore({ showHumidity: value })
+    void logSettingChange('show_humidity', value)
   }, [])
 
   const setGridColumns = useCallback((value: GridColumnsOption) => {
     updateSettingsStore({ gridColumns: value })
+    void logSettingChange('grid_columns', value)
   }, [])
 
   const setAlsoHideInHA = useCallback((value: boolean) => {
     updateSettingsStore({ alsoHideInHA: value })
+    void logSettingChange('also_hide_in_ha', value)
   }, [])
 
   return {

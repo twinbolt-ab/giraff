@@ -5,6 +5,7 @@ import { initStorage } from './lib/storage'
 import { initMetadataService } from './lib/metadata'
 import { initCrashlytics, initDebugId, logError } from './lib/crashlytics'
 import { initPerformance } from './lib/performance'
+import { initAnalytics, setAnalyticsUserId } from './lib/analytics'
 import App from './App'
 import './index.css'
 
@@ -32,9 +33,11 @@ async function bootstrap() {
     // Initialize Firebase (Crashlytics first to catch any init errors)
     await initCrashlytics()
     await initPerformance()
+    await initAnalytics()
 
     await initStorage()
-    await initDebugId()
+    const debugId = await initDebugId()
+    await setAnalyticsUserId(debugId)
     initMetadataService()
 
     const root = document.getElementById('root')

@@ -30,6 +30,7 @@ import { AlsoHideInHADialog } from '@/components/settings/AlsoHideInHADialog'
 import { useDevMode } from '@/lib/hooks/useDevMode'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { getDebugId } from '@/lib/crashlytics'
+import { logSettingChange } from '@/lib/analytics'
 import { clsx } from 'clsx'
 
 interface SettingsMenuProps {
@@ -196,7 +197,9 @@ export function SettingsMenu({
   }
 
   const handleThemeToggle = () => {
-    setTheme(isDark ? 'light' : 'dark')
+    const newTheme = isDark ? 'light' : 'dark'
+    setTheme(newTheme)
+    void logSettingChange('theme', newTheme)
   }
 
   const handleRoomOrderingToggle = () => {

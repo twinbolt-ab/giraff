@@ -5,6 +5,7 @@ import {
   isEntityVisible as checkEntityVisible,
 } from '../config'
 import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
+import { logSettingChange } from '../analytics'
 
 /**
  * Hook for managing configurable entity domains and visibility settings
@@ -33,13 +34,15 @@ export function useEnabledDomains() {
   // Toggle a domain on/off
   const toggleDomain = useCallback(
     (domain: ConfigurableDomain) => {
-      const newDomains = enabledDomains.includes(domain)
+      const isCurrentlyEnabled = enabledDomains.includes(domain)
+      const newDomains = isCurrentlyEnabled
         ? enabledDomains.filter((d) => d !== domain)
         : [...enabledDomains, domain]
 
       // Ensure at least one domain is enabled
       if (newDomains.length > 0) {
         setEnabledDomains(newDomains)
+        void logSettingChange('domain_config', `${domain}:${!isCurrentlyEnabled}`)
       }
     },
     [enabledDomains, setEnabledDomains]

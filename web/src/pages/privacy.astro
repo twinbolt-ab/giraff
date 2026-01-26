@@ -26,22 +26,27 @@ import Layout from '../layouts/Layout.astro';
         </p>
         <p class="text-muted leading-relaxed">
           <strong class="text-foreground">The short version:</strong> Stuga runs entirely on your device and connects
-          directly to your Home Assistant instance. We collect anonymous crash reports to improve stability, but no personal data or Home Assistant information is ever collected.
+          directly to your Home Assistant instance. We collect anonymous crash reports and usage statistics to improve the app, but no personal data or Home Assistant information is ever collected.
         </p>
       </section>
 
       <section class="mb-12">
         <h2 class="text-2xl font-bold mb-4">Data Collection</h2>
         <p class="text-muted leading-relaxed mb-4">
-          <strong class="text-foreground">Stuga collects minimal anonymous data to improve app stability.</strong> The app operates locally on your
+          <strong class="text-foreground">Stuga collects minimal anonymous data to improve the app.</strong> The app operates locally on your
           device and communicates only with your Home Assistant server for smart home control.
         </p>
         <ul class="list-disc list-inside text-muted space-y-2">
           <li>Anonymous crash reports via Firebase Crashlytics (to fix bugs)</li>
+          <li>Anonymous usage analytics via Firebase Analytics (to understand which features are used)</li>
           <li>No personal information or Home Assistant data is collected</li>
-          <li>No usage analytics or behavioral tracking</li>
           <li>No advertising or ad tracking</li>
         </ul>
+        <p class="text-muted leading-relaxed mt-4">
+          Analytics data includes: screen views, connection success/failure rates, and settings preferences.
+          All data is anonymous and cannot be used to identify you. No device names, entity names, or
+          Home Assistant URLs are ever collected.
+        </p>
       </section>
 
       <section class="mb-12">
@@ -80,11 +85,13 @@ import Layout from '../layouts/Layout.astro';
           Stuga uses the following third-party services:
         </p>
         <ul class="list-disc list-inside text-muted space-y-2">
-          <li><strong class="text-foreground">Firebase Crashlytics:</strong> For anonymous crash reporting to help us fix bugs. No personal data is collected.</li>
+          <li><strong class="text-foreground">Firebase Crashlytics:</strong> For anonymous crash reporting to help us fix bugs.</li>
+          <li><strong class="text-foreground">Firebase Analytics:</strong> For anonymous usage statistics to understand which features are used.</li>
           <li><strong class="text-foreground">Fontshare CDN:</strong> For loading the Satoshi font.</li>
         </ul>
         <p class="text-muted leading-relaxed mt-4">
-          Stuga does not use any advertising, behavioral analytics, or user tracking services.
+          Stuga does not use any advertising or ad tracking services. Firebase Analytics is configured
+          to collect only anonymous aggregate data - no personal information or identifiers are collected.
         </p>
       </section>
 

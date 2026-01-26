@@ -9,6 +9,7 @@ import { RoomDeleteDialog } from '@/components/dashboard/RoomDeleteDialog'
 import { useToast } from '@/providers/ToastProvider'
 import { t } from '@/lib/i18n'
 import { updateArea, createFloor } from '@/lib/ha-websocket'
+import { logRoomEdit, logFloorCreate } from '@/lib/analytics'
 import { getAreaTemperatureSensor, setAreaTemperatureSensor } from '@/lib/metadata'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
@@ -89,6 +90,7 @@ export function RoomEditModal({
       })
       // Save temperature sensor selection (empty string clears selection)
       await setAreaTemperatureSensor(room.areaId, temperatureSensor || null)
+      void logRoomEdit()
       onClose()
     } catch (error) {
       logger.error('RoomEdit', 'Failed to update room:', error)
@@ -113,6 +115,7 @@ export function RoomEditModal({
             placeholder={t.floors.none}
             onCreate={async (name) => {
               const floorId = await createFloor(name)
+              void logFloorCreate()
               onFloorCreated?.(floorId)
               return floorId
             }}
