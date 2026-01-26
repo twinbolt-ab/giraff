@@ -225,6 +225,18 @@
         "title": "Debug ID",
         "description": "Share this ID when reporting issues"
       }
+    },
+    "alsoHideInHA": {
+      "title": "Also hide in Home Assistant",
+      "description": "Hidden devices are also hidden in HA",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "enableTitle": "Also hide in Home Assistant?",
+      "enableMessage": "When enabled, hiding a device in Stuga will also hide it in Home Assistant. Devices you've already hidden in Stuga will be hidden in Home Assistant too.",
+      "enableConfirm": "Enable",
+      "disableTitle": "Stop hiding in Home Assistant?",
+      "disableMessage": "This will unhide all Stuga-hidden devices from Home Assistant. They will remain hidden in Stuga.",
+      "disableConfirm": "Unhide from HA"
     }
   },
   "roomOrdering": {
@@ -259,9 +271,11 @@
     "empty": "No devices found",
     "noResults": "No devices match your search",
     "searchPlaceholder": "Search devices...",
-    "hiddenBadge": "Hidden",
+    "hiddenInStugaBadge": "Hidden",
+    "hiddenInHABadge": "Hidden in HA",
     "noRoomBadge": "No room",
-    "filterHidden": "Hidden",
+    "filterHiddenInStuga": "Hidden",
+    "filterHiddenInHA": "Hidden in HA",
     "filterNoRoom": "No room"
   },
   "devices": {
@@ -326,8 +340,28 @@
     "editSelected": "Edit",
     "editRoom": "Edit room",
     "editRooms": "Edit rooms",
-    "editDevice": "Edit device",
-    "editDevices": "Edit devices",
+    "editEntity": "Edit entity",
+    "editEntities": "Edit entities",
+    "editLight": "Edit light",
+    "editLights": "Edit lights",
+    "editSwitch": "Edit switch",
+    "editSwitches": "Edit switches",
+    "editScene": "Edit scene",
+    "editScenes": "Edit scenes",
+    "editToggle": "Edit toggle",
+    "editToggles": "Edit toggles",
+    "editSlider": "Edit slider",
+    "editSliders": "Edit sliders",
+    "editClimate": "Edit climate",
+    "editClimates": "Edit climates",
+    "editCover": "Edit cover",
+    "editCovers": "Edit covers",
+    "editFan": "Edit fan",
+    "editFans": "Edit fans",
+    "editVacuum": "Edit vacuum",
+    "editVacuums": "Edit vacuums",
+    "editMedia": "Edit media",
+    "editMediaPlayers": "Edit media players",
     "noChange": "No change",
     "rooms": {
       "title": "Edit {count} Rooms",

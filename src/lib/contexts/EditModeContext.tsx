@@ -17,6 +17,7 @@ type EditModeAction =
   | { type: 'ENTER_FLOOR_EDIT'; floors: HAFloor[]; selectedFloorId: string }
   | { type: 'EXIT_EDIT_MODE' }
   | { type: 'TOGGLE_SELECTION'; id: string }
+  | { type: 'DESELECT'; id: string }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'REORDER_ROOMS'; rooms: RoomWithDevices[] }
   | { type: 'REORDER_FLOORS'; floors: HAFloor[] }
@@ -68,6 +69,22 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
         } else {
           newSelectedIds.add(action.id)
         }
+        // Exit edit mode if all items are deselected
+        if (newSelectedIds.size === 0) {
+          return { type: 'normal' }
+        }
+        return { ...state, selectedIds: newSelectedIds }
+      }
+      return state
+
+    case 'DESELECT':
+      if (
+        state.type === 'edit-rooms' ||
+        state.type === 'edit-devices' ||
+        state.type === 'edit-all-devices'
+      ) {
+        const newSelectedIds = new Set(state.selectedIds)
+        newSelectedIds.delete(action.id)
         // Exit edit mode if all items are deselected
         if (newSelectedIds.size === 0) {
           return { type: 'normal' }
@@ -136,6 +153,7 @@ interface EditModeContextValue {
   enterFloorEdit: (floors: HAFloor[], selectedFloorId: string) => void
   exitEditMode: () => void
   toggleSelection: (id: string) => void
+  deselect: (id: string) => void
   clearSelection: () => void
   reorderRooms: (rooms: RoomWithDevices[]) => void
   reorderFloors: (floors: HAFloor[]) => void
@@ -219,6 +237,9 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
   const toggleSelection = useCallback((id: string) => {
     dispatch({ type: 'TOGGLE_SELECTION', id })
   }, [])
+  const deselect = useCallback((id: string) => {
+    dispatch({ type: 'DESELECT', id })
+  }, [])
   const clearSelection = useCallback(() => {
     dispatch({ type: 'CLEAR_SELECTION' })
   }, [])
@@ -252,6 +273,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       enterFloorEdit,
       exitEditMode,
       toggleSelection,
+      deselect,
       clearSelection,
       reorderRooms,
       reorderFloors,
@@ -276,6 +298,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       enterFloorEdit,
       exitEditMode,
       toggleSelection,
+      deselect,
       clearSelection,
       reorderRooms,
       reorderFloors,

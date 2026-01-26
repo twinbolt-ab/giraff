@@ -1,5 +1,5 @@
 import { useMemo, useCallback, useRef, useEffect } from 'react'
-import { Layers, EyeOff, Home } from 'lucide-react'
+import { Layers, EyeOff, Home, Eye } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useAllEntities, type FilterType } from '@/lib/hooks/useAllEntities'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
@@ -23,7 +23,8 @@ export function AllDevicesView() {
     entityMeta,
     totalCount,
     filteredCount,
-    hiddenCount,
+    hiddenInStugaCount,
+    hiddenInHACount,
     noRoomCount,
     searchQuery,
     setSearchQuery,
@@ -107,7 +108,13 @@ export function AllDevicesView() {
 
   // Filter button config
   const filters: { id: FilterType; label: string; count: number; icon: typeof EyeOff }[] = [
-    { id: 'hidden', label: t.allDevices.filterHidden, count: hiddenCount, icon: EyeOff },
+    {
+      id: 'hidden-stuga',
+      label: t.allDevices.filterHiddenInStuga,
+      count: hiddenInStugaCount,
+      icon: EyeOff,
+    },
+    { id: 'hidden-ha', label: t.allDevices.filterHiddenInHA, count: hiddenInHACount, icon: Eye },
     { id: 'no-room', label: t.allDevices.filterNoRoom, count: noRoomCount, icon: Home },
   ]
 

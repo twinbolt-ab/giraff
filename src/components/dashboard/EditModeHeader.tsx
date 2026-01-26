@@ -3,6 +3,45 @@ import { X, Plus } from 'lucide-react'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t, interpolate } from '@/lib/i18n'
 
+// Map domain to singular/plural labels
+const DOMAIN_LABELS: Record<string, { singular: string; plural: string }> = {
+  light: { singular: t.bulkEdit.editLight, plural: t.bulkEdit.editLights },
+  switch: { singular: t.bulkEdit.editSwitch, plural: t.bulkEdit.editSwitches },
+  scene: { singular: t.bulkEdit.editScene, plural: t.bulkEdit.editScenes },
+  input_boolean: { singular: t.bulkEdit.editToggle, plural: t.bulkEdit.editToggles },
+  input_number: { singular: t.bulkEdit.editSlider, plural: t.bulkEdit.editSliders },
+  climate: { singular: t.bulkEdit.editClimate, plural: t.bulkEdit.editClimates },
+  cover: { singular: t.bulkEdit.editCover, plural: t.bulkEdit.editCovers },
+  fan: { singular: t.bulkEdit.editFan, plural: t.bulkEdit.editFans },
+  vacuum: { singular: t.bulkEdit.editVacuum, plural: t.bulkEdit.editVacuums },
+  media_player: { singular: t.bulkEdit.editMedia, plural: t.bulkEdit.editMediaPlayers },
+}
+
+function getDeviceEditLabel(selectedIds: Set<string>): string {
+  const domains = new Set<string>()
+  for (const id of selectedIds) {
+    const domain = id.split('.')[0]
+    domains.add(domain)
+  }
+
+  // Multiple different types → "Edit entities"
+  if (domains.size > 1) {
+    return t.bulkEdit.editEntities
+  }
+
+  // Single domain type
+  const domain = [...domains][0]
+  const labels = DOMAIN_LABELS[domain]
+  const count = selectedIds.size
+
+  if (labels) {
+    return count === 1 ? labels.singular : labels.plural
+  }
+
+  // Fallback for unknown domains
+  return count === 1 ? t.bulkEdit.editEntity : t.bulkEdit.editEntities
+}
+
 interface EditModeHeaderProps {
   onEditClick: () => void
   onDone: () => void
@@ -10,7 +49,8 @@ interface EditModeHeaderProps {
 }
 
 export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHeaderProps) {
-  const { isDeviceEditMode, isAllDevicesEditMode, isFloorEditMode, selectedCount } = useEditMode()
+  const { isDeviceEditMode, isAllDevicesEditMode, isFloorEditMode, selectedCount, selectedIds } =
+    useEditMode()
 
   // Floor edit mode has its own simpler UI
   if (isFloorEditMode) {
@@ -66,14 +106,11 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
   }
 
   const isDeviceMode = isDeviceEditMode || isAllDevicesEditMode
-  const editButtonLabel =
-    selectedCount === 1
-      ? isDeviceMode
-        ? t.bulkEdit.editDevice
-        : t.bulkEdit.editRoom
-      : isDeviceMode
-        ? t.bulkEdit.editDevices
-        : t.bulkEdit.editRooms
+  const editButtonLabel = isDeviceMode
+    ? getDeviceEditLabel(selectedIds)
+    : selectedCount === 1
+      ? t.bulkEdit.editRoom
+      : t.bulkEdit.editRooms
 
   return (
     <motion.div

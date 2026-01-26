@@ -11,12 +11,13 @@ import { useToast } from '@/providers/ToastProvider'
 import { t, interpolate } from '@/lib/i18n'
 import {
   getEntityRegistry,
-  isEntityHidden,
+  isEntityHiddenInStuga,
   updateEntity,
-  setEntityHidden,
+  setEntityHiddenInStuga,
   deleteScene,
   createArea,
 } from '@/lib/ha-websocket'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { logger } from '@/lib/logger'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
 
@@ -24,9 +25,10 @@ interface DeviceEditModalProps {
   device: HAEntity | null
   rooms: RoomWithDevices[]
   onClose: () => void
+  onDeviceHidden?: (entityId: string) => void
 }
 
-export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps) {
+export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: DeviceEditModalProps) {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -36,6 +38,7 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const { showError } = useToast()
+  const { alsoHideInHA } = useSettings()
 
   // Determine if this is a scene
   const isScene = useMemo(() => {
@@ -66,8 +69,8 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
       const currentRoom = rooms.find((r) => r.name === currentArea)
       setRoomId(currentRoom?.areaId || '')
 
-      // Get hidden state
-      setHidden(isEntityHidden(deviceId))
+      // Get hidden state (use Stuga-hidden state)
+      setHidden(isEntityHiddenInStuga(deviceId))
 
       // Get "acts as light" state (for switches: device_class === 'light')
       setActsAsLight(device.attributes.device_class === 'light')
@@ -98,8 +101,13 @@ export function DeviceEditModal({ device, rooms, onClose }: DeviceEditModalProps
         device_class: isSwitch ? (actsAsLight ? 'light' : null) : undefined,
       })
 
-      // Update hidden state
-      await setEntityHidden(device.entity_id, hidden)
+      // Update hidden state (in Stuga, and optionally in HA based on setting)
+      await setEntityHiddenInStuga(device.entity_id, hidden, alsoHideInHA)
+
+      // Notify parent if device was hidden (so it can be deselected)
+      if (hidden) {
+        onDeviceHidden?.(device.entity_id)
+      }
 
       onClose()
     } catch (error) {

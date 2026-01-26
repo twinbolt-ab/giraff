@@ -18,6 +18,7 @@ import {
   Copy,
   Check,
   Hash,
+  EyeOff,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
@@ -25,6 +26,7 @@ import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
 import { EditModeInfoModal } from '@/components/settings/EditModeInfoModal'
 import { RoomOrderingDisableDialog } from '@/components/settings/RoomOrderingDisableDialog'
+import { AlsoHideInHADialog } from '@/components/settings/AlsoHideInHADialog'
 import { useDevMode } from '@/lib/hooks/useDevMode'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { getDebugId } from '@/lib/crashlytics'
@@ -50,6 +52,9 @@ export function SettingsMenu({
   const [showDeveloperMenu, setShowDeveloperMenu] = useState(false)
   const [showEditModeInfo, setShowEditModeInfo] = useState(false)
   const [showRoomOrderingDisable, setShowRoomOrderingDisable] = useState(false)
+  const [showAlsoHideInHADialog, setShowAlsoHideInHADialog] = useState<'enable' | 'disable' | null>(
+    null
+  )
   const [displayOptionsOpen, setDisplayOptionsOpen] = useState(false)
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [debugId, setDebugId] = useState<string | null>(null)
@@ -64,6 +69,8 @@ export function SettingsMenu({
     setShowHumidity,
     gridColumns,
     setGridColumns,
+    alsoHideInHA,
+    setAlsoHideInHA,
   } = useSettings()
   const y = useMotionValue(0)
   const sheetRef = useRef<HTMLDivElement>(null)
@@ -206,6 +213,25 @@ export function SettingsMenu({
     setShowRoomOrderingDisable(false)
   }
 
+  const handleAlsoHideInHAToggle = () => {
+    if (alsoHideInHA) {
+      // Currently enabled, show disable confirmation
+      setShowAlsoHideInHADialog('disable')
+    } else {
+      // Currently disabled, show enable confirmation
+      setShowAlsoHideInHADialog('enable')
+    }
+  }
+
+  const handleAlsoHideInHAConfirmed = () => {
+    if (showAlsoHideInHADialog === 'enable') {
+      setAlsoHideInHA(true)
+    } else {
+      setAlsoHideInHA(false)
+    }
+    setShowAlsoHideInHADialog(null)
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -332,6 +358,37 @@ export function SettingsMenu({
                             {roomOrderingEnabled
                               ? t.settings.advanced?.roomOrdering?.enabled || 'Enabled'
                               : t.settings.advanced?.roomOrdering?.disabled || 'Disabled'}
+                          </div>
+                        </button>
+
+                        {/* Also Hide in HA Toggle */}
+                        <button
+                          onClick={handleAlsoHideInHAToggle}
+                          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-border/30 transition-colors touch-feedback"
+                        >
+                          <div className="p-2 rounded-lg bg-border/50">
+                            <EyeOff className="w-4 h-4 text-foreground" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-medium text-foreground">
+                              {t.settings.alsoHideInHA?.title || 'Also hide in Home Assistant'}
+                            </p>
+                            <p className="text-xs text-muted">
+                              {t.settings.alsoHideInHA?.description ||
+                                'Hidden devices are also hidden in HA'}
+                            </p>
+                          </div>
+                          <div
+                            className={clsx(
+                              'px-2 py-0.5 text-xs font-medium rounded-full transition-colors',
+                              alsoHideInHA
+                                ? 'bg-accent/15 text-accent'
+                                : 'bg-border/50 text-muted'
+                            )}
+                          >
+                            {alsoHideInHA
+                              ? t.settings.alsoHideInHA?.enabled || 'Enabled'
+                              : t.settings.alsoHideInHA?.disabled || 'Disabled'}
                           </div>
                         </button>
 
@@ -640,6 +697,16 @@ export function SettingsMenu({
             }}
             onDisabled={handleRoomOrderingDisabled}
           />
+
+          {/* Also Hide in HA Dialog */}
+          {showAlsoHideInHADialog && (
+            <AlsoHideInHADialog
+              isOpen={true}
+              onClose={() => setShowAlsoHideInHADialog(null)}
+              onConfirm={handleAlsoHideInHAConfirmed}
+              variant={showAlsoHideInHADialog}
+            />
+          )}
 
           {/* Dev Mode Activation Toast */}
           <AnimatePresence>

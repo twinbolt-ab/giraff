@@ -55,6 +55,7 @@ function DashboardContent() {
     enterDeviceEdit,
     enterAllDevicesEdit,
     exitEditMode,
+    deselect,
     reorderRooms,
     switchFloorRooms,
   } = useEditMode()
@@ -516,7 +517,7 @@ function DashboardContent() {
         onFloorCreated={handleSelectFloor}
       />
 
-      <DeviceEditModal device={editingDevice} rooms={rooms} onClose={closeDeviceEdit} />
+      <DeviceEditModal device={editingDevice} rooms={rooms} onClose={closeDeviceEdit} onDeviceHidden={deselect} />
 
       <BulkEditRoomsModal
         isOpen={showBulkEditRooms}
@@ -533,6 +534,7 @@ function DashboardContent() {
         rooms={rooms}
         onClose={closeBulkDevices}
         onComplete={() => {}} // Keep selection after save
+        onDevicesHidden={(entityIds) => entityIds.forEach(deselect)}
       />
 
       <FloorEditModal

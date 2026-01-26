@@ -110,7 +110,8 @@ function FanItem({
           </span>
           {entityMeta && (
             <EntityBadges
-              isHidden={entityMeta.isHidden}
+              isHiddenInStuga={entityMeta.isHiddenInStuga}
+              isHiddenInHA={entityMeta.isHiddenInHA}
               hasRoom={entityMeta.hasRoom}
               className="flex-shrink-0"
             />

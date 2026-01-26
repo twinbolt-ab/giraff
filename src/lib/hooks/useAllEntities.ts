@@ -2,18 +2,19 @@ import { useMemo, useState, useCallback } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { useEnabledDomains } from './useEnabledDomains'
 import { useDevMode } from './useDevMode'
-import { isEntityHidden } from '../ha-websocket'
+import { isEntityHidden, isEntityHiddenInStuga } from '../ha-websocket'
 import { generateMockData } from '../mock-data'
 import type { HAEntity, ConfigurableDomain } from '@/types/ha'
 import { ALL_CONFIGURABLE_DOMAINS } from '@/types/ha'
 
 export interface EntityMeta {
-  isHidden: boolean
+  isHiddenInStuga: boolean
+  isHiddenInHA: boolean
   hasRoom: boolean
   roomName?: string
 }
 
-export type FilterType = 'all' | 'hidden' | 'no-room'
+export type FilterType = 'all' | 'hidden-stuga' | 'hidden-ha' | 'no-room'
 
 /**
  * Hook for getting all entities with metadata about their status.
@@ -80,14 +81,16 @@ export function useAllEntities() {
 
   // Apply status filter to get displayed entities
   const allEntities = useMemo(() => {
-    if (activeFilter === 'all') return baseEntities
-
     return baseEntities.filter((entity) => {
-      const hidden = isEntityHidden(entity.entity_id)
+      const hiddenInStuga = isEntityHiddenInStuga(entity.entity_id)
+      const hiddenInHA = isEntityHidden(entity.entity_id)
       const hasRoom = !!entity.attributes.area
 
-      if (activeFilter === 'hidden') return hidden
-      if (activeFilter === 'no-room') return !hasRoom
+      // 'all' filter excludes hidden items (they appear only in their specific filters)
+      if (activeFilter === 'all') return !hiddenInStuga
+      if (activeFilter === 'hidden-stuga') return hiddenInStuga
+      if (activeFilter === 'hidden-ha') return hiddenInHA
+      if (activeFilter === 'no-room') return !hasRoom && !hiddenInStuga
 
       return true
     })
@@ -100,7 +103,8 @@ export function useAllEntities() {
     for (const entity of allEntities) {
       const area = entity.attributes.area
       meta.set(entity.entity_id, {
-        isHidden: isEntityHidden(entity.entity_id),
+        isHiddenInStuga: isEntityHiddenInStuga(entity.entity_id),
+        isHiddenInHA: isEntityHidden(entity.entity_id),
         hasRoom: !!area,
         roomName: typeof area === 'string' ? area : undefined,
       })
@@ -124,16 +128,18 @@ export function useAllEntities() {
   }, [allEntities])
 
   // Calculate counts from base entities (unfiltered by status)
-  const { hiddenCount, noRoomCount } = useMemo(() => {
-    let hidden = 0
+  const { hiddenInStugaCount, hiddenInHACount, noRoomCount } = useMemo(() => {
+    let hiddenInStuga = 0
+    let hiddenInHA = 0
     let noRoom = 0
 
     for (const entity of baseEntities) {
-      if (isEntityHidden(entity.entity_id)) hidden++
+      if (isEntityHiddenInStuga(entity.entity_id)) hiddenInStuga++
+      if (isEntityHidden(entity.entity_id)) hiddenInHA++
       if (!entity.attributes.area) noRoom++
     }
 
-    return { hiddenCount: hidden, noRoomCount: noRoom }
+    return { hiddenInStugaCount: hiddenInStuga, hiddenInHACount: hiddenInHA, noRoomCount: noRoom }
   }, [baseEntities])
 
   const handleSearchChange = useCallback((query: string) => {
@@ -150,7 +156,8 @@ export function useAllEntities() {
     entityMeta,
     totalCount: baseEntities.length,
     filteredCount: allEntities.length,
-    hiddenCount,
+    hiddenInStugaCount,
+    hiddenInHACount,
     noRoomCount,
     isConnected,
     searchQuery,

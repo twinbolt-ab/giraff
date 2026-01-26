@@ -46,11 +46,13 @@ export function useRooms() {
     const areaRegistry = ws.getAreaRegistry()
     const floorRegistry = ws.getFloors()
     const hiddenEntities = ws.getHiddenEntities()
+    const stugaHiddenEntities = ws.getStugaHiddenEntities()
 
     // Group entities by area (we'll extract area from friendly_name or entity_id patterns)
     for (const entity of entities.values()) {
       // Skip hidden entities in normal room view (they're visible in All Devices)
       if (hiddenEntities.has(entity.entity_id)) continue
+      if (stugaHiddenEntities.has(entity.entity_id)) continue
 
       const areaName = extractAreaFromEntity(entity)
       if (areaName) {

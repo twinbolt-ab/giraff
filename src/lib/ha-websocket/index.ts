@@ -139,6 +139,16 @@ export const isEntityHidden = (entityId: string) => entitySvc.isEntityHidden(sta
 export const getHiddenEntities = () => entitySvc.getHiddenEntities(state)
 export const setEntityHidden = (entityId: string, hidden: boolean) =>
   entitySvc.setEntityHidden(state, entityId, hidden)
+export const isEntityHiddenInStuga = (entityId: string) =>
+  entitySvc.isEntityHiddenInStuga(state, entityId)
+export const getStugaHiddenEntities = () => entitySvc.getStugaHiddenEntities(state)
+export const setEntityHiddenInStuga = (
+  entityId: string,
+  hidden: boolean,
+  alsoHideInHA: boolean = false
+) => entitySvc.setEntityHiddenInStuga(state, entityId, hidden, alsoHideInHA)
+export const syncStugaHiddenToHA = (hideInHA: boolean) =>
+  entitySvc.syncStugaHiddenToHA(state, hideInHA)
 export const deleteScene = (entityId: string) => entitySvc.deleteScene(state, entityId)
 export const callService = (domain: string, service: string, data?: Record<string, unknown>) =>
   entitySvc.callService(state, domain, service, data)

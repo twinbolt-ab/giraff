@@ -3,7 +3,12 @@ import { isHALabel } from '@/types/ha'
 import type { HAWebSocketState, OptimisticOverride } from './types'
 import { send, getNextMessageId } from './connection'
 import { registerCallback, notifyMessageHandlers, notifyRegistryHandlers } from './message-router'
-import { DEVICE_ORDER_LABEL_PREFIX, DEFAULT_ORDER, OPTIMISTIC_DURATION } from '@/lib/constants'
+import {
+  DEVICE_ORDER_LABEL_PREFIX,
+  DEFAULT_ORDER,
+  OPTIMISTIC_DURATION,
+  STUGA_HIDDEN_LABEL,
+} from '@/lib/constants'
 import { getDevModeSync } from '@/lib/hooks/useDevMode'
 
 // Timer references for optimistic state cleanup
@@ -311,6 +316,170 @@ export async function setEntityHidden(
       hidden_by: hidden ? 'user' : null,
     })
   })
+}
+
+/** Get or create the stuga-hidden label ID */
+async function ensureStugaHiddenLabel(state: HAWebSocketState): Promise<string> {
+  // Check if label already exists
+  for (const [labelId, label] of state.labels) {
+    if (label.name === STUGA_HIDDEN_LABEL) {
+      return labelId
+    }
+  }
+
+  // Create new label
+  return new Promise((resolve, reject) => {
+    const msgId = getNextMessageId(state)
+    registerCallback(state, msgId, (success, result) => {
+      if (success && isHALabel(result)) {
+        state.labels.set(result.label_id, result)
+        resolve(result.label_id)
+      } else {
+        reject(new Error('Failed to create stuga-hidden label'))
+      }
+    })
+    send(state, {
+      id: msgId,
+      type: 'config/label_registry/create',
+      name: STUGA_HIDDEN_LABEL,
+    })
+  })
+}
+
+/** Check if entity has the stuga-hidden label (hidden in Stuga only) */
+export function isEntityHiddenInStuga(state: HAWebSocketState, entityId: string): boolean {
+  const entity = state.entityRegistry.get(entityId)
+  if (!entity?.labels) return false
+
+  for (const labelId of entity.labels) {
+    const label = state.labels.get(labelId)
+    if (label?.name === STUGA_HIDDEN_LABEL) {
+      return true
+    }
+  }
+  return false
+}
+
+/** Get all entities with the stuga-hidden label */
+export function getStugaHiddenEntities(state: HAWebSocketState): Set<string> {
+  const hidden = new Set<string>()
+  for (const [entityId, entity] of state.entityRegistry) {
+    if (!entity.labels) continue
+    for (const labelId of entity.labels) {
+      const label = state.labels.get(labelId)
+      if (label?.name === STUGA_HIDDEN_LABEL) {
+        hidden.add(entityId)
+        break
+      }
+    }
+  }
+  return hidden
+}
+
+/** Hide/show entity in Stuga only (via label), optionally also in HA */
+export async function setEntityHiddenInStuga(
+  state: HAWebSocketState,
+  entityId: string,
+  hidden: boolean,
+  alsoHideInHA: boolean = false
+): Promise<void> {
+  const entity = state.entityRegistry.get(entityId)
+  if (!entity) {
+    return
+  }
+
+  const currentLabels = entity.labels || []
+  const isCurrentlyHiddenInStuga = isEntityHiddenInStuga(state, entityId)
+
+  // If already in desired Stuga state, only update HA if needed
+  if (isCurrentlyHiddenInStuga === hidden) {
+    if (alsoHideInHA) {
+      await setEntityHidden(state, entityId, hidden)
+    }
+    return
+  }
+
+  if (hidden) {
+    // Add stuga-hidden label
+    const hiddenLabelId = await ensureStugaHiddenLabel(state)
+    const newLabels = [...currentLabels, hiddenLabelId]
+
+    // Optimistically update local state immediately
+    entity.labels = newLabels
+    notifyRegistryHandlers(state)
+
+    // Send to HA (don't await - fire and forget for optimistic UI)
+    const msgId = getNextMessageId(state)
+    registerCallback(state, msgId, (success) => {
+      if (!success) {
+        // Rollback on failure
+        entity.labels = currentLabels
+        notifyRegistryHandlers(state)
+      }
+    })
+    send(state, {
+      id: msgId,
+      type: 'config/entity_registry/update',
+      entity_id: entityId,
+      labels: newLabels,
+    })
+
+    // Also hide in HA if requested
+    if (alsoHideInHA) {
+      await setEntityHidden(state, entityId, true)
+    }
+  } else {
+    // Remove stuga-hidden label
+    let hiddenLabelId: string | undefined
+    for (const labelId of currentLabels) {
+      const label = state.labels.get(labelId)
+      if (label?.name === STUGA_HIDDEN_LABEL) {
+        hiddenLabelId = labelId
+        break
+      }
+    }
+
+    if (hiddenLabelId) {
+      const newLabels = currentLabels.filter((id) => id !== hiddenLabelId)
+
+      // Optimistically update local state immediately
+      entity.labels = newLabels
+      notifyRegistryHandlers(state)
+
+      // Send to HA (don't await - fire and forget for optimistic UI)
+      const msgId = getNextMessageId(state)
+      registerCallback(state, msgId, (success) => {
+        if (!success) {
+          // Rollback on failure
+          entity.labels = currentLabels
+          notifyRegistryHandlers(state)
+        }
+      })
+      send(state, {
+        id: msgId,
+        type: 'config/entity_registry/update',
+        entity_id: entityId,
+        labels: newLabels,
+      })
+    }
+
+    // Also unhide in HA if the setting is enabled
+    if (alsoHideInHA) {
+      await setEntityHidden(state, entityId, false)
+    }
+  }
+}
+
+/** Sync all Stuga-hidden entities to/from HA hidden state */
+export async function syncStugaHiddenToHA(
+  state: HAWebSocketState,
+  hideInHA: boolean
+): Promise<void> {
+  const stugaHidden = getStugaHiddenEntities(state)
+
+  for (const entityId of stugaHidden) {
+    await setEntityHidden(state, entityId, hideInHA)
+  }
 }
 
 export async function deleteScene(state: HAWebSocketState, entityId: string): Promise<void> {

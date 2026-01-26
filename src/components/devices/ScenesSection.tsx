@@ -72,7 +72,7 @@ function SceneItem({
           <Sparkles className="w-3.5 h-3.5" />
         )}
         {displayName(scene)}
-        {entityMeta && <EntityBadges isHidden={entityMeta.isHidden} hasRoom={entityMeta.hasRoom} />}
+        {entityMeta && <EntityBadges isHiddenInStuga={entityMeta.isHiddenInStuga} isHiddenInHA={entityMeta.isHiddenInHA} hasRoom={entityMeta.hasRoom} />}
       </button>
     )
   }
@@ -99,7 +99,7 @@ function SceneItem({
         <Sparkles className="w-3.5 h-3.5" />
       )}
       {displayName(scene)}
-      {entityMeta && <EntityBadges isHidden={entityMeta.isHidden} hasRoom={entityMeta.hasRoom} />}
+      {entityMeta && <EntityBadges isHiddenInStuga={entityMeta.isHiddenInStuga} isHiddenInHA={entityMeta.isHiddenInHA} hasRoom={entityMeta.hasRoom} />}
     </button>
   )
 }

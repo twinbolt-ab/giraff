@@ -1,19 +1,30 @@
-import { EyeOff, Home } from 'lucide-react'
+import { EyeOff, Eye, Home } from 'lucide-react'
 import { t } from '@/lib/i18n'
 
 interface EntityBadgeProps {
-  type: 'hidden' | 'no-room'
+  type: 'hidden-stuga' | 'hidden-ha' | 'no-room'
   className?: string
 }
 
 export function EntityBadge({ type, className = '' }: EntityBadgeProps) {
-  if (type === 'hidden') {
+  if (type === 'hidden-stuga') {
     return (
       <span
         className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 ${className}`}
       >
         <EyeOff className="w-3 h-3" />
-        {t.allDevices.hiddenBadge}
+        {t.allDevices.hiddenInStugaBadge}
+      </span>
+    )
+  }
+
+  if (type === 'hidden-ha') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 ${className}`}
+      >
+        <Eye className="w-3 h-3" />
+        {t.allDevices.hiddenInHABadge}
       </span>
     )
   }
@@ -29,20 +40,27 @@ export function EntityBadge({ type, className = '' }: EntityBadgeProps) {
 }
 
 interface EntityBadgesProps {
-  isHidden?: boolean
+  isHiddenInStuga?: boolean
+  isHiddenInHA?: boolean
   hasRoom?: boolean
   className?: string
 }
 
 /**
- * Convenience component to render both badges when applicable
+ * Convenience component to render all badges when applicable
  */
-export function EntityBadges({ isHidden, hasRoom, className = '' }: EntityBadgesProps) {
-  if (!isHidden && hasRoom !== false) return null
+export function EntityBadges({
+  isHiddenInStuga,
+  isHiddenInHA,
+  hasRoom,
+  className = '',
+}: EntityBadgesProps) {
+  if (!isHiddenInStuga && !isHiddenInHA && hasRoom !== false) return null
 
   return (
     <div className={`flex gap-1 flex-wrap ${className}`}>
-      {isHidden && <EntityBadge type="hidden" />}
+      {isHiddenInStuga && <EntityBadge type="hidden-stuga" />}
+      {isHiddenInHA && <EntityBadge type="hidden-ha" />}
       {hasRoom === false && <EntityBadge type="no-room" />}
     </div>
   )

@@ -14,6 +14,9 @@ export const DOMAINS_LABEL_PREFIX = `${STUGA_PREFIX}domains-`
 // Label prefix for selected temperature sensor per area (stores entity_id)
 export const TEMPERATURE_SENSOR_LABEL_PREFIX = `${STUGA_PREFIX}temp-`
 
+// Label for entities hidden in Stuga (but not necessarily in HA)
+export const STUGA_HIDDEN_LABEL = `${STUGA_PREFIX}hidden`
+
 // Default order value for items without explicit order
 export const DEFAULT_ORDER = 99
 

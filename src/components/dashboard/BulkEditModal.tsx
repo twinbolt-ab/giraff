@@ -10,8 +10,9 @@ import {
   createFloor,
   updateEntity,
   createArea,
-  setEntityHidden,
+  setEntityHiddenInStuga,
 } from '@/lib/ha-websocket'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor, HAEntity } from '@/types/ha'
 
@@ -122,6 +123,7 @@ interface BulkEditDevicesModalProps {
   rooms: RoomWithDevices[]
   onClose: () => void
   onComplete: () => void
+  onDevicesHidden?: (entityIds: string[]) => void
 }
 
 export function BulkEditDevicesModal({
@@ -130,12 +132,14 @@ export function BulkEditDevicesModal({
   rooms,
   onClose,
   onComplete,
+  onDevicesHidden,
 }: BulkEditDevicesModalProps) {
   const [roomId, setRoomId] = useState<string>('')
   const [icon, setIcon] = useState<string>('')
   const [hidden, setHidden] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const { showError } = useToast()
+  const { alsoHideInHA } = useSettings()
 
   // Reset form state when modal opens
   useEffect(() => {
@@ -183,12 +187,20 @@ export function BulkEditDevicesModal({
           return updateEntity(device.entity_id, updates)
         })
 
-      // Handle hidden state separately using the correct API
+      // Handle hidden state separately using Stuga-hidden (and optionally HA based on setting)
       const hiddenUpdates = hidden
-        ? devices.map((device) => setEntityHidden(device.entity_id, hidden === 'hide'))
+        ? devices.map((device) =>
+            setEntityHiddenInStuga(device.entity_id, hidden === 'hide', alsoHideInHA)
+          )
         : []
 
       await Promise.all([...entityUpdates, ...hiddenUpdates])
+
+      // Notify parent of hidden devices so they can be deselected
+      if (hidden === 'hide') {
+        onDevicesHidden?.(devices.map((d) => d.entity_id))
+      }
+
       onComplete()
       onClose()
     } catch (error) {

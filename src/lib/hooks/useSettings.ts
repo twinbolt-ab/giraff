@@ -10,6 +10,7 @@ interface Settings {
   showTemperature: boolean
   showHumidity: boolean
   gridColumns: GridColumnsOption
+  alsoHideInHA: boolean
 }
 
 const defaultSettings: Settings = {
@@ -18,6 +19,7 @@ const defaultSettings: Settings = {
   showTemperature: true,
   showHumidity: false,
   gridColumns: 2,
+  alsoHideInHA: false,
 }
 
 // Shared settings store
@@ -114,6 +116,10 @@ export function useSettings() {
     updateSettingsStore({ gridColumns: value })
   }, [])
 
+  const setAlsoHideInHA = useCallback((value: boolean) => {
+    updateSettingsStore({ alsoHideInHA: value })
+  }, [])
+
   return {
     groupByFloors: settings.groupByFloors,
     setGroupByFloors,
@@ -125,6 +131,8 @@ export function useSettings() {
     setShowHumidity,
     gridColumns: settings.gridColumns,
     setGridColumns,
+    alsoHideInHA: settings.alsoHideInHA,
+    setAlsoHideInHA,
     isLoaded: initialized,
   }
 }
