@@ -49,6 +49,14 @@ Native apps work with any Home Assistant setup, including local-only installs.
 - **iOS** — Coming soon to the App Store. Free.
 - **Android** — [Get it on Google Play](https://play.google.com/store/apps/details?id=com.twinbolt.stuga). Free.
 
+#### Sideload with Obtainium
+
+Prefer to install directly from GitHub? Use [Obtainium](https://github.com/ImranR98/Obtainium) to get automatic updates:
+
+1. Install Obtainium from [F-Droid](https://f-droid.org/packages/dev.imranr.obtainium.fdroid/) or [GitHub](https://github.com/ImranR98/Obtainium/releases)
+2. Add app → Enter `https://github.com/twinbolt-ab/stuga`
+3. Obtainium will track releases and notify you of updates
+
 ### Web
 
 Try the web app at [stuga.app/run](https://stuga.app/run).
