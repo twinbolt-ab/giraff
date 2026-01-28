@@ -225,12 +225,28 @@ jobs:
         run: |
           bundle exec fastlane internal
 
-      - name: Upload AAB to GitHub Release
+      - name: Build APK for sideloading
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease \
+            -PRELEASE_STORE_FILE=stuga_keystore_private.jks \
+            -PRELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -PRELEASE_KEY_ALIAS=stuga \
+            -PRELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Upload APK and AAB to GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload "${{ needs.github-release.outputs.tag }}" \
-            android/app/build/outputs/bundle/release/app-release.aab \
+          TAG="${{ needs.github-release.outputs.tag }}"
+          VERSION="${TAG#v}"
+
+          # Rename APK with version for clarity
+          cp android/app/build/outputs/apk/release/app-release.apk "stuga-${VERSION}.apk"
+
+          gh release upload "$TAG" \
+            "stuga-${VERSION}.apk#Stuga APK (sideload)" \
+            android/app/build/outputs/bundle/release/app-release.aab#"Android App Bundle" \
             --clobber
 
   # Build and release iOS to App Store
