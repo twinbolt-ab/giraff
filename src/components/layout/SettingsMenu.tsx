@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { motion, AnimatePresence, useMotionValue, useDragControls, PanInfo } from 'framer-motion'
+import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion'
 import { useTheme } from '@/providers/ThemeProvider'
 import {
   Moon,
@@ -73,7 +73,6 @@ export function SettingsMenu({
     alsoHideInHA,
     setAlsoHideInHA,
   } = useSettings()
-  const y = useMotionValue(0)
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragControls = useDragControls()
 
@@ -139,11 +138,8 @@ export function SettingsMenu({
       document.activeElement.blur()
     }
 
-    if (info.offset.y > 100 || info.velocity.y > 500) {
+    if (info.offset.x > 100 || info.velocity.x > 500) {
       onClose()
-    } else {
-      // Reset y if not closing
-      y.set(0)
     }
   }
 
@@ -151,16 +147,15 @@ export function SettingsMenu({
     dragControls.start(event)
   }
 
-  // Reset y motion value and blur focused element when modal state changes
+  // Blur focused element when modal opens
   useEffect(() => {
     if (isOpen) {
-      y.set(0)
       // Blur the button that opened the menu to prevent stuck focus/hover state
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur()
       }
     }
-  }, [isOpen, y])
+  }, [isOpen])
 
   // Close on escape key and manage body scroll
   useEffect(() => {
@@ -249,34 +244,26 @@ export function SettingsMenu({
             onClick={onClose}
           />
 
-          {/* Bottom Sheet */}
+          {/* Side Panel */}
           <motion.div
             ref={sheetRef}
-            initial={{ y: '100%', pointerEvents: 'none' as const }}
-            animate={{ y: 0, pointerEvents: 'auto' as const }}
-            exit={{ y: '100%', pointerEvents: 'none' as const }}
-            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
-            drag="y"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+            drag="x"
             dragControls={dragControls}
             dragListener={false}
-            dragConstraints={{ top: 0 }}
-            dragElastic={{ top: 0.1, bottom: 0.8 }}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={{ left: 0, right: 0.5 }}
             onDragEnd={handleDragEnd}
-            style={{ y }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl shadow-warm-lg"
+            className="fixed inset-0 z-50 bg-background"
           >
-            {/* Handle bar - drag area */}
+            {/* Header */}
             <div
               onPointerDown={startDrag}
-              className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
-            >
-              <div className="w-10 h-1 bg-border rounded-full" />
-            </div>
-
-            {/* Header - also draggable */}
-            <div
-              onPointerDown={startDrag}
-              className="flex items-center justify-between px-4 pb-2 cursor-grab active:cursor-grabbing touch-none"
+              className="flex items-center justify-between px-4 pt-safe cursor-grab active:cursor-grabbing touch-none"
+              style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
             >
               <h2
                 className="text-lg font-semibold text-foreground cursor-default select-none"
@@ -295,7 +282,7 @@ export function SettingsMenu({
             </div>
 
             {/* Menu Items */}
-            <div className="px-2 pb-safe">
+            <div className="px-2 pb-safe overflow-y-auto" style={{ height: 'calc(100% - 60px - env(safe-area-inset-top, 0px))' }}>
               {/* Advanced - Collapsible Section */}
               <div>
                 <button
