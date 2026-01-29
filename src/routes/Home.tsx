@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LogIn, AlertCircle, WifiOff, RefreshCw } from 'lucide-react'
+import { LogIn, LogOut, AlertCircle, WifiOff, RefreshCw } from 'lucide-react'
 import { Dashboard } from '@/components/dashboard/Dashboard'
 import { isSetupComplete, getStoredCredentials, clearCredentials } from '@/lib/config'
 import { t } from '@/lib/i18n'
@@ -148,6 +148,15 @@ export default function Home() {
           >
             <RefreshCw className={`w-5 h-5 ${retrying ? 'animate-spin' : ''}`} />
             {retrying ? 'Retrying...' : t.connectionLost?.retry || 'Retry Connection'}
+          </button>
+
+          {/* Logout button */}
+          <button
+            onClick={handleSignIn}
+            className="w-full py-4 px-6 mt-3 bg-transparent text-muted rounded-xl font-medium flex items-center justify-center gap-2 hover:text-foreground transition-colors touch-feedback"
+          >
+            <LogOut className="w-5 h-5" />
+            {t.connectionLost?.logout || 'Log Out'}
           </button>
         </motion.div>
       </div>
