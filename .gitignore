@@ -39,3 +39,4 @@ CLAUDE.md
 android/fastlane/play-store-credentials.json
 android-overrides/fastlane/play-store-credentials.json
 .claude
+.screen-captures
