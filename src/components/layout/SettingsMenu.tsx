@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { motion, AnimatePresence, useDragControls, PanInfo } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/providers/ThemeProvider'
 import {
   Moon,
@@ -74,7 +74,10 @@ export function SettingsMenu({
     setAlsoHideInHA,
   } = useSettings()
   const sheetRef = useRef<HTMLDivElement>(null)
-  const dragControls = useDragControls()
+
+  // Swipe detection state
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const isSwipingRef = useRef(false)
 
   // Dev mode activation via click counter
   const [devModeClickCount, setDevModeClickCount] = useState(0)
@@ -132,20 +135,41 @@ export function SettingsMenu({
     }
   }, [devModeClickCount, isDevMode, enableDevMode])
 
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    // Blur any focused element to reset touch state
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
+  // Handle touch swipe to close
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY }
+    isSwipingRef.current = false
+  }, [])
 
-    if (info.offset.x > 100 || info.velocity.x > 500) {
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+
+    const touch = e.touches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+
+    // If horizontal movement is dominant and moving right, mark as swiping
+    if (Math.abs(deltaX) > Math.abs(deltaY) && deltaX > 10) {
+      isSwipingRef.current = true
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+
+    const touch = e.changedTouches[0]
+    const deltaX = touch.clientX - touchStartRef.current.x
+    const deltaY = touch.clientY - touchStartRef.current.y
+
+    // Close if swiped right with enough distance and horizontal dominance
+    if (deltaX > 80 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
       onClose()
     }
-  }
 
-  const startDrag = (event: React.PointerEvent) => {
-    dragControls.start(event)
-  }
+    touchStartRef.current = null
+    isSwipingRef.current = false
+  }, [onClose])
 
   // Blur focused element when modal opens
   useEffect(() => {
@@ -251,18 +275,14 @@ export function SettingsMenu({
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'tween', duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-            drag="x"
-            dragControls={dragControls}
-            dragListener={false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={{ left: 0, right: 0.5 }}
-            onDragEnd={handleDragEnd}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             className="fixed inset-0 z-50 bg-background"
           >
             {/* Header */}
             <div
-              onPointerDown={startDrag}
-              className="flex items-center justify-between px-4 pt-safe cursor-grab active:cursor-grabbing touch-none"
+              className="flex items-center justify-between px-4 pt-safe"
               style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
             >
               <h2
