@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Reorder } from 'framer-motion'
-import { Settings } from 'lucide-react'
+import { MoreVertical } from 'lucide-react'
 import { SettingsMenu } from './SettingsMenu'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { saveFloorOrderBatch } from '@/lib/ha-websocket'
@@ -392,16 +392,16 @@ export function BottomNav({
         </nav>
       )}
 
-      {/* Floating settings button - positioned to align with nav */}
+      {/* Settings button - top right */}
       <button
         onClick={() => {
           setIsSettingsOpen(true)
         }}
-        className="fixed z-10 w-12 h-12 rounded-full bg-card border border-border shadow-warm flex items-center justify-center text-muted hover:text-foreground hover:shadow-warm-lg transition-all touch-feedback right-4"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.5rem)' }}
+        className="fixed top-3 right-3 z-10 p-2 rounded-full text-muted hover:text-foreground hover:bg-card/50 transition-all touch-feedback"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 0.75rem)' }}
         aria-label={t.nav.settings}
       >
-        <Settings className="w-5 h-5" />
+        <MoreVertical className="w-5 h-5" />
       </button>
 
       <SettingsMenu
