@@ -196,7 +196,7 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/stuga_keystore_private.jks
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/stuga_keystore_private.jks
 
       - name: Setup fastlane credentials
         run: |
@@ -229,7 +229,7 @@ jobs:
         working-directory: android
         run: |
           ./gradlew assembleRelease \
-            -PRELEASE_STORE_FILE=stuga_keystore_private.jks \
+            -PRELEASE_STORE_FILE=app/stuga_keystore_private.jks \
             -PRELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
             -PRELEASE_KEY_ALIAS=stuga \
             -PRELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
