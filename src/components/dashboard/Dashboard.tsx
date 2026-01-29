@@ -251,6 +251,9 @@ function DashboardContent() {
   // Display rooms
   const displayRooms = isRoomEditMode ? orderedRooms : filteredRooms
 
+  // Bottom nav is only shown when floors exist
+  const hasBottomNav = floors.length > 0
+
   const handleToggleExpand = useCallback(
     (roomId: string) => {
       if (isRoomEditMode) return
@@ -422,7 +425,7 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      <div onClick={handleBackgroundClick} className="flex-1 flex flex-col overflow-hidden pb-nav">
+      <div onClick={handleBackgroundClick} className={`flex-1 flex flex-col overflow-hidden ${hasBottomNav ? 'pb-nav' : 'pb-safe'}`}>
         <section className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
           {selectedFloorId === '__all_devices__' ? (
             // All devices view (not part of swipe navigation)
