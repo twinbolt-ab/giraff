@@ -1,1 +1,0 @@
-• Improved Android app versioning for more reliable updates

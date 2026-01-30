@@ -1,2 +1,0 @@
-• Fixed video containers getting squashed when scrolling on phones
-• Bug fixes

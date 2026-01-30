@@ -1,0 +1,6 @@
+• Added connection diagnostics to help troubleshoot connectivity issues
+• Fixed compatibility issues on Huawei Android 12 devices
+• Fixed modals not closing properly when swiping down
+• Fixed room cards not expanding correctly
+• Fixed icon picker scrolling issues
+• Fixed slider controls flickering when dragging

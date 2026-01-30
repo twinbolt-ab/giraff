@@ -27,16 +27,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# Capacitor (generated platforms - use *-overrides/ folders for customizations)
-/ios/
-/android/
+# Capacitor native build artifacts (source files are tracked)
+android/.gradle/
+android/.idea/
+android/build/
+android/app/build/
+android/app/release/
+android/local.properties
+ios/DerivedData/
+ios/Pods/
+ios/App/Pods/
+ios/App/App/public/
+android/app/src/main/assets/public/
+
+# Secrets (never commit)
+*.jks
+android/fastlane/play-store-credentials.json
 
 # Vite
 .vite
 .private
 CLAUDE.md
-*.jks
-android/fastlane/play-store-credentials.json
-android-overrides/fastlane/play-store-credentials.json
 .claude
 .screen-captures

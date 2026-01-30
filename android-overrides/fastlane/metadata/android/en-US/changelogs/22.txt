@@ -1,6 +1,0 @@
-• Redesigned floor editing with a cleaner, more intuitive interface
-• Room cards now show humidity alongside temperature
-• New settings to show or hide temperature and humidity
-• Exclude specific lights or switches from the room toggle
-• Simplified grid layout with a cleaner 2-column default
-• Fixed switches behaving incorrectly when toggling rooms

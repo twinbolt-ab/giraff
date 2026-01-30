@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "949772444819",
+    "project_id": "stuga-app",
+    "storage_bucket": "stuga-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:949772444819:android:449ef8363329bc7b80d966",
+        "android_client_info": {
+          "package_name": "com.twinbolt.stuga"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsNVaQ0WZHnjrlovz9sb2PRbQKnud7WlY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

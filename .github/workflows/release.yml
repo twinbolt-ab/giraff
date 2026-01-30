@@ -158,41 +158,11 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Setup Android platform
+      - name: Sync Android platform
         run: |
-          echo "Checking Capacitor installation..."
-          npx cap --version
-
-          # Remove generated android directory and recreate fresh
-          rm -rf android
-          npx cap add android
-
-          # Apply tracked overrides (AndroidManifest, resources, Java files, fastlane)
-          if [ -d android-overrides ]; then
-            echo "Applying android-overrides..."
-            cp -r android-overrides/* android/
-          fi
-
-          # Get version from package.json and calculate versionCode
-          VERSION=$(node -p "require('./package.json').version")
-          # Calculate versionCode: major*10000 + minor*100 + patch (e.g., 0.3.14 = 314)
-          VERSION_CODE=$(echo $VERSION | awk -F. '{print $1*10000 + $2*100 + $3}')
-          echo "Setting version: $VERSION (code: $VERSION_CODE)"
-
-          # Update versionCode and versionName in build.gradle
-          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/" android/app/build.gradle
-          sed -i "s/versionName \"[^\"]*\"/versionName \"$VERSION\"/" android/app/build.gradle
-
-          # Add signing config to build.gradle
-          sed -i 's/android {/android {\n    signingConfigs {\n        release {\n            if (project.hasProperty('\''RELEASE_STORE_FILE'\'')) {\n                storeFile file(RELEASE_STORE_FILE)\n                storePassword RELEASE_STORE_PASSWORD\n                keyAlias RELEASE_KEY_ALIAS\n                keyPassword RELEASE_KEY_PASSWORD\n            }\n        }\n    }/' android/app/build.gradle
-
-          # Add signingConfig to release buildType
-          sed -i 's/minifyEnabled false/minifyEnabled false\n            if (project.hasProperty('\''RELEASE_STORE_FILE'\'')) {\n                signingConfig signingConfigs.release\n            }/' android/app/build.gradle
-
-          echo "Syncing Android platform..."
+          echo "Syncing web assets to Android..."
           npx cap sync android
-          echo "Verifying android directory..."
-          ls -la android/
+          echo "Android sync complete"
 
       - name: Decode keystore
         run: |
@@ -279,19 +249,11 @@ jobs:
       - name: Build web assets
         run: npm run build
 
-      - name: Setup iOS platform
+      - name: Sync iOS platform
         run: |
-          # Remove generated ios directory and recreate fresh
-          rm -rf ios
-          npx cap add ios
-
-          # Apply tracked overrides (fastlane, etc.)
-          if [ -d ios-overrides ]; then
-            echo "Applying ios-overrides..."
-            cp -r ios-overrides/* ios/
-          fi
-
+          echo "Syncing web assets to iOS..."
           npx cap sync ios
+          echo "iOS sync complete"
 
       - name: Install CocoaPods
         working-directory: ios/App

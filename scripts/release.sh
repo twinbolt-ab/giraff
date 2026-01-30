@@ -309,7 +309,7 @@ fi
 
 # Create fastlane changelog for Play Store (uses versionCode as filename)
 echo -e "${GREEN}Creating Play Store changelog...${NC}"
-FASTLANE_CHANGELOG_DIR="android-overrides/fastlane/metadata/android/en-US/changelogs"
+FASTLANE_CHANGELOG_DIR="android/fastlane/metadata/android/en-US/changelogs"
 mkdir -p "$FASTLANE_CHANGELOG_DIR"
 
 # Generate a simpler, plain-text changelog for Play Store (no markdown headers, 500 char limit)
@@ -332,7 +332,7 @@ echo "  Play Store changelog: changelogs/$NEW_VERSION_CODE.txt"
 
 # Create iOS release notes (App Store uses release_notes.txt, not versioned files)
 echo -e "${GREEN}Creating App Store release notes...${NC}"
-IOS_METADATA_DIR="ios-overrides/App/fastlane/metadata/en-US"
+IOS_METADATA_DIR="ios/App/fastlane/metadata/en-US"
 if [[ -d "$IOS_METADATA_DIR" ]]; then
   echo "$PLAY_STORE_CHANGELOG" > "$IOS_METADATA_DIR/release_notes.txt"
   echo "  App Store release notes: metadata/en-US/release_notes.txt"
@@ -356,7 +356,7 @@ fi
 
 # Commit with changelog in message body
 # Using a special format that GHA can parse
-git add package.json CHANGELOG.md web/src/content/changelog.json android-overrides/fastlane/metadata/android/en-US/changelogs/ ios-overrides/App/fastlane/metadata/en-US/release_notes.txt
+git add package.json CHANGELOG.md web/src/content/changelog.json android/fastlane/metadata/android/en-US/changelogs/ ios/App/fastlane/metadata/en-US/release_notes.txt android/app/build.gradle ios/App/App.xcodeproj/project.pbxproj
 if git diff --cached --quiet; then
   echo -e "${YELLOW}No changes to commit (version files may already be updated)${NC}"
   echo "Proceeding with tag creation..."

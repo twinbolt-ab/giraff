@@ -1,1 +1,0 @@
-• Fixed build configuration for Android releases

@@ -1,1 +1,0 @@
-An opinionated, beautiful app for Home Assistant. Open it, log in, done.
