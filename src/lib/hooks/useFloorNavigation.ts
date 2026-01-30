@@ -47,14 +47,24 @@ export function useFloorNavigation({
     setUserSelectedFloorId(undefined)
   }
 
-  // Check if there are rooms without a floor that have controllable devices
+  // Set of valid floor IDs for quick lookup
+  const validFloorIds = useMemo(() => new Set(floors.map((f) => f.floor_id)), [floors])
+
+  // Helper to check if a room has a valid floor assignment
+  // Returns true if room has no floor OR has a floor that doesn't exist (orphaned)
+  const isRoomUnassigned = useCallback(
+    (room: RoomWithDevices) => !room.floorId || !validFloorIds.has(room.floorId),
+    [validFloorIds]
+  )
+
+  // Check if there are rooms without a valid floor that have controllable devices
   const hasUnassignedRooms = useMemo(() => {
     return rooms.some((room) => {
-      if (room.floorId) return false
+      if (!isRoomUnassigned(room)) return false
       const hasControllableDevices = room.devices.some((d) => isEntityVisible(d.entity_id))
       return hasControllableDevices
     })
-  }, [rooms, isEntityVisible])
+  }, [rooms, isEntityVisible, isRoomUnassigned])
 
   // Derive selected floor from data - user selection takes precedence, otherwise auto-select
   const selectedFloorId = useMemo(() => {
@@ -80,27 +90,28 @@ export function useFloorNavigation({
   // Filter rooms by selected floor
   const filteredRooms = useMemo(() => {
     if (selectedFloorId === null) {
+      // Show rooms with no floor OR with a non-existent floor (orphaned)
       return rooms.filter((room) => {
-        if (room.floorId) return false
+        if (!isRoomUnassigned(room)) return false
         return room.devices.some((d) => isEntityVisible(d.entity_id))
       })
     }
     return rooms.filter((room) => room.floorId === selectedFloorId)
-  }, [rooms, selectedFloorId, isEntityVisible])
+  }, [rooms, selectedFloorId, isEntityVisible, isRoomUnassigned])
 
   // Get rooms for a specific floor (used by FloorSwipeContainer)
   const getRoomsForFloor = useCallback(
     (floorId: string | null): RoomWithDevices[] => {
       if (floorId === null) {
-        // Uncategorized rooms
+        // Uncategorized rooms (no floor OR non-existent floor)
         return rooms.filter((room) => {
-          if (room.floorId) return false
+          if (!isRoomUnassigned(room)) return false
           return room.devices.some((d) => isEntityVisible(d.entity_id))
         })
       }
       return rooms.filter((room) => room.floorId === floorId)
     },
-    [rooms, isEntityVisible]
+    [rooms, isEntityVisible, isRoomUnassigned]
   )
 
   // Handle floor selection (from swipe or tab click)
