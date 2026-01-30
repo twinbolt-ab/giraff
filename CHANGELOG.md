@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.26] - 2026-01-30
+
+This release brings a refreshed settings experience and several quality-of-life improvements.
+**Improvements**
+- Settings now opens as a full-screen menu sliding in from the right for easier navigation
+- Settings button moved to the top-right corner with a cleaner icon
+- Added a logout option when connection is lost, so you can switch servers more easily
+- Improved room reordering with better touch-based swiping
+- Cleaner layout when your home doesn't have multiple floors
+**Bug Fixes**
+- Fixed rooms sometimes not appearing when assigned to a missing floor
+- Hidden technical entities (config/diagnostic) that aren't meant for daily use
+
+
 ## [0.3.25] - 2026-01-30
 
 This release brings a refreshed settings experience and several quality-of-life improvements.
