@@ -10,12 +10,161 @@ permissions:
   discussions: write
 
 jobs:
-  # Create GitHub release with changelog
+  # Build Android first - release only happens if this succeeds
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync Android platform
+        run: npx cap sync android
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/stuga_keystore_private.jks
+
+      - name: Build AAB for Play Store
+        working-directory: android
+        run: |
+          ./gradlew bundleRelease \
+            -PRELEASE_STORE_FILE=${{ github.workspace }}/android/stuga_keystore_private.jks \
+            -PRELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -PRELEASE_KEY_ALIAS=stuga \
+            -PRELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Build APK for sideloading
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease \
+            -PRELEASE_STORE_FILE=${{ github.workspace }}/android/stuga_keystore_private.jks \
+            -PRELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
+            -PRELEASE_KEY_ALIAS=stuga \
+            -PRELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+
+      - name: Prepare artifacts
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          cp android/app/build/outputs/apk/release/app-release.apk "stuga-${VERSION}.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "stuga-${VERSION}.aab"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: |
+            stuga-*.apk
+            stuga-*.aab
+          retention-days: 1
+
+  # Build iOS (disabled until Developer enrollment approved)
+  build-ios:
+    runs-on: macos-latest
+    if: false  # TODO: Enable when iOS secrets are configured
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Setup Ruby (for fastlane)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: ios/App
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Sync iOS platform
+        run: npx cap sync ios
+
+      - name: Install CocoaPods
+        working-directory: ios/App
+        run: pod install
+
+      - name: Setup App Store Connect API key
+        run: |
+          mkdir -p ~/private_keys
+          echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+
+      - name: Install certificates
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          # Create temp keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate
+          echo "$CERTIFICATE_BASE64" | base64 -d > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+      - name: Install provisioning profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build iOS
+        working-directory: ios/App
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+        run: |
+          bundle install
+          bundle exec fastlane build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: ios/App/build/*.ipa
+          retention-days: 1
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+
+  # Create GitHub release only after builds succeed
   github-release:
+    needs: [build-android]  # Add build-ios when enabled
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag_info.outputs.tag }}
-      changelog: ${{ steps.tag_info.outputs.changelog }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,24 +181,17 @@ jobs:
           TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME")
           echo "$TAG_MESSAGE" > /tmp/tag_message.txt
 
-          # Extract changelog (skip first line "Release vX.X.X")
-          CHANGELOG=$(tail -n +3 /tmp/tag_message.txt)
-
-          # Save changelog to file for other jobs
-          echo "$CHANGELOG" > /tmp/changelog.txt
-
-          # Set multiline output
-          {
-            echo 'changelog<<EOF'
-            echo "$CHANGELOG"
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-
       - name: Get previous tag
         id: prev_tag
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 "${{ steps.tag_info.outputs.tag }}^" 2>/dev/null || echo "")
           echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-build
+          path: artifacts/
 
       - name: Create GitHub Release
         env:
@@ -75,7 +217,8 @@ jobs:
 
           gh release create "$TAG" \
             --title "$TAG" \
-            --notes-file /tmp/release_body.md
+            --notes-file /tmp/release_body.md \
+            artifacts/*
 
       - name: Post to Discussions
         env:
@@ -132,53 +275,22 @@ jobs:
 
           echo "Discussion created for $TAG"
 
-  # Build and release Android to Play Store
-  android:
-    needs: github-release
+  # Upload to Play Store after release is created
+  publish-android:
+    needs: [build-android, github-release]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          name: android-build
+          path: artifacts/
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build web assets
-        run: npm run build
-
-      - name: Sync Android platform
+      - name: Decode Play Store credentials
         run: |
-          echo "Syncing web assets to Android..."
-          npx cap sync android
-          echo "Android sync complete"
-
-      - name: Decode keystore
-        run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/stuga_keystore_private.jks
-
-      - name: Setup fastlane credentials
-        run: |
-          # Create Gemfile if not exists
-          if [ ! -f android/Gemfile ]; then
-            cat > android/Gemfile << 'EOF'
-          source "https://rubygems.org"
-          gem "fastlane"
-          EOF
-          fi
-
-          # Decode Play Store credentials
           echo "${{ secrets.PLAY_STORE_CREDENTIALS_BASE64 }}" | base64 -d > android/fastlane/play-store-credentials.json
 
       - name: Setup Ruby (for fastlane)
@@ -188,53 +300,35 @@ jobs:
           bundler-cache: true
           working-directory: android
 
-      - name: Build and upload to Play Store
+      - name: Upload to Play Store
         working-directory: android
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEYSTORE_PATH: ${{ github.workspace }}/android/stuga_keystore_private.jks
-        run: |
-          bundle exec fastlane internal
-
-      - name: Build APK for sideloading
-        working-directory: android
-        run: |
-          ./gradlew assembleRelease \
-            -PRELEASE_STORE_FILE=${{ github.workspace }}/android/stuga_keystore_private.jks \
-            -PRELEASE_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }} \
-            -PRELEASE_KEY_ALIAS=stuga \
-            -PRELEASE_KEY_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-
-      - name: Upload APK and AAB to GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="${{ needs.github-release.outputs.tag }}"
           VERSION="${TAG#v}"
 
-          # Rename APK with version for clarity
-          cp android/app/build/outputs/apk/release/app-release.apk "stuga-${VERSION}.apk"
+          bundle exec fastlane supply \
+            --aab ../artifacts/stuga-${VERSION}.aab \
+            --track production \
+            --json_key fastlane/play-store-credentials.json \
+            --package_name com.twinbolt.stuga \
+            --skip_upload_metadata \
+            --skip_upload_images \
+            --skip_upload_screenshots
 
-          gh release upload "$TAG" \
-            "stuga-${VERSION}.apk#Stuga APK (sideload)" \
-            android/app/build/outputs/bundle/release/app-release.aab#"Android App Bundle" \
-            --clobber
-
-  # Build and release iOS to App Store
-  # Disabled until iOS Developer enrollment is approved
-  ios:
-    needs: github-release
+  # Upload to App Store after release is created
+  publish-ios:
+    needs: [build-ios, github-release]
     runs-on: macos-latest
     if: false  # TODO: Enable when iOS secrets are configured
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download iOS artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          cache: 'npm'
+          name: ios-build
+          path: artifacts/
 
       - name: Setup Ruby (for fastlane)
         uses: ruby/setup-ruby@v1
@@ -243,60 +337,16 @@ jobs:
           bundler-cache: true
           working-directory: ios/App
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build web assets
-        run: npm run build
-
-      - name: Sync iOS platform
-        run: |
-          echo "Syncing web assets to iOS..."
-          npx cap sync ios
-          echo "iOS sync complete"
-
-      - name: Install CocoaPods
-        working-directory: ios/App
-        run: pod install
-
       - name: Setup App Store Connect API key
         run: |
           mkdir -p ~/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
-      - name: Install certificates
-        env:
-          CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
-        run: |
-          # Create temp keychain
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-
-          # Import certificate
-          echo "$CERTIFICATE_BASE64" | base64 -d > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
-
-      - name: Install provisioning profile
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
-
-      - name: Build and upload to App Store
+      - name: Upload to App Store
         working-directory: ios/App
         env:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
         run: |
-          bundle install
-          bundle exec fastlane release
-
-      - name: Cleanup keychain
-        if: always()
-        run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
+          bundle exec fastlane upload
