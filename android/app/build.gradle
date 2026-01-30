@@ -19,7 +19,7 @@ android {
         applicationId "com.twinbolt.stuga"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 32
+        versionCode 326
         versionName "0.3.26"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         // OAuth2 redirect scheme

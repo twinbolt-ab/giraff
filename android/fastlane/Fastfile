@@ -20,6 +20,7 @@ platform :android do
     build
     upload_to_play_store(
       track: "production",
+      release_status: "completed",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       skip_upload_images: true,
       skip_upload_screenshots: true
@@ -31,6 +32,7 @@ platform :android do
     build
     upload_to_play_store(
       track: "production",
+      release_status: "completed",
       aab: "app/build/outputs/bundle/release/app-release.aab",
       skip_upload_images: true,
       skip_upload_screenshots: true
