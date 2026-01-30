@@ -4,6 +4,12 @@
   # Watch the entire repo for changes, not just web/
   ignore = "exit 1"
 
+# Remove trailing slashes (redirect /page/ to /page)
+[[redirects]]
+  from = "/:path/"
+  to = "/:path"
+  status = 301
+
 # SPA fallback for /run app
 [[redirects]]
   from = "/run/*"
