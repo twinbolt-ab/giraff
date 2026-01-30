@@ -33,6 +33,8 @@ interface CoversSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function CoverItem({
@@ -46,6 +48,7 @@ function CoverItem({
   onEnterEditModeWithSelection,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   cover: HAEntity
   isInEditMode: boolean
@@ -57,6 +60,7 @@ function CoverItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const isOpen = cover.state === 'open'
   const isClosed = cover.state === 'closed'
@@ -111,8 +115,9 @@ function CoverItem({
     <div
       data-entity-id={cover.entity_id}
       className={clsx(
-        'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
-        isOpen ? 'bg-accent/20' : 'bg-border/30'
+        'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all',
+        isOpen ? 'bg-accent/20' : 'bg-border/30',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
       )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -210,6 +215,8 @@ export function CoversSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: CoversSectionProps) {
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
@@ -239,7 +246,9 @@ export function CoversSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(cover) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(cover, _index, _isDragging, isReorderSelected) => (
             <CoverItem
               key={cover.entity_id}
               cover={cover}
@@ -252,6 +261,7 @@ export function CoversSection({
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(cover.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />

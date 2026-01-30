@@ -22,6 +22,7 @@ interface DeviceToggleButtonProps {
   fallbackIcon: React.ReactNode
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }
 
 export function DeviceToggleButton({
@@ -34,6 +35,7 @@ export function DeviceToggleButton({
   fallbackIcon,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: DeviceToggleButtonProps) {
   const isOn = entity.state === 'on'
   const entityIcon = getEntityIcon(entity.entity_id)
@@ -96,8 +98,9 @@ export function DeviceToggleButton({
       data-entity-id={entity.entity_id}
       className={clsx(
         'w-full flex items-center gap-2 px-2 py-2 rounded-lg',
-        'transition-colors',
-        isOn ? 'bg-accent/20' : 'bg-border/30'
+        'transition-all',
+        isOn ? 'bg-accent/20' : 'bg-border/30',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
       )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}

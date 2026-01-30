@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { ToggleLeft, SlidersHorizontal } from 'lucide-react'
+import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -33,6 +34,8 @@ interface InputsSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function InputNumberItem({
@@ -44,6 +47,7 @@ function InputNumberItem({
   onEnterEditModeWithSelection,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   input: HAEntity
   isInEditMode: boolean
@@ -53,6 +57,7 @@ function InputNumberItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const entityValue = parseFloat(input.state) || 0
   const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
@@ -137,7 +142,10 @@ function InputNumberItem({
   return (
     <div
       data-entity-id={input.entity_id}
-      className="px-2 py-2 rounded-lg bg-border/30"
+      className={clsx(
+        'px-2 py-2 rounded-lg bg-border/30 transition-all',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
+      )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
       onPointerUp={longPress.onPointerUp}
@@ -205,6 +213,8 @@ export function InputsSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: InputsSectionProps) {
   // Combine and sort all inputs by order
   const sortedInputs = useMemo(() => {
@@ -225,7 +235,7 @@ export function InputsSection({
     void onReorderEntities?.(reorderedInputs)
   }
 
-  const renderInput = (input: HAEntity, reordering = false) => {
+  const renderInput = (input: HAEntity, reordering = false, isReorderSelected = false) => {
     if (input.entity_id.startsWith('input_boolean.')) {
       return (
         <DeviceToggleButton
@@ -243,6 +253,7 @@ export function InputsSection({
           fallbackIcon={<ToggleLeft className="w-5 h-5" />}
           entityMeta={entityMeta?.get(input.entity_id)}
           isReordering={reordering}
+          isReorderSelected={isReorderSelected}
         />
       )
     } else {
@@ -257,6 +268,7 @@ export function InputsSection({
           onEnterEditModeWithSelection={onEnterEditModeWithSelection}
           entityMeta={entityMeta?.get(input.entity_id)}
           isReordering={reordering}
+          isReorderSelected={isReorderSelected}
         />
       )
     }
@@ -272,7 +284,11 @@ export function InputsSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(input) => renderInput(input, true)}
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(input, _index, _isDragging, isReorderSelected) =>
+            renderInput(input, true, isReorderSelected)
+          }
         />
       ) : (
         <div

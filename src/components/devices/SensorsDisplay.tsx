@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { Thermometer, Droplets } from 'lucide-react'
+import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
 import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
@@ -25,6 +26,7 @@ interface SensorItemProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   isReordering?: boolean
+  isReorderSelected?: boolean
 }
 
 function SensorItem({
@@ -36,6 +38,7 @@ function SensorItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   isReordering = false,
+  isReorderSelected = false,
 }: SensorItemProps) {
   const customIcon = getEntityIcon(sensor.entity_id)
 
@@ -73,7 +76,10 @@ function SensorItem({
   return (
     <div
       data-entity-id={sensor.entity_id}
-      className="px-3 py-2.5 rounded-xl bg-border/30"
+      className={clsx(
+        'px-3 py-2.5 rounded-xl bg-border/30 transition-all',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
+      )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
       onPointerUp={longPress.onPointerUp}
@@ -102,6 +108,8 @@ interface SensorsDisplayProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 export function SensorsDisplay({
@@ -116,6 +124,8 @@ export function SensorsDisplay({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: SensorsDisplayProps) {
   // Combine and sort all sensors by order
   const sortedSensors = useMemo(() => {
@@ -138,7 +148,7 @@ export function SensorsDisplay({
     void onReorderEntities?.(reorderedSensors)
   }
 
-  const renderSensor = (sensor: HAEntity, reordering = false) => {
+  const renderSensor = (sensor: HAEntity, reordering = false, isReorderSelected = false) => {
     const isTemperature = sensor.attributes.device_class === 'temperature'
     return (
       <SensorItem
@@ -157,6 +167,7 @@ export function SensorsDisplay({
         onToggleSelection={onToggleSelection}
         onEnterEditModeWithSelection={onEnterEditModeWithSelection}
         isReordering={reordering}
+        isReorderSelected={isReorderSelected}
       />
     )
   }
@@ -171,7 +182,11 @@ export function SensorsDisplay({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(sensor) => renderSensor(sensor, true)}
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(sensor, _index, _isDragging, isReorderSelected) =>
+            renderSensor(sensor, true, isReorderSelected)
+          }
         />
       ) : (
         <div

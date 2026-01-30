@@ -58,6 +58,13 @@ export function useGridDrag<T>({
   const [draggedIndices, setDraggedIndices] = useState<number[]>([])
   const lastEdgeRef = useRef<'left' | 'right' | null>(null)
 
+  // Refs to track current values for event handlers (avoids stale closure issues)
+  const dragStartPosRef = useRef<Position>({ x: 0, y: 0 })
+  const draggedIndexRef = useRef<number | null>(null)
+  // Track the initial grid position of the item when drag started
+  // This allows us to compute visual position without complex adjustment logic
+  const initialGridPosRef = useRef<Position>({ x: 0, y: 0 })
+
   // Track previous items for change detection
   const [prevItems, setPrevItems] = useState(items)
 
@@ -75,7 +82,7 @@ export function useGridDrag<T>({
 
   // Handle external drag continuation - intentional setState to sync external drag state
   useEffect(() => {
-    if (!externalDragKey || !externalDragPosition || draggedIndex !== null) return
+    if (!externalDragKey || !externalDragPosition || draggedIndexRef.current !== null) return
 
     const itemIndex = orderedItems.findIndex((item) => getKey(item) === externalDragKey)
     if (itemIndex === -1) return
@@ -107,8 +114,15 @@ export function useGridDrag<T>({
     const offsetX = fingerX - gridPos.x - cellSize.width / 2
     const offsetY = fingerY - gridPos.y - cellSize.height / 2
 
+    // For external drag, the visual position should be centered under finger
+    // So initialGridPos is set such that: initialGridPos + touchDelta = fingerPos - cellCenter
+    // At this moment touchDelta = 0, so initialGridPos = fingerPos - cellCenter = gridPos + offset
+    const newDragStartPos = { x: externalDragPosition.x, y: externalDragPosition.y }
+    draggedIndexRef.current = finalIndex
+    dragStartPosRef.current = newDragStartPos
+    initialGridPosRef.current = { x: gridPos.x + offsetX, y: gridPos.y + offsetY }
     setDraggedIndex(finalIndex)
-    setDragStartPos({ x: externalDragPosition.x - offsetX, y: externalDragPosition.y - offsetY })
+    setDragStartPos(newDragStartPos)
     setDragOffset({ x: offsetX, y: offsetY })
 
     // Rebuild draggedIndices for multi-drag after floor switch
@@ -127,7 +141,6 @@ export function useGridDrag<T>({
     externalDragPosition,
     orderedItems,
     getKey,
-    draggedIndex,
     getPositionFromIndex,
     getIndexFromPointer,
     cellSize,
@@ -138,6 +151,9 @@ export function useGridDrag<T>({
   const handleDragStart = useCallback(
     (index: number, clientX: number, clientY: number) => {
       haptic.medium()
+      draggedIndexRef.current = index
+      dragStartPosRef.current = { x: clientX, y: clientY }
+      initialGridPosRef.current = getPositionFromIndex(index)
       setDraggedIndex(index)
       setDragStartPos({ x: clientX, y: clientY })
       setDragOffset({ x: 0, y: 0 })
@@ -158,7 +174,7 @@ export function useGridDrag<T>({
 
       onDragStartCallback?.(orderedItems[index], index)
     },
-    [orderedItems, onDragStartCallback, selectedKeys, getKey]
+    [orderedItems, onDragStartCallback, selectedKeys, getKey, getPositionFromIndex]
   )
 
   const handlePointerDown = useCallback(
@@ -173,7 +189,9 @@ export function useGridDrag<T>({
 
   const handleDragMove = useCallback(
     (clientX: number, clientY: number) => {
-      if (draggedIndex === null) return
+      // Use refs for current values to avoid stale closure issues
+      const currentDraggedIndex = draggedIndexRef.current
+      if (currentDraggedIndex === null) return
 
       onDragPosition?.(clientX, clientY)
 
@@ -193,13 +211,12 @@ export function useGridDrag<T>({
         }
       }
 
-      // Check if reordering is needed and calculate position adjustment
+      // Check if reordering is needed
       const newTargetIndex = getIndexFromPointer(clientX, clientY)
       const isMultiDrag = draggedIndices.length > 1
-      let effectiveDragStartPos = dragStartPos
 
-      if (isMultiDrag && draggedIndex !== null) {
-        const primaryPositionInSelection = draggedIndices.indexOf(draggedIndex)
+      if (isMultiDrag && currentDraggedIndex !== null) {
+        const primaryPositionInSelection = draggedIndices.indexOf(currentDraggedIndex)
         if (primaryPositionInSelection === -1) return
 
         const allIndicesValid = draggedIndices.every((i) => i >= 0 && i < orderedItems.length)
@@ -223,45 +240,40 @@ export function useGridDrag<T>({
           const newDraggedIndices = draggedIndices.map((_, i) => blockStartIndex + i)
           setDraggedIndices(newDraggedIndices)
           const newPrimaryIndex = blockStartIndex + primaryPositionInSelection
+          draggedIndexRef.current = newPrimaryIndex
           setDraggedIndex(newPrimaryIndex)
-
-          // Calculate adjusted dragStartPos for offset calculation
-          const oldPos = getPositionFromIndex(draggedIndex)
-          const newPos = getPositionFromIndex(newPrimaryIndex)
-          effectiveDragStartPos = {
-            x: dragStartPos.x + (newPos.x - oldPos.x),
-            y: dragStartPos.y + (newPos.y - oldPos.y),
-          }
-          setDragStartPos(effectiveDragStartPos)
         }
-      } else if (newTargetIndex !== draggedIndex && draggedIndex !== null) {
+      } else if (newTargetIndex !== currentDraggedIndex && currentDraggedIndex !== null) {
         const newItems = [...orderedItems]
-        const [draggedItem] = newItems.splice(draggedIndex, 1)
+        const [draggedItem] = newItems.splice(currentDraggedIndex, 1)
         newItems.splice(newTargetIndex, 0, draggedItem)
         setOrderedItems(newItems)
+        draggedIndexRef.current = newTargetIndex
         setDraggedIndex(newTargetIndex)
         setDraggedIndices([newTargetIndex])
-
-        // Calculate adjusted dragStartPos for offset calculation
-        const oldPos = getPositionFromIndex(draggedIndex)
-        const newPos = getPositionFromIndex(newTargetIndex)
-        effectiveDragStartPos = {
-          x: dragStartPos.x + (newPos.x - oldPos.x),
-          y: dragStartPos.y + (newPos.y - oldPos.y),
-        }
-        setDragStartPos(effectiveDragStartPos)
       }
 
-      // Calculate offset using the (possibly adjusted) start position
+      // Calculate visual position from initial grid position + touch delta
+      // This approach doesn't require adjustment when reordering - the visual
+      // position is always: initialGridPos + (currentTouch - startTouch)
+      const touchDelta = {
+        x: clientX - dragStartPosRef.current.x,
+        y: clientY - dragStartPosRef.current.y,
+      }
+      const visualPos = {
+        x: initialGridPosRef.current.x + touchDelta.x,
+        y: initialGridPosRef.current.y + touchDelta.y,
+      }
+
+      // Compute dragOffset so that: currentGridPos + dragOffset = visualPos
+      const currentGridPos = getPositionFromIndex(draggedIndexRef.current!)
       setDragOffset({
-        x: clientX - effectiveDragStartPos.x,
-        y: clientY - effectiveDragStartPos.y,
+        x: visualPos.x - currentGridPos.x,
+        y: visualPos.y - currentGridPos.y,
       })
     },
     [
-      draggedIndex,
       draggedIndices,
-      dragStartPos,
       getIndexFromPointer,
       orderedItems,
       getPositionFromIndex,
@@ -271,11 +283,15 @@ export function useGridDrag<T>({
   )
 
   const handleDragEnd = useCallback(() => {
-    const draggedItem = draggedIndex !== null ? orderedItems[draggedIndex] : null
+    const currentDraggedIndex = draggedIndexRef.current
+    const draggedItem = currentDraggedIndex !== null ? orderedItems[currentDraggedIndex] : null
 
-    if (draggedIndex !== null) {
+    if (currentDraggedIndex !== null) {
       onReorder(orderedItems)
     }
+    draggedIndexRef.current = null
+    dragStartPosRef.current = { x: 0, y: 0 }
+    initialGridPosRef.current = { x: 0, y: 0 }
     setDraggedIndex(null)
     setDraggedIndices([])
     setDragOffset({ x: 0, y: 0 })
@@ -288,7 +304,7 @@ export function useGridDrag<T>({
     if (draggedItem) {
       onDragEndCallback?.(draggedItem)
     }
-  }, [draggedIndex, orderedItems, onReorder, onEdgeHover, onDragEndCallback])
+  }, [orderedItems, onReorder, onEdgeHover, onDragEndCallback])
 
   // Touch handlers
   const handleTouchStart = useCallback(

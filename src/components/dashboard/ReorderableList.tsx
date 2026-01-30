@@ -11,12 +11,16 @@ import { useListDrag } from '@/lib/hooks/useListDrag'
 
 interface ReorderableListProps<T> {
   items: T[]
-  renderItem: (item: T, index: number, isDragging: boolean) => React.ReactNode
+  renderItem: (item: T, index: number, isDragging: boolean, isSelected: boolean) => React.ReactNode
   onReorder: (items: T[]) => void
   getKey: (item: T) => string
   layout?: 'vertical' | 'flex-wrap'
   className?: string
   onDragEnd?: () => void
+  /** Keys of selected items for multi-drag stacking */
+  selectedKeys?: Set<string>
+  /** Called when an item is tapped (for selection toggle) */
+  onItemTap?: (key: string) => void
 }
 
 // Animation spring config
@@ -30,14 +34,25 @@ export function ReorderableList<T>({
   layout = 'vertical',
   className,
   onDragEnd,
+  selectedKeys,
+  onItemTap,
 }: ReorderableListProps<T>) {
-  const { orderedItems, draggedIndex, dragOffset, handlePointerDown } = useListDrag({
-    items,
-    getKey,
-    onReorder,
-    onDragEnd,
-    immediateMode: true, // Drag starts immediately since we're already in reorder mode
-  })
+  const { orderedItems, draggedIndex, draggedIndices, dragOffset, handlePointerDown } = useListDrag(
+    {
+      items,
+      getKey,
+      onReorder,
+      onDragEnd,
+      immediateMode: true, // Drag starts immediately since we're already in reorder mode
+      selectedKeys,
+      onItemTap: onItemTap
+        ? (index: number) => {
+            const item = orderedItems[index]
+            if (item) onItemTap(getKey(item))
+          }
+        : undefined,
+    }
+  )
 
   return (
     <div
@@ -51,8 +66,38 @@ export function ReorderableList<T>({
       }}
     >
       {orderedItems.map((item, index) => {
-        const isDragging = draggedIndex === index
+        const isMultiDrag = draggedIndices.length > 1
+        const isPrimaryDrag = draggedIndex === index
+        const isSecondaryDrag = isMultiDrag && draggedIndices.includes(index) && !isPrimaryDrag
+        const isDragging = isPrimaryDrag || isSecondaryDrag
         const shouldWiggle = draggedIndex !== null && !isDragging
+
+        // Calculate stacking for secondary dragged items
+        const stackPosition = isSecondaryDrag ? draggedIndices.indexOf(index) : 0
+        const stackOffset = isSecondaryDrag
+          ? { x: (stackPosition + 1) * 5, y: (stackPosition + 1) * 5 }
+          : { x: 0, y: 0 }
+        const stackScale = isSecondaryDrag ? 0.98 - stackPosition * 0.01 : 1
+        const stackZIndex = isSecondaryDrag ? 45 - stackPosition : 0
+
+        // Calculate target position and styling
+        let targetX = 0
+        let targetY = 0
+        let targetScale = 1
+        let targetShadow = '0 0 0 rgba(0, 0, 0, 0)'
+
+        if (isPrimaryDrag) {
+          targetX = dragOffset.x
+          targetY = dragOffset.y
+          targetScale = 1.05
+          targetShadow = '0 20px 40px rgba(0, 0, 0, 0.2)'
+        } else if (isSecondaryDrag) {
+          // Secondary items follow primary with stacking offset
+          targetX = dragOffset.x + stackOffset.x
+          targetY = dragOffset.y + stackOffset.y
+          targetScale = stackScale
+          targetShadow = '0 10px 20px rgba(0, 0, 0, 0.15)'
+        }
 
         return (
           // Outer wrapper maintains position in flex flow for ghost placeholder
@@ -70,10 +115,10 @@ export function ReorderableList<T>({
             <motion.div
               initial={false}
               animate={{
-                x: isDragging ? dragOffset.x : 0,
-                y: isDragging ? dragOffset.y : 0,
-                scale: isDragging ? 1.05 : 1,
-                boxShadow: isDragging ? '0 8px 24px rgba(0, 0, 0, 0.15)' : '0 0 0 rgba(0, 0, 0, 0)',
+                x: targetX,
+                y: targetY,
+                scale: targetScale,
+                boxShadow: targetShadow,
               }}
               transition={{
                 x: isDragging ? { duration: 0 } : { type: 'spring', ...SPRING_CONFIG },
@@ -81,11 +126,12 @@ export function ReorderableList<T>({
                 scale: { duration: 0.15 },
                 boxShadow: { duration: 0.15 },
               }}
-              className={clsx('relative', isDragging && 'z-50')}
+              className={clsx('relative', isPrimaryDrag && 'z-50')}
               style={{
                 cursor: draggedIndex === null ? 'grab' : isDragging ? 'grabbing' : 'grab',
                 // Prevent Android from capturing touch events for scrolling
                 touchAction: 'none',
+                zIndex: isPrimaryDrag ? 50 : isSecondaryDrag ? stackZIndex : undefined,
               }}
               onPointerDown={handlePointerDown(index)}
             >
@@ -95,7 +141,7 @@ export function ReorderableList<T>({
                 style={{ pointerEvents: 'none' }}
                 className={clsx(shouldWiggle && (index % 2 === 0 ? 'wiggle' : 'wiggle-alt'))}
               >
-                {renderItem(item, index, isDragging)}
+                {renderItem(item, index, isDragging, selectedKeys?.has(getKey(item)) ?? false)}
               </div>
             </motion.div>
           </div>

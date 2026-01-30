@@ -47,6 +47,6 @@ android/fastlane/play-store-credentials.json
 # Vite
 .vite
 .private
-CLAUDE.md
 .claude
 .screen-captures
+CLAUDE.local.md

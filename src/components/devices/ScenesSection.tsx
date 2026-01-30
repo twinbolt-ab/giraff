@@ -32,6 +32,8 @@ interface ScenesSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function SceneItem({
@@ -44,6 +46,7 @@ function SceneItem({
   displayName,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   scene: HAEntity
   isInEditMode: boolean
@@ -54,6 +57,7 @@ function SceneItem({
   displayName: (scene: HAEntity) => string
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const sceneIcon = getEntityIcon(scene.entity_id)
 
@@ -104,8 +108,9 @@ function SceneItem({
       className={clsx(
         'px-3 py-1.5 rounded-full text-sm font-medium',
         'bg-border/50 hover:bg-accent/20 hover:text-accent',
-        'transition-colors touch-feedback',
-        'flex items-center gap-1.5'
+        'transition-all touch-feedback',
+        'flex items-center gap-1.5',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
       )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -143,6 +148,8 @@ export function ScenesSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: ScenesSectionProps) {
   const displayName = getDisplayName || getEntityDisplayName
 
@@ -174,7 +181,9 @@ export function ScenesSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="flex-wrap"
-          renderItem={(scene) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(scene, _index, _isDragging, isReorderSelected) => (
             <SceneItem
               key={scene.entity_id}
               scene={scene}
@@ -186,6 +195,7 @@ export function ScenesSection({
               displayName={displayName}
               entityMeta={entityMeta?.get(scene.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />

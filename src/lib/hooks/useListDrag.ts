@@ -26,24 +26,32 @@ interface UseListDragOptions<T> {
   disabled?: boolean
   /** When true, drag starts immediately on pointer down without requiring a long-press */
   immediateMode?: boolean
+  /** Keys of selected items for multi-drag */
+  selectedKeys?: Set<string>
+  /** Called when an item is tapped (pointer up without significant movement) */
+  onItemTap?: (index: number) => void
 }
 
 interface UseListDragReturn<T> {
   orderedItems: T[]
   draggedIndex: number | null
+  draggedIndices: number[]
   dragOffset: Position
   handlePointerDown: (index: number) => (e: React.PointerEvent) => void
 }
 
 export function useListDrag<T>({
   items,
-  getKey: _getKey,
+  getKey,
   onReorder,
   onDragEnd,
   disabled = false,
   immediateMode = false,
+  selectedKeys,
+  onItemTap,
 }: UseListDragOptions<T>): UseListDragReturn<T> {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [draggedIndices, setDraggedIndices] = useState<number[]>([])
   const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 })
   const [dragStartPos, setDragStartPos] = useState<Position>({ x: 0, y: 0 })
   const [orderedItems, setOrderedItems] = useState<T[]>(items)
@@ -59,13 +67,24 @@ export function useListDrag<T>({
 
   // Refs to always have current values in event handlers (avoids stale closures)
   const draggedIndexRef = useRef<number | null>(null)
+  const draggedIndicesRef = useRef<number[]>([])
   const dragStartPosRef = useRef<Position>({ x: 0, y: 0 })
   const orderedItemsRef = useRef<T[]>(items)
+  const selectedKeysRef = useRef<Set<string> | undefined>(selectedKeys)
+
+  // Track cumulative position shift from reordering - keeps item under finger
+  const reorderShiftRef = useRef<Position>({ x: 0, y: 0 })
+
+  // Track if drag actually started (movement beyond threshold)
+  const hasDraggedRef = useRef(false)
+  const tapIndexRef = useRef<number | null>(null)
 
   // Keep refs in sync with state
   draggedIndexRef.current = draggedIndex
+  draggedIndicesRef.current = draggedIndices
   dragStartPosRef.current = dragStartPos
   orderedItemsRef.current = orderedItems
+  selectedKeysRef.current = selectedKeys
 
   // Track previous items for change detection
   const [prevItems, setPrevItems] = useState(items)
@@ -105,10 +124,34 @@ export function useListDrag<T>({
     ) => {
       if (disabled) return
 
+      const currentItems = orderedItemsRef.current
+      const currentSelectedKeys = selectedKeysRef.current
+
+      // Detect multi-selection
+      const itemKey = getKey(currentItems[index])
+      const isPartOfMultiSelection =
+        currentSelectedKeys?.has(itemKey) && currentSelectedKeys.size > 1
+
+      let indices: number[]
+      if (isPartOfMultiSelection) {
+        // Collect all selected indices, sorted
+        indices = currentItems
+          .map((item, i) => ({ key: getKey(item), index: i }))
+          .filter(({ key }) => currentSelectedKeys!.has(key))
+          .map(({ index: i }) => i)
+          .sort((a, b) => a - b)
+      } else {
+        indices = [index]
+      }
+
       // Update refs immediately so handleMove sees the new values
       // before React re-renders (pointermove can fire before render)
       draggedIndexRef.current = index
+      draggedIndicesRef.current = indices
       dragStartPosRef.current = { x: clientX, y: clientY }
+      reorderShiftRef.current = { x: 0, y: 0 }
+      hasDraggedRef.current = false
+      tapIndexRef.current = index
 
       // Capture pointer for gesture ownership - ensures all subsequent events
       // go to this element, preventing other handlers from interfering
@@ -123,17 +166,19 @@ export function useListDrag<T>({
       }
 
       setDraggedIndex(index)
+      setDraggedIndices(indices)
       setDragStartPos({ x: clientX, y: clientY })
       setDragOffset({ x: 0, y: 0 })
       setPendingDragIndex(null)
       haptic.medium()
     },
-    [disabled]
+    [disabled, getKey]
   )
 
   const handleMove = useCallback(
     (clientX: number, clientY: number) => {
       const currentDraggedIndex = draggedIndexRef.current
+      const currentDraggedIndices = draggedIndicesRef.current
 
       // If not dragging, check if we should cancel long-press due to movement
       if (currentDraggedIndex === null) {
@@ -151,26 +196,106 @@ export function useListDrag<T>({
       const currentDragStartPos = dragStartPosRef.current
       const currentOrderedItems = orderedItemsRef.current
 
-      const offsetX = clientX - currentDragStartPos.x
-      const offsetY = clientY - currentDragStartPos.y
-      setDragOffset({ x: offsetX, y: offsetY })
+      // Calculate touch delta from original drag start (never changes during drag)
+      const touchDelta = {
+        x: clientX - currentDragStartPos.x,
+        y: clientY - currentDragStartPos.y,
+      }
 
-      // Calculate new index based on vertical position
+      // Visual offset = touch movement + accumulated reorder shift
+      // This keeps the item under the finger even when it reorders
+      const visualOffset = {
+        x: touchDelta.x + reorderShiftRef.current.x,
+        y: touchDelta.y + reorderShiftRef.current.y,
+      }
+      setDragOffset(visualOffset)
+
+      // Track if user has moved enough to consider this a drag (not a tap)
+      const totalMovement = Math.sqrt(touchDelta.x ** 2 + touchDelta.y ** 2)
+      if (totalMovement > MOVE_THRESHOLD) {
+        hasDraggedRef.current = true
+      }
+
       const ITEM_HEIGHT_ESTIMATE = 60 // Approximate item height
-      const indexDelta = Math.round(offsetY / ITEM_HEIGHT_ESTIMATE)
-      const newIndex = Math.max(
-        0,
-        Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
-      )
+      const isMultiDrag = currentDraggedIndices.length > 1
 
-      if (newIndex !== currentDraggedIndex) {
-        const newOrdered = [...currentOrderedItems]
-        const [removed] = newOrdered.splice(currentDraggedIndex, 1)
-        newOrdered.splice(newIndex, 0, removed)
-        setOrderedItems(newOrdered)
-        setDraggedIndex(newIndex)
-        setDragStartPos({ x: clientX, y: clientY })
-        setDragOffset({ x: 0, y: 0 })
+      if (isMultiDrag) {
+        // Multi-drag: move entire block together
+        const primaryPositionInSelection = currentDraggedIndices.indexOf(currentDraggedIndex)
+        const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
+        const targetPrimaryIndex = Math.max(
+          0,
+          Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
+        )
+
+        // Calculate where the block should start
+        const blockSize = currentDraggedIndices.length
+        const blockStartIndex = Math.max(
+          0,
+          Math.min(
+            currentOrderedItems.length - blockSize,
+            targetPrimaryIndex - primaryPositionInSelection
+          )
+        )
+
+        // Check if current block start differs from where we want it
+        const currentBlockStart = Math.min(...currentDraggedIndices)
+        if (blockStartIndex !== currentBlockStart) {
+          // Extract dragged items in their selection order
+          const draggedItems = currentDraggedIndices.map((i) => currentOrderedItems[i])
+
+          // Remove dragged items from array
+          const newOrdered = currentOrderedItems.filter(
+            (_, i) => !currentDraggedIndices.includes(i)
+          )
+
+          // Insert block at new position
+          newOrdered.splice(blockStartIndex, 0, ...draggedItems)
+
+          // Update indices to reflect new positions
+          const newIndices = draggedItems.map((_, i) => blockStartIndex + i)
+          const newPrimaryIndex = newIndices[primaryPositionInSelection]
+
+          // Adjust shift to compensate
+          const indexDiff = newPrimaryIndex - currentDraggedIndex
+          reorderShiftRef.current = {
+            x: reorderShiftRef.current.x,
+            y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+          }
+
+          setOrderedItems(newOrdered)
+          setDraggedIndex(newPrimaryIndex)
+          setDraggedIndices(newIndices)
+          draggedIndexRef.current = newPrimaryIndex
+          draggedIndicesRef.current = newIndices
+          orderedItemsRef.current = newOrdered
+        }
+      } else {
+        // Single item drag
+        const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
+        const newIndex = Math.max(
+          0,
+          Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
+        )
+
+        if (newIndex !== currentDraggedIndex) {
+          // Adjust shift to compensate for the reorder
+          const indexDiff = newIndex - currentDraggedIndex
+          reorderShiftRef.current = {
+            x: reorderShiftRef.current.x,
+            y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+          }
+
+          const newOrdered = [...currentOrderedItems]
+          const [removed] = newOrdered.splice(currentDraggedIndex, 1)
+          newOrdered.splice(newIndex, 0, removed)
+          setOrderedItems(newOrdered)
+          setDraggedIndex(newIndex)
+          setDraggedIndices([newIndex])
+          draggedIndexRef.current = newIndex
+          draggedIndicesRef.current = [newIndex]
+          orderedItemsRef.current = newOrdered
+        }
       }
     },
     [cancelLongPress]
@@ -190,15 +315,33 @@ export function useListDrag<T>({
       targetElementRef.current = null
     }
 
+    // Check if this was a tap (no significant movement)
+    if (
+      draggedIndexRef.current !== null &&
+      !hasDraggedRef.current &&
+      tapIndexRef.current !== null
+    ) {
+      // This was a tap, not a drag - call onItemTap
+      onItemTap?.(tapIndexRef.current)
+      setDraggedIndex(null)
+      setDraggedIndices([])
+      setDragOffset({ x: 0, y: 0 })
+      tapIndexRef.current = null
+      return
+    }
+
     if (draggedIndexRef.current !== null) {
       // Commit reorder
       onReorder(orderedItemsRef.current)
       setDraggedIndex(null)
+      setDraggedIndices([])
       setDragOffset({ x: 0, y: 0 })
       // Exit reorder mode after drag ends
       onDragEnd?.()
     }
-  }, [onReorder, onDragEnd, cancelLongPress])
+
+    tapIndexRef.current = null
+  }, [onReorder, onDragEnd, cancelLongPress, onItemTap])
 
   // Unified pointer handler - works for touch, mouse, and pen
   const handlePointerDown = useCallback(
@@ -265,6 +408,7 @@ export function useListDrag<T>({
   return {
     orderedItems,
     draggedIndex,
+    draggedIndices,
     dragOffset,
     handlePointerDown,
   }

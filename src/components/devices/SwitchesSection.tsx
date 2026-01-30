@@ -23,6 +23,8 @@ interface SwitchesSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 export function SwitchesSection({
@@ -38,6 +40,8 @@ export function SwitchesSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: SwitchesSectionProps) {
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
@@ -67,7 +71,9 @@ export function SwitchesSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(sw) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(sw, _index, _isDragging, isReorderSelected) => (
             <DeviceToggleButton
               key={sw.entity_id}
               entity={sw}
@@ -83,6 +89,7 @@ export function SwitchesSection({
               fallbackIcon={<Power className="w-5 h-5" />}
               entityMeta={entityMeta?.get(sw.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />

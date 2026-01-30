@@ -25,6 +25,10 @@ interface LightsSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  /** Selected keys for multi-drag during reorder mode */
+  reorderSelectedKeys?: Set<string>
+  /** Toggle selection for reorder multi-drag */
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function LightItem({
@@ -36,6 +40,7 @@ function LightItem({
   compact,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   light: HAEntity
   isInEditMode: boolean
@@ -45,6 +50,7 @@ function LightItem({
   compact: boolean
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const longPress = useLongPress({
     duration: 500,
@@ -79,6 +85,10 @@ function LightItem({
       onPointerMove={longPress.onPointerMove}
       onPointerUp={longPress.onPointerUp}
       onPointerCancel={longPress.onPointerUp}
+      className={clsx(
+        'rounded-lg transition-all duration-150',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
+      )}
     >
       <LightSlider
         light={light}
@@ -104,6 +114,8 @@ export function LightsSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: LightsSectionProps) {
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
@@ -136,7 +148,9 @@ export function LightsSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(light) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(light, _index, _isDragging, isReorderSelected) => (
             <LightItem
               key={light.entity_id}
               light={light}
@@ -147,6 +161,7 @@ export function LightsSection({
               compact={useTwoColumn}
               entityMeta={entityMeta?.get(light.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />

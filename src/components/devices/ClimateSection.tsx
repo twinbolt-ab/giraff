@@ -32,6 +32,8 @@ interface ClimateSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function ClimateItem({
@@ -43,6 +45,7 @@ function ClimateItem({
   onEnterEditModeWithSelection,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   climate: HAEntity
   isInEditMode: boolean
@@ -52,6 +55,7 @@ function ClimateItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const currentTemp = climate.attributes.current_temperature as number | undefined
   const targetTemp = climate.attributes.temperature as number | undefined
@@ -110,8 +114,9 @@ function ClimateItem({
     <div
       data-entity-id={climate.entity_id}
       className={clsx(
-        'px-3 py-3 rounded-xl transition-colors',
-        isOff ? 'bg-border/30' : 'bg-accent/10'
+        'px-3 py-3 rounded-xl transition-all',
+        isOff ? 'bg-border/30' : 'bg-accent/10',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
       )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -203,6 +208,8 @@ export function ClimateSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: ClimateSectionProps) {
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
@@ -232,7 +239,9 @@ export function ClimateSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(climate) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(climate, _index, _isDragging, isReorderSelected) => (
             <ClimateItem
               key={climate.entity_id}
               climate={climate}
@@ -243,6 +252,7 @@ export function ClimateSection({
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(climate.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />

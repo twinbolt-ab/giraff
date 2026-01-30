@@ -31,6 +31,8 @@ interface FansSectionProps {
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
   onEnterSectionReorder?: () => void
   onExitSectionReorder?: () => void
+  reorderSelectedKeys?: Set<string>
+  onToggleReorderSelection?: (key: string) => void
 }
 
 function FanItem({
@@ -42,6 +44,7 @@ function FanItem({
   onEnterEditModeWithSelection,
   entityMeta,
   isReordering = false,
+  isReorderSelected = false,
 }: {
   fan: HAEntity
   isInEditMode: boolean
@@ -51,6 +54,7 @@ function FanItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
   isReordering?: boolean
+  isReorderSelected?: boolean
 }) {
   const isOn = fan.state === 'on'
   const percentage = fan.attributes.percentage as number | undefined
@@ -85,8 +89,9 @@ function FanItem({
     <div
       data-entity-id={fan.entity_id}
       className={clsx(
-        'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
-        isOn ? 'bg-accent/20' : 'bg-border/30'
+        'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all',
+        isOn ? 'bg-accent/20' : 'bg-border/30',
+        isReorderSelected && 'ring-2 ring-accent ring-offset-1 ring-offset-bg-primary'
       )}
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -155,6 +160,8 @@ export function FansSection({
   onReorderEntities,
   onEnterSectionReorder,
   onExitSectionReorder,
+  reorderSelectedKeys,
+  onToggleReorderSelection,
 }: FansSectionProps) {
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
@@ -184,7 +191,9 @@ export function FansSection({
           onReorder={handleReorder}
           onDragEnd={onExitSectionReorder}
           layout="vertical"
-          renderItem={(fan) => (
+          selectedKeys={reorderSelectedKeys}
+          onItemTap={onToggleReorderSelection}
+          renderItem={(fan, _index, _isDragging, isReorderSelected) => (
             <FanItem
               key={fan.entity_id}
               fan={fan}
@@ -195,6 +204,7 @@ export function FansSection({
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(fan.entity_id)}
               isReordering
+              isReorderSelected={isReorderSelected}
             />
           )}
         />
