@@ -176,10 +176,7 @@ export async function getEnabledDomains(): Promise<ConfigurableDomain[]> {
     const domains = JSON.parse(stored) as ConfigurableDomain[]
     return domains.length > 0 ? domains : DEFAULT_ENABLED_DOMAINS
   } catch (error) {
-    void logError(
-      error instanceof Error ? error : new Error(String(error)),
-      'config-parse-domains'
-    )
+    void logError(error instanceof Error ? error : new Error(String(error)), 'config-parse-domains')
     return DEFAULT_ENABLED_DOMAINS
   }
 }

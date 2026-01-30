@@ -34,8 +34,28 @@ export function AllDevicesView() {
   const handlers = useDeviceHandlers()
 
   // Get edit mode state from context
-  const { isAllDevicesEditMode, isSelected, toggleSelection, enterAllDevicesEdit } = useEditMode()
+  const {
+    isAllDevicesEditMode,
+    isSelected,
+    toggleSelection,
+    enterAllDevicesEdit,
+    initialSelection,
+  } = useEditMode()
   const isInEditMode = isAllDevicesEditMode
+
+  // Scroll to the initially selected device when entering edit mode
+  useEffect(() => {
+    if (isAllDevicesEditMode && initialSelection) {
+      // Small delay to let the UI update to edit mode first
+      const timer = setTimeout(() => {
+        const element = document.querySelector(`[data-entity-id="${initialSelection}"]`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 50)
+      return () => clearTimeout(timer)
+    }
+  }, [isAllDevicesEditMode, initialSelection])
 
   // Ref for search input to blur on scroll
   const searchInputRef = useRef<SearchInputRef>(null)

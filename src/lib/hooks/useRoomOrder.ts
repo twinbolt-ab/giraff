@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import * as ws from '../ha-websocket'
-import * as metadata from '../metadata'
-import { ORDER_GAP } from '../constants'
+import * as orderStorage from '../services/order-storage'
+import { ORDER_GAP, DEFAULT_ORDER } from '../constants'
 import { logRoomReorder } from '../analytics'
 
 export function useRoomOrder() {
   const [, forceUpdate] = useState({})
+  const [orderCache, setOrderCache] = useState<Record<string, number>>({})
 
   // Subscribe to registry updates
   useEffect(() => {
@@ -17,12 +18,41 @@ export function useRoomOrder() {
     }
   }, [])
 
-  const getAreaOrder = useCallback((areaId: string): number => {
-    return metadata.getAreaOrder(areaId)
+  // Load all room orders into cache on mount
+  useEffect(() => {
+    let mounted = true
+
+    async function loadOrders() {
+      try {
+        const orders = await orderStorage.getAllRoomOrders()
+        if (mounted) {
+          setOrderCache(orders)
+        }
+      } catch (error) {
+        console.error('Failed to load room orders:', error)
+      }
+    }
+
+    void loadOrders()
+
+    return () => {
+      mounted = false
+    }
   }, [])
 
+  const getAreaOrder = useCallback(
+    (areaId: string): number => {
+      return orderCache[areaId] ?? DEFAULT_ORDER
+    },
+    [orderCache]
+  )
+
   const setAreaOrder = useCallback(async (areaId: string, order: number): Promise<void> => {
-    await metadata.setAreaOrder(areaId, order)
+    // Use storage service with optional HA sync
+    await orderStorage.setRoomOrderWithSync(areaId, order)
+
+    // Update cache
+    setOrderCache((prev) => ({ ...prev, [areaId]: order }))
   }, [])
 
   // Calculate new order values when reordering
@@ -37,7 +67,7 @@ export function useRoomOrder() {
       // Get current orders
       const itemsWithOrder = items.map((item) => ({
         ...item,
-        order: metadata.getAreaOrder(item.areaId),
+        order: orderCache[item.areaId] ?? DEFAULT_ORDER,
       }))
 
       // Move item from fromIndex to toIndex
@@ -71,7 +101,7 @@ export function useRoomOrder() {
 
       return newOrders
     },
-    []
+    [orderCache]
   )
 
   // Apply reorder changes
@@ -85,10 +115,20 @@ export function useRoomOrder() {
 
       // Apply all order changes
       const updates = Array.from(newOrders.entries()).map(([areaId, order]) =>
-        metadata.setAreaOrder(areaId, order)
+        orderStorage.setRoomOrderWithSync(areaId, order)
       )
 
       await Promise.all(updates)
+
+      // Update cache with new orders
+      setOrderCache((prev) => {
+        const updated = { ...prev }
+        for (const [areaId, order] of newOrders) {
+          updated[areaId] = order
+        }
+        return updated
+      })
+
       void logRoomReorder()
     },
     [calculateNewOrders]

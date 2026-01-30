@@ -41,7 +41,10 @@ export async function logScreenView(screenName: string): Promise<void> {
 }
 
 // Connection events
-export async function logConnectionAttempt(connectionType: 'local' | 'cloud', authMethod: 'oauth' | 'token'): Promise<void> {
+export async function logConnectionAttempt(
+  connectionType: 'local' | 'cloud',
+  authMethod: 'oauth' | 'token'
+): Promise<void> {
   if (!isNative) return
 
   try {
@@ -169,7 +172,15 @@ export async function logRoomReorder(): Promise<void> {
 
 // Settings events
 export async function logSettingChange(
-  setting: 'theme' | 'room_ordering' | 'show_temperature' | 'show_humidity' | 'grid_columns' | 'also_hide_in_ha' | 'domain_config',
+  setting:
+    | 'theme'
+    | 'room_ordering'
+    | 'show_temperature'
+    | 'show_humidity'
+    | 'grid_columns'
+    | 'also_hide_in_ha'
+    | 'domain_config'
+    | 'room_order_sync_to_ha',
   value: string | number | boolean
 ): Promise<void> {
   if (!isNative) return

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { ToggleLeft, SlidersHorizontal } from 'lucide-react'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
@@ -8,6 +9,8 @@ import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -25,6 +28,11 @@ interface InputsSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 function InputNumberItem({
@@ -35,6 +43,7 @@ function InputNumberItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isReordering = false,
 }: {
   input: HAEntity
   isInEditMode: boolean
@@ -43,6 +52,7 @@ function InputNumberItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
+  isReordering?: boolean
 }) {
   const entityValue = parseFloat(input.state) || 0
   const min = typeof input.attributes.min === 'number' ? input.attributes.min : 0
@@ -67,7 +77,7 @@ function InputNumberItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(input.entity_id),
   })
 
@@ -91,6 +101,7 @@ function InputNumberItem({
   if (isInEditMode) {
     return (
       <button
+        data-entity-id={input.entity_id}
         onClick={() => {
           onToggleSelection(input.entity_id)
         }}
@@ -125,6 +136,7 @@ function InputNumberItem({
 
   return (
     <div
+      data-entity-id={input.entity_id}
       className="px-2 py-2 rounded-lg bg-border/30"
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -148,7 +160,7 @@ function InputNumberItem({
               {entityMeta && (
                 <EntityBadges
                   isHiddenInStuga={entityMeta.isHiddenInStuga}
-                isHiddenInHA={entityMeta.isHiddenInHA}
+                  isHiddenInHA={entityMeta.isHiddenInHA}
                   hasRoom={entityMeta.hasRoom}
                   className="flex-shrink-0"
                 />
@@ -188,46 +200,91 @@ export function InputsSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: InputsSectionProps) {
+  // Combine and sort all inputs by order
+  const sortedInputs = useMemo(() => {
+    const allInputs = [...inputBooleans, ...inputNumbers]
+    return sortEntitiesByOrder(allInputs, entityOrder)
+  }, [inputBooleans, inputNumbers, entityOrder])
+
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || sortedInputs.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
   if (inputBooleans.length === 0 && inputNumbers.length === 0) return null
+
+  const handleReorder = (reorderedInputs: HAEntity[]) => {
+    void onReorderEntities?.(reorderedInputs)
+  }
+
+  const renderInput = (input: HAEntity, reordering = false) => {
+    if (input.entity_id.startsWith('input_boolean.')) {
+      return (
+        <DeviceToggleButton
+          key={input.entity_id}
+          entity={input}
+          isInEditMode={isInEditMode}
+          isSelected={isSelected(input.entity_id)}
+          onToggle={() => {
+            onBooleanToggle(input)
+          }}
+          onToggleSelection={() => {
+            onToggleSelection(input.entity_id)
+          }}
+          onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(input.entity_id)}
+          fallbackIcon={<ToggleLeft className="w-5 h-5" />}
+          entityMeta={entityMeta?.get(input.entity_id)}
+          isReordering={reordering}
+        />
+      )
+    } else {
+      return (
+        <InputNumberItem
+          key={input.entity_id}
+          input={input}
+          isInEditMode={isInEditMode}
+          isSelected={isSelected(input.entity_id)}
+          onNumberChange={onNumberChange}
+          onToggleSelection={onToggleSelection}
+          onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+          entityMeta={entityMeta?.get(input.entity_id)}
+          isReordering={reordering}
+        />
+      )
+    }
+  }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.devices.inputs}</SectionHeader>
-      <div className="space-y-1">
-        {/* Input Booleans (toggles) */}
-        {inputBooleans.map((input) => (
-          <DeviceToggleButton
-            key={input.entity_id}
-            entity={input}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(input.entity_id)}
-            onToggle={() => {
-              onBooleanToggle(input)
-            }}
-            onToggleSelection={() => {
-              onToggleSelection(input.entity_id)
-            }}
-            onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(input.entity_id)}
-            fallbackIcon={<ToggleLeft className="w-5 h-5" />}
-            entityMeta={entityMeta?.get(input.entity_id)}
-          />
-        ))}
-
-        {/* Input Numbers (sliders) */}
-        {inputNumbers.map((input) => (
-          <InputNumberItem
-            key={input.entity_id}
-            input={input}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(input.entity_id)}
-            onNumberChange={onNumberChange}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-            entityMeta={entityMeta?.get(input.entity_id)}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedInputs}
+          getKey={(input) => input.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="vertical"
+          renderItem={(input) => renderInput(input, true)}
+        />
+      ) : (
+        <div
+          className="space-y-1"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedInputs.map((input) => renderInput(input))}
+        </div>
+      )}
     </div>
   )
 }

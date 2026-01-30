@@ -198,4 +198,3 @@ export async function saveFloorOrderBatch(
     notifyRegistryHandlers(state)
   }
 }
-

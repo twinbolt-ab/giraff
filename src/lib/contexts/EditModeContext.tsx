@@ -4,9 +4,14 @@ import type { RoomWithDevices, HAFloor } from '@/types/ha'
 // State machine types
 export type EditMode =
   | { type: 'normal' }
-  | { type: 'edit-rooms'; selectedIds: Set<string>; orderedRooms: RoomWithDevices[] }
-  | { type: 'edit-devices'; roomId: string; selectedIds: Set<string> }
-  | { type: 'edit-all-devices'; selectedIds: Set<string> }
+  | {
+      type: 'edit-rooms'
+      selectedIds: Set<string>
+      orderedRooms: RoomWithDevices[]
+      initialSelection?: string
+    }
+  | { type: 'edit-devices'; roomId: string; selectedIds: Set<string>; initialSelection?: string }
+  | { type: 'edit-all-devices'; selectedIds: Set<string>; initialSelection?: string }
   | { type: 'edit-floors'; selectedFloorId: string; orderedFloors: HAFloor[] }
 
 // Actions
@@ -30,21 +35,31 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      return { type: 'edit-rooms', selectedIds, orderedRooms: action.rooms }
+      return {
+        type: 'edit-rooms',
+        selectedIds,
+        orderedRooms: action.rooms,
+        initialSelection: action.initialSelection,
+      }
     }
 
     case 'ENTER_DEVICE_EDIT': {
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      return { type: 'edit-devices', roomId: action.roomId, selectedIds }
+      return {
+        type: 'edit-devices',
+        roomId: action.roomId,
+        selectedIds,
+        initialSelection: action.initialSelection,
+      }
     }
 
     case 'ENTER_ALL_DEVICES_EDIT': {
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      return { type: 'edit-all-devices', selectedIds }
+      return { type: 'edit-all-devices', selectedIds, initialSelection: action.initialSelection }
     }
 
     case 'ENTER_FLOOR_EDIT':
@@ -145,6 +160,7 @@ interface EditModeContextValue {
   orderedRooms: RoomWithDevices[]
   orderedFloors: HAFloor[]
   selectedFloorId: string | null
+  initialSelection: string | null
 
   // Actions
   enterRoomEdit: (rooms: RoomWithDevices[], initialSelection?: string) => void
@@ -216,6 +232,17 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     return null
   }, [mode])
 
+  const initialSelection = useMemo(() => {
+    if (
+      mode.type === 'edit-rooms' ||
+      mode.type === 'edit-devices' ||
+      mode.type === 'edit-all-devices'
+    ) {
+      return mode.initialSelection ?? null
+    }
+    return null
+  }, [mode])
+
   const isSelected = useCallback((id: string) => selectedIds.has(id), [selectedIds])
 
   // Actions
@@ -267,6 +294,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       orderedRooms,
       orderedFloors,
       selectedFloorId,
+      initialSelection,
       enterRoomEdit,
       enterDeviceEdit,
       enterAllDevicesEdit,
@@ -292,6 +320,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       orderedRooms,
       orderedFloors,
       selectedFloorId,
+      initialSelection,
       enterRoomEdit,
       enterDeviceEdit,
       enterAllDevicesEdit,

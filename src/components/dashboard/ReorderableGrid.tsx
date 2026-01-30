@@ -132,13 +132,14 @@ export function ReorderableGrid<T>({
   const isMultiDrag = draggedIndices.length > 1
   const primaryDragPosition = draggedIndex !== null ? getPositionFromIndex(draggedIndex) : null
 
-  // Ghost placeholder positions for multi-drag
-  const ghostPositions = isMultiDrag
-    ? draggedIndices.map((idx) => ({
-        index: idx,
-        position: getPositionFromIndex(idx),
-      }))
-    : []
+  // Ghost placeholder positions for all dragged items (single or multi)
+  const ghostPositions =
+    draggedIndex !== null
+      ? draggedIndices.map((idx) => ({
+          index: idx,
+          position: getPositionFromIndex(idx),
+        }))
+      : []
 
   const cellWidth = getCellWidth()
 
@@ -151,7 +152,7 @@ export function ReorderableGrid<T>({
         height: containerHeight > 0 ? containerHeight : 'auto',
       }}
     >
-      {/* Ghost placeholders for multi-drag */}
+      {/* Ghost placeholders showing original positions during drag */}
       {ghostPositions.map(({ index, position }) => (
         <motion.div
           key={`ghost-${index}`}

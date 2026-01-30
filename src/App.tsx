@@ -8,6 +8,7 @@ import { logScreenView } from './lib/analytics'
 import Home from './routes/Home'
 import Setup from './routes/Setup'
 import AuthCallback from './routes/AuthCallback'
+import { DragTest } from './pages/DragTest'
 
 // Map routes to screen names for analytics
 function getScreenName(pathname: string): string {
@@ -47,6 +48,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/setup" element={<Setup />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/drag-test" element={<DragTest />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

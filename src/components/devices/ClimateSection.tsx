@@ -1,12 +1,16 @@
+import { useMemo } from 'react'
 import { Thermometer, Power } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import { formatTemperatureCompact } from '@/lib/temperature'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -23,6 +27,11 @@ interface ClimateSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 function ClimateItem({
@@ -33,6 +42,7 @@ function ClimateItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isReordering = false,
 }: {
   climate: HAEntity
   isInEditMode: boolean
@@ -41,6 +51,7 @@ function ClimateItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
+  isReordering?: boolean
 }) {
   const currentTemp = climate.attributes.current_temperature as number | undefined
   const targetTemp = climate.attributes.temperature as number | undefined
@@ -50,13 +61,14 @@ function ClimateItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(climate.entity_id),
   })
 
   if (isInEditMode) {
     return (
       <button
+        data-entity-id={climate.entity_id}
         onClick={() => {
           onToggleSelection(climate.entity_id)
         }}
@@ -96,6 +108,7 @@ function ClimateItem({
 
   return (
     <div
+      data-entity-id={climate.entity_id}
       className={clsx(
         'px-3 py-3 rounded-xl transition-colors',
         isOff ? 'bg-border/30' : 'bg-accent/10'
@@ -185,26 +198,76 @@ export function ClimateSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: ClimateSectionProps) {
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || climates.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
+  // Sort climates by order
+  const sortedClimates = useMemo(() => {
+    return sortEntitiesByOrder(climates, entityOrder)
+  }, [climates, entityOrder])
+
   if (climates.length === 0) return null
+
+  const handleReorder = (reorderedClimates: HAEntity[]) => {
+    void onReorderEntities?.(reorderedClimates)
+  }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.climate}</SectionHeader>
-      <div className="space-y-2">
-        {climates.map((climate) => (
-          <ClimateItem
-            key={climate.entity_id}
-            climate={climate}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(climate.entity_id)}
-            onToggle={onToggle}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-            entityMeta={entityMeta?.get(climate.entity_id)}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedClimates}
+          getKey={(climate) => climate.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="vertical"
+          renderItem={(climate) => (
+            <ClimateItem
+              key={climate.entity_id}
+              climate={climate}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(climate.entity_id)}
+              onToggle={onToggle}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(climate.entity_id)}
+              isReordering
+            />
+          )}
+        />
+      ) : (
+        <div
+          className="space-y-2"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedClimates.map((climate) => (
+            <ClimateItem
+              key={climate.entity_id}
+              climate={climate}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(climate.entity_id)}
+              onToggle={onToggle}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(climate.entity_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

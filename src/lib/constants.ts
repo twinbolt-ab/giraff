@@ -38,7 +38,7 @@ export const OVERLAY_HIDE_DELAY = 300
 // Room expand/collapse animation duration (seconds)
 export const ROOM_EXPAND_DURATION = 0.25
 
-// localStorage keys for credentials
+// localStorage keys for credentials and settings
 export const STORAGE_KEYS = {
   HA_URL: 'stuga-ha-url',
   HA_TOKEN: 'stuga-ha-token',
@@ -49,6 +49,11 @@ export const STORAGE_KEYS = {
   STRUCTURE_HINT_DISMISSED: 'stuga-structure-hint-dismissed',
   FLOORS_HINT_DISMISSED: 'stuga-floors-hint-dismissed',
   DEBUG_ID: 'stuga-debug-id',
+  // Ordering
+  ENTITY_ORDER_PREFIX: 'stuga-entity-order-',
+  ROOM_ORDER: 'stuga-room-order',
+  ROOM_ORDER_MIGRATED: 'stuga-room-order-migrated',
+  ROOM_ORDER_SYNC_TO_HA: 'stuga-room-order-sync-to-ha',
 } as const
 
 /**

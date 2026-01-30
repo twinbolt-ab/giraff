@@ -1,10 +1,14 @@
+import { useMemo } from 'react'
 import { Thermometer, Droplets } from 'lucide-react'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import { formatTemperature } from '@/lib/temperature'
 
@@ -20,6 +24,7 @@ interface SensorItemProps {
   isSelected: boolean
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  isReordering?: boolean
 }
 
 function SensorItem({
@@ -30,12 +35,13 @@ function SensorItem({
   isSelected,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  isReordering = false,
 }: SensorItemProps) {
   const customIcon = getEntityIcon(sensor.entity_id)
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(sensor.entity_id),
   })
 
@@ -44,6 +50,7 @@ function SensorItem({
   if (isInEditMode) {
     return (
       <button
+        data-entity-id={sensor.entity_id}
         onClick={() => {
           onToggleSelection(sensor.entity_id)
         }}
@@ -65,6 +72,7 @@ function SensorItem({
 
   return (
     <div
+      data-entity-id={sensor.entity_id}
       className="px-3 py-2.5 rounded-xl bg-border/30"
       onPointerDown={longPress.onPointerDown}
       onPointerMove={longPress.onPointerMove}
@@ -89,6 +97,11 @@ interface SensorsDisplayProps {
   isSelected: (id: string) => boolean
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 export function SensorsDisplay({
@@ -98,40 +111,79 @@ export function SensorsDisplay({
   isSelected,
   onToggleSelection,
   onEnterEditModeWithSelection,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: SensorsDisplayProps) {
+  // Combine and sort all sensors by order
+  const sortedSensors = useMemo(() => {
+    const allSensors = [...temperatureSensors, ...humiditySensors]
+    return sortEntitiesByOrder(allSensors, entityOrder)
+  }, [temperatureSensors, humiditySensors, entityOrder])
+
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || sortedSensors.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
   if (temperatureSensors.length === 0 && humiditySensors.length === 0) {
     return null
+  }
+
+  const handleReorder = (reorderedSensors: HAEntity[]) => {
+    void onReorderEntities?.(reorderedSensors)
+  }
+
+  const renderSensor = (sensor: HAEntity, reordering = false) => {
+    const isTemperature = sensor.attributes.device_class === 'temperature'
+    return (
+      <SensorItem
+        key={sensor.entity_id}
+        sensor={sensor}
+        fallbackIcon={
+          isTemperature ? <Thermometer className="w-4 h-4" /> : <Droplets className="w-4 h-4" />
+        }
+        value={
+          isTemperature
+            ? formatTemperature(parseFloat(sensor.state))
+            : `${Math.round(parseFloat(sensor.state))}%`
+        }
+        isInEditMode={isInEditMode}
+        isSelected={isSelected(sensor.entity_id)}
+        onToggleSelection={onToggleSelection}
+        onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+        isReordering={reordering}
+      />
+    )
   }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.sensor}</SectionHeader>
-      <div className="space-y-2">
-        {temperatureSensors.map((sensor) => (
-          <SensorItem
-            key={sensor.entity_id}
-            sensor={sensor}
-            fallbackIcon={<Thermometer className="w-4 h-4" />}
-            value={formatTemperature(parseFloat(sensor.state))}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(sensor.entity_id)}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-          />
-        ))}
-        {humiditySensors.map((sensor) => (
-          <SensorItem
-            key={sensor.entity_id}
-            sensor={sensor}
-            fallbackIcon={<Droplets className="w-4 h-4" />}
-            value={`${Math.round(parseFloat(sensor.state))}%`}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(sensor.entity_id)}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedSensors}
+          getKey={(sensor) => sensor.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="vertical"
+          renderItem={(sensor) => renderSensor(sensor, true)}
+        />
+      ) : (
+        <div
+          className="space-y-2"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedSensors.map((sensor) => renderSensor(sensor))}
+        </div>
+      )}
     </div>
   )
 }

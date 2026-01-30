@@ -3,7 +3,11 @@ import type { HAWebSocketState } from './types'
 import { RECONNECT_DELAY } from '@/lib/constants'
 import { getValidAccessToken } from '@/lib/ha-oauth'
 import { logger } from '@/lib/logger'
-import { notifyConnectionHandlers, clearPendingCallbacks, notifyConnectionErrorHandlers } from './message-router'
+import {
+  notifyConnectionHandlers,
+  clearPendingCallbacks,
+  notifyConnectionErrorHandlers,
+} from './message-router'
 import { runConnectionDiagnostics } from '@/lib/connection-diagnostics'
 import { logError, log, setUserContext, getConnectionType } from '@/lib/crashlytics'
 import { Capacitor } from '@capacitor/core'
@@ -48,10 +52,7 @@ export function connect(state: HAWebSocketState, onMessage: MessageCallback): vo
     }
   } catch (error) {
     logger.error('HA WS', 'Connection failed:', error)
-    void logError(
-      error instanceof Error ? error : new Error(String(error)),
-      'websocket-connect'
-    )
+    void logError(error instanceof Error ? error : new Error(String(error)), 'websocket-connect')
     handleConnectionFailure(state, onMessage)
   }
 }
@@ -72,7 +73,9 @@ async function handleConnectionFailure(
     // Log the diagnostic result if there's a failure
     if (!diagnostic.httpsReachable || !diagnostic.websocketReachable || !diagnostic.authValid) {
       void logError(
-        new Error(`Connection diagnostic: https=${diagnostic.httpsReachable}, ws=${diagnostic.websocketReachable}, auth=${diagnostic.authValid}, error=${diagnostic.errorType}`),
+        new Error(
+          `Connection diagnostic: https=${diagnostic.httpsReachable}, ws=${diagnostic.websocketReachable}, auth=${diagnostic.authValid}, error=${diagnostic.errorType}`
+        ),
         'websocket-diagnostic'
       )
     }
@@ -113,7 +116,10 @@ export async function authenticate(state: HAWebSocketState): Promise<boolean> {
     } else if (result.status === 'network-error') {
       // Network error - keep trying to reconnect, credentials are still valid
       logger.warn('HA WS', 'Network error getting token, will retry on reconnect')
-      void logError(new Error('OAuth network error during authentication'), 'websocket-auth-network')
+      void logError(
+        new Error('OAuth network error during authentication'),
+        'websocket-auth-network'
+      )
       disconnect(state)
       return false
     } else {

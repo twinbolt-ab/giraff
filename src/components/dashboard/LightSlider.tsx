@@ -192,7 +192,7 @@ export function LightSlider({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      style={{ touchAction: 'pan-y' }}
+      style={{ touchAction: disabled ? 'none' : 'pan-y' }}
     >
       {/* Brightness fill background */}
       {isOn && (

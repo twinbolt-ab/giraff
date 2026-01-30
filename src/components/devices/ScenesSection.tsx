@@ -1,12 +1,16 @@
+import { useMemo } from 'react'
 import { Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -23,6 +27,11 @@ interface ScenesSectionProps {
   onEnterEditModeWithSelection?: (deviceId: string) => void
   getDisplayName?: (scene: HAEntity) => string
   entityMeta?: Map<string, EntityMeta>
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 function SceneItem({
@@ -34,6 +43,7 @@ function SceneItem({
   onEnterEditModeWithSelection,
   displayName,
   entityMeta,
+  isReordering = false,
 }: {
   scene: HAEntity
   isInEditMode: boolean
@@ -43,18 +53,20 @@ function SceneItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   displayName: (scene: HAEntity) => string
   entityMeta?: EntityMeta
+  isReordering?: boolean
 }) {
   const sceneIcon = getEntityIcon(scene.entity_id)
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(scene.entity_id),
   })
 
   if (isInEditMode) {
     return (
       <button
+        data-entity-id={scene.entity_id}
         onClick={() => {
           onToggleSelection(scene.entity_id)
         }}
@@ -72,13 +84,20 @@ function SceneItem({
           <Sparkles className="w-3.5 h-3.5" />
         )}
         {displayName(scene)}
-        {entityMeta && <EntityBadges isHiddenInStuga={entityMeta.isHiddenInStuga} isHiddenInHA={entityMeta.isHiddenInHA} hasRoom={entityMeta.hasRoom} />}
+        {entityMeta && (
+          <EntityBadges
+            isHiddenInStuga={entityMeta.isHiddenInStuga}
+            isHiddenInHA={entityMeta.isHiddenInHA}
+            hasRoom={entityMeta.hasRoom}
+          />
+        )}
       </button>
     )
   }
 
   return (
     <button
+      data-entity-id={scene.entity_id}
       onClick={() => {
         onActivate(scene)
       }}
@@ -99,7 +118,13 @@ function SceneItem({
         <Sparkles className="w-3.5 h-3.5" />
       )}
       {displayName(scene)}
-      {entityMeta && <EntityBadges isHiddenInStuga={entityMeta.isHiddenInStuga} isHiddenInHA={entityMeta.isHiddenInHA} hasRoom={entityMeta.hasRoom} />}
+      {entityMeta && (
+        <EntityBadges
+          isHiddenInStuga={entityMeta.isHiddenInStuga}
+          isHiddenInHA={entityMeta.isHiddenInHA}
+          hasRoom={entityMeta.hasRoom}
+        />
+      )}
     </button>
   )
 }
@@ -113,29 +138,80 @@ export function ScenesSection({
   onEnterEditModeWithSelection,
   getDisplayName,
   entityMeta,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: ScenesSectionProps) {
+  const displayName = getDisplayName || getEntityDisplayName
+
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || scenes.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
+  // Sort scenes by order
+  const sortedScenes = useMemo(() => {
+    return sortEntitiesByOrder(scenes, entityOrder)
+  }, [scenes, entityOrder])
+
   if (scenes.length === 0) return null
 
-  const displayName = getDisplayName || getEntityDisplayName
+  const handleReorder = (reorderedScenes: HAEntity[]) => {
+    void onReorderEntities?.(reorderedScenes)
+  }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.devices.scenes}</SectionHeader>
-      <div className="flex flex-wrap gap-2">
-        {scenes.map((scene) => (
-          <SceneItem
-            key={scene.entity_id}
-            scene={scene}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(scene.entity_id)}
-            onActivate={onActivate}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-            displayName={displayName}
-            entityMeta={entityMeta?.get(scene.entity_id)}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedScenes}
+          getKey={(scene) => scene.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="flex-wrap"
+          renderItem={(scene) => (
+            <SceneItem
+              key={scene.entity_id}
+              scene={scene}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(scene.entity_id)}
+              onActivate={onActivate}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              displayName={displayName}
+              entityMeta={entityMeta?.get(scene.entity_id)}
+              isReordering
+            />
+          )}
+        />
+      ) : (
+        <div
+          className="flex flex-wrap gap-2"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedScenes.map((scene) => (
+            <SceneItem
+              key={scene.entity_id}
+              scene={scene}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(scene.entity_id)}
+              onActivate={onActivate}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              displayName={displayName}
+              entityMeta={entityMeta?.get(scene.entity_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

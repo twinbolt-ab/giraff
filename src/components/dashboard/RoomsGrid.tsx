@@ -155,8 +155,7 @@ export function RoomsGrid({
     ? displayRooms.findIndex((r) => r.id === layoutExpandedId)
     : -1
   // Check if expanded card is in any column except the first (needs placeholder for cards to its left)
-  const layoutExpandedColumn =
-    layoutExpandedIndex !== -1 ? layoutExpandedIndex % gridColumns : -1
+  const layoutExpandedColumn = layoutExpandedIndex !== -1 ? layoutExpandedIndex % gridColumns : -1
 
   // Normal grid view with width animations (no layout FLIP for better performance)
   return (

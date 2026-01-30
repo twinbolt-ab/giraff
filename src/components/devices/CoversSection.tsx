@@ -1,12 +1,16 @@
+import { useMemo } from 'react'
 import { Blinds, ChevronUp, ChevronDown, Square } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -24,6 +28,11 @@ interface CoversSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 function CoverItem({
@@ -36,6 +45,7 @@ function CoverItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isReordering = false,
 }: {
   cover: HAEntity
   isInEditMode: boolean
@@ -46,6 +56,7 @@ function CoverItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
+  isReordering?: boolean
 }) {
   const isOpen = cover.state === 'open'
   const isClosed = cover.state === 'closed'
@@ -53,13 +64,14 @@ function CoverItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(cover.entity_id),
   })
 
   if (isInEditMode) {
     return (
       <button
+        data-entity-id={cover.entity_id}
         onClick={() => {
           onToggleSelection(cover.entity_id)
         }}
@@ -97,6 +109,7 @@ function CoverItem({
 
   return (
     <div
+      data-entity-id={cover.entity_id}
       className={clsx(
         'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
         isOpen ? 'bg-accent/20' : 'bg-border/30'
@@ -133,7 +146,7 @@ function CoverItem({
         {entityMeta && (
           <EntityBadges
             isHiddenInStuga={entityMeta.isHiddenInStuga}
-              isHiddenInHA={entityMeta.isHiddenInHA}
+            isHiddenInHA={entityMeta.isHiddenInHA}
             hasRoom={entityMeta.hasRoom}
             className="flex-shrink-0"
           />
@@ -192,28 +205,80 @@ export function CoversSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: CoversSectionProps) {
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || covers.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
+  // Sort covers by order
+  const sortedCovers = useMemo(() => {
+    return sortEntitiesByOrder(covers, entityOrder)
+  }, [covers, entityOrder])
+
   if (covers.length === 0) return null
+
+  const handleReorder = (reorderedCovers: HAEntity[]) => {
+    void onReorderEntities?.(reorderedCovers)
+  }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.cover}</SectionHeader>
-      <div className="space-y-1">
-        {covers.map((cover) => (
-          <CoverItem
-            key={cover.entity_id}
-            cover={cover}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(cover.entity_id)}
-            onOpen={onOpen}
-            onClose={onClose}
-            onStop={onStop}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-            entityMeta={entityMeta?.get(cover.entity_id)}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedCovers}
+          getKey={(cover) => cover.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="vertical"
+          renderItem={(cover) => (
+            <CoverItem
+              key={cover.entity_id}
+              cover={cover}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(cover.entity_id)}
+              onOpen={onOpen}
+              onClose={onClose}
+              onStop={onStop}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(cover.entity_id)}
+              isReordering
+            />
+          )}
+        />
+      ) : (
+        <div
+          className="space-y-1"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedCovers.map((cover) => (
+            <CoverItem
+              key={cover.entity_id}
+              cover={cover}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(cover.entity_id)}
+              onOpen={onOpen}
+              onClose={onClose}
+              onStop={onStop}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(cover.entity_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

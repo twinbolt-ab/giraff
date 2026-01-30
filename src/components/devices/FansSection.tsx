@@ -1,12 +1,16 @@
+import { useMemo } from 'react'
 import { Fan } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { HAEntity } from '@/types/ha'
+import type { DomainOrderMap } from '@/types/ordering'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { EntityBadges } from '@/components/ui/EntityBadge'
 import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
+import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
+import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -22,6 +26,11 @@ interface FansSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
+  isEntityReordering?: boolean
+  entityOrder?: DomainOrderMap
+  onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  onEnterSectionReorder?: () => void
+  onExitSectionReorder?: () => void
 }
 
 function FanItem({
@@ -32,6 +41,7 @@ function FanItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isReordering = false,
 }: {
   fan: HAEntity
   isInEditMode: boolean
@@ -40,6 +50,7 @@ function FanItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
+  isReordering?: boolean
 }) {
   const isOn = fan.state === 'on'
   const percentage = fan.attributes.percentage as number | undefined
@@ -47,7 +58,7 @@ function FanItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode,
+    disabled: isInEditMode || isReordering,
     onLongPress: () => onEnterEditModeWithSelection?.(fan.entity_id),
   })
 
@@ -72,6 +83,7 @@ function FanItem({
 
   return (
     <div
+      data-entity-id={fan.entity_id}
       className={clsx(
         'w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
         isOn ? 'bg-accent/20' : 'bg-border/30'
@@ -138,26 +150,76 @@ export function FansSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
+  isEntityReordering = false,
+  entityOrder = {},
+  onReorderEntities,
+  onEnterSectionReorder,
+  onExitSectionReorder,
 }: FansSectionProps) {
+  // Long-press to enter reorder mode for this section
+  const sectionLongPress = useLongPress({
+    duration: 500,
+    disabled: isInEditMode || isEntityReordering || fans.length < 2,
+    onLongPress: () => onEnterSectionReorder?.(),
+  })
+
+  // Sort fans by order
+  const sortedFans = useMemo(() => {
+    return sortEntitiesByOrder(fans, entityOrder)
+  }, [fans, entityOrder])
+
   if (fans.length === 0) return null
+
+  const handleReorder = (reorderedFans: HAEntity[]) => {
+    void onReorderEntities?.(reorderedFans)
+  }
 
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.fan}</SectionHeader>
-      <div className="space-y-1">
-        {fans.map((fan) => (
-          <FanItem
-            key={fan.entity_id}
-            fan={fan}
-            isInEditMode={isInEditMode}
-            isSelected={isSelected(fan.entity_id)}
-            onToggle={onToggle}
-            onToggleSelection={onToggleSelection}
-            onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-            entityMeta={entityMeta?.get(fan.entity_id)}
-          />
-        ))}
-      </div>
+      {isEntityReordering ? (
+        <ReorderableList
+          items={sortedFans}
+          getKey={(fan) => fan.entity_id}
+          onReorder={handleReorder}
+          onDragEnd={onExitSectionReorder}
+          layout="vertical"
+          renderItem={(fan) => (
+            <FanItem
+              key={fan.entity_id}
+              fan={fan}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(fan.entity_id)}
+              onToggle={onToggle}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(fan.entity_id)}
+              isReordering
+            />
+          )}
+        />
+      ) : (
+        <div
+          className="space-y-1"
+          onPointerDown={sectionLongPress.onPointerDown}
+          onPointerMove={sectionLongPress.onPointerMove}
+          onPointerUp={sectionLongPress.onPointerUp}
+          onPointerCancel={sectionLongPress.onPointerUp}
+        >
+          {sortedFans.map((fan) => (
+            <FanItem
+              key={fan.entity_id}
+              fan={fan}
+              isInEditMode={isInEditMode}
+              isSelected={isSelected(fan.entity_id)}
+              onToggle={onToggle}
+              onToggleSelection={onToggleSelection}
+              onEnterEditModeWithSelection={onEnterEditModeWithSelection}
+              entityMeta={entityMeta?.get(fan.entity_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

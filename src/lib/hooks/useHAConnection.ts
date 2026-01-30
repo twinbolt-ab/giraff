@@ -21,8 +21,8 @@ export function useHAConnection() {
   const [entities, setEntities] = useState<Map<string, HAEntity>>(new Map())
   const [isConfigured, setIsConfigured] = useState(false)
   const [hasReceivedData, setHasReceivedData] = useState(false)
-  const [connectionError, setConnectionError] = useState<DiagnosticResult | null>(
-    () => ws.getLastDiagnostic()
+  const [connectionError, setConnectionError] = useState<DiagnosticResult | null>(() =>
+    ws.getLastDiagnostic()
   )
 
   useEffect(() => {

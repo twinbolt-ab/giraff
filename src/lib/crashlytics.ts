@@ -48,7 +48,9 @@ export async function logError(error: Error, context?: string): Promise<void> {
   }
 }
 
-function parseStackTrace(stack?: string): Array<{ lineNumber?: number; fileName?: string; functionName?: string }> {
+function parseStackTrace(
+  stack?: string
+): Array<{ lineNumber?: number; fileName?: string; functionName?: string }> {
   if (!stack) return []
 
   const lines = stack.split('\n')
@@ -56,9 +58,10 @@ function parseStackTrace(stack?: string): Array<{ lineNumber?: number; fileName?
 
   for (const line of lines) {
     // Match patterns like "at functionName (fileName:lineNumber:columnNumber)"
-    const match = line.match(/at\s+(.+?)\s+\((.+?):(\d+):\d+\)/) ||
-                  line.match(/at\s+(.+?):(\d+):\d+/) ||
-                  line.match(/(.+?)@(.+?):(\d+):\d+/)
+    const match =
+      line.match(/at\s+(.+?)\s+\((.+?):(\d+):\d+\)/) ||
+      line.match(/at\s+(.+?):(\d+):\d+/) ||
+      line.match(/(.+?)@(.+?):(\d+):\d+/)
 
     if (match) {
       frames.push({

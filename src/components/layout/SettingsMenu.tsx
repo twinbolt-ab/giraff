@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTheme } from '@/providers/ThemeProvider'
 import {
@@ -18,6 +19,7 @@ import {
   Check,
   Hash,
   EyeOff,
+  GripVertical,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
@@ -56,6 +58,7 @@ export function SettingsMenu({
   onEnterEditMode,
   onViewAllDevices,
 }: SettingsMenuProps) {
+  const navigate = useNavigate()
   const { resolvedTheme, setTheme } = useTheme()
   const isDark = resolvedTheme === 'dark'
   const { isDevMode } = useDevMode()
@@ -70,6 +73,8 @@ export function SettingsMenu({
     setGridColumns,
     alsoHideInHA,
     setAlsoHideInHA,
+    roomOrderSyncToHA,
+    setRoomOrderSyncToHA,
   } = useSettings()
 
   const menuState = useSettingsMenuState()
@@ -148,6 +153,10 @@ export function SettingsMenu({
     menuState.closeAlsoHideInHADialog()
   }
 
+  const handleRoomOrderSyncToggle = () => {
+    void setRoomOrderSyncToHA(!roomOrderSyncToHA)
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -223,6 +232,15 @@ export function SettingsMenu({
                       disabledLabel={t.settings.advanced?.roomOrdering?.disabled || 'Disabled'}
                     />
                   }
+                />
+
+                {/* Room Order Sync to HA Toggle */}
+                <SubMenuItem
+                  icon={<Wifi className="w-4 h-4 text-foreground" />}
+                  title="Sync room order to Home Assistant"
+                  description="Store room order in HA for multi-device sync. Adds stuga-room-order-XX labels to areas."
+                  onClick={handleRoomOrderSyncToggle}
+                  rightElement={<ToggleSwitch checked={roomOrderSyncToHA} />}
                 />
 
                 {/* Also Hide in HA Toggle */}
@@ -335,13 +353,25 @@ export function SettingsMenu({
 
               {/* Developer Menu - only shown when dev mode is active */}
               {isDevMode && (
-                <MenuItem
-                  icon={<Beaker className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
-                  iconBgClass="bg-amber-500/20"
-                  title={t.settings.developer?.title || 'Developer'}
-                  description={t.settings.developer?.description || 'Test with mock data'}
-                  onClick={() => menuState.openModal('developerMenu')}
-                />
+                <>
+                  <MenuItem
+                    icon={<Beaker className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+                    iconBgClass="bg-amber-500/20"
+                    title={t.settings.developer?.title || 'Developer'}
+                    description={t.settings.developer?.description || 'Test with mock data'}
+                    onClick={() => menuState.openModal('developerMenu')}
+                  />
+                  <MenuItem
+                    icon={<GripVertical className="w-5 h-5 text-amber-600 dark:text-amber-400" />}
+                    iconBgClass="bg-amber-500/20"
+                    title="Drag Test"
+                    description="Debug drag behavior on mobile"
+                    onClick={() => {
+                      onClose()
+                      navigate('/drag-test')
+                    }}
+                  />
+                </>
               )}
 
               {/* Edit Mode */}

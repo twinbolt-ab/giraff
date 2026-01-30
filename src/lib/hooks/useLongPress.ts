@@ -1,6 +1,15 @@
 import { useRef, useCallback, useEffect } from 'react'
 import { haptic } from '@/lib/haptics'
 
+interface LongPressEvent {
+  /** Pointer X position when long-press triggered */
+  clientX: number
+  /** Pointer Y position when long-press triggered */
+  clientY: number
+  /** The original target element */
+  target: EventTarget | null
+}
+
 interface UseLongPressOptions {
   /** Duration in ms before long-press triggers (default: 500) */
   duration?: number
@@ -8,8 +17,8 @@ interface UseLongPressOptions {
   moveThreshold?: number
   /** Whether the long-press is disabled */
   disabled?: boolean
-  /** Callback when long-press triggers */
-  onLongPress: () => void
+  /** Callback when long-press triggers - receives position info */
+  onLongPress: (event?: LongPressEvent) => void
 }
 
 interface UseLongPressReturn {
@@ -34,6 +43,7 @@ export function useLongPress({
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const didLongPressRef = useRef(false)
   const startPosRef = useRef<{ x: number; y: number } | null>(null)
+  const targetRef = useRef<EventTarget | null>(null)
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -46,6 +56,7 @@ export function useLongPress({
     (e: React.PointerEvent) => {
       didLongPressRef.current = false
       startPosRef.current = { x: e.clientX, y: e.clientY }
+      targetRef.current = e.target
       clearTimer()
 
       if (disabled) return
@@ -53,7 +64,11 @@ export function useLongPress({
       timerRef.current = setTimeout(() => {
         didLongPressRef.current = true
         haptic.medium()
-        onLongPress()
+        onLongPress({
+          clientX: startPosRef.current?.x ?? 0,
+          clientY: startPosRef.current?.y ?? 0,
+          target: targetRef.current,
+        })
       }, duration)
     },
     [disabled, duration, onLongPress, clearTimer]

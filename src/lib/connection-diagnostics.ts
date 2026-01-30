@@ -91,7 +91,11 @@ interface HttpsTestResult {
  * Analyze an error to determine if it's SSL-related.
  * Browser/WebView errors for SSL issues contain specific patterns.
  */
-function analyzeConnectionError(error: unknown): { errorType: ConnectionErrorType; errorDetails: string; errorCode?: string } {
+function analyzeConnectionError(error: unknown): {
+  errorType: ConnectionErrorType
+  errorDetails: string
+  errorCode?: string
+} {
   const errorMessage = error instanceof Error ? error.message : String(error)
   const errorName = error instanceof Error ? error.name : 'Error'
   const lowerMessage = errorMessage.toLowerCase()
@@ -140,7 +144,7 @@ function analyzeConnectionError(error: unknown): { errorType: ConnectionErrorTyp
   ]
 
   // Check for hostname mismatch (more specific than general SSL)
-  if (hostnameMismatchPatterns.some(pattern => lowerMessage.includes(pattern))) {
+  if (hostnameMismatchPatterns.some((pattern) => lowerMessage.includes(pattern))) {
     return {
       errorType: 'ssl-hostname-mismatch',
       errorDetails: errorMessage,
@@ -149,7 +153,7 @@ function analyzeConnectionError(error: unknown): { errorType: ConnectionErrorTyp
   }
 
   // Check for SSL/TLS errors
-  if (sslPatterns.some(pattern => lowerMessage.includes(pattern))) {
+  if (sslPatterns.some((pattern) => lowerMessage.includes(pattern))) {
     return {
       errorType: 'ssl-error',
       errorDetails: errorMessage,
@@ -158,7 +162,7 @@ function analyzeConnectionError(error: unknown): { errorType: ConnectionErrorTyp
   }
 
   // Check for DNS resolution errors
-  if (dnsPatterns.some(pattern => lowerMessage.includes(pattern))) {
+  if (dnsPatterns.some((pattern) => lowerMessage.includes(pattern))) {
     return {
       errorType: 'dns-resolution',
       errorDetails: errorMessage,
@@ -167,7 +171,11 @@ function analyzeConnectionError(error: unknown): { errorType: ConnectionErrorTyp
   }
 
   // Check for timeout (AbortError)
-  if (errorName === 'AbortError' || lowerMessage.includes('timeout') || lowerMessage.includes('abort')) {
+  if (
+    errorName === 'AbortError' ||
+    lowerMessage.includes('timeout') ||
+    lowerMessage.includes('abort')
+  ) {
     return {
       errorType: 'network',
       errorDetails: 'Connection timed out',
@@ -234,10 +242,7 @@ interface WebSocketTestResult {
 /**
  * Test WebSocket connectivity and authentication.
  */
-async function testWebSocketConnectivity(
-  url: string,
-  token: string
-): Promise<WebSocketTestResult> {
+async function testWebSocketConnectivity(url: string, token: string): Promise<WebSocketTestResult> {
   return new Promise((resolve) => {
     const wsUrl = url.replace(/^http/, 'ws') + '/api/websocket'
     let ws: WebSocket | null = null

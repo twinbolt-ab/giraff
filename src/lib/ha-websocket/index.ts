@@ -17,7 +17,12 @@ import type {
   EntityRegistryEntry,
 } from '@/types/ha'
 import { createInitialState } from './types'
-import type { MessageHandler, ConnectionHandler, RegistryHandler, ConnectionErrorHandler } from './types'
+import type {
+  MessageHandler,
+  ConnectionHandler,
+  RegistryHandler,
+  ConnectionErrorHandler,
+} from './types'
 import type { DiagnosticResult } from '@/lib/connection-diagnostics'
 import * as conn from './connection'
 import * as router from './message-router'

@@ -22,9 +22,10 @@ window.addEventListener('error', (event) => {
 })
 
 window.addEventListener('unhandledrejection', (event) => {
-  const error = event.reason instanceof Error
-    ? event.reason
-    : new Error(String(event.reason) || 'Unhandled promise rejection')
+  const error =
+    event.reason instanceof Error
+      ? event.reason
+      : new Error(String(event.reason) || 'Unhandled promise rejection')
   void logError(error, 'unhandled-promise')
 })
 

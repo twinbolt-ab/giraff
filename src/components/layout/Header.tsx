@@ -113,9 +113,7 @@ function ReorderableFloorTab({ floor, isSelected, onExit }: ReorderableFloorTabP
           }
         }}
         className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] transition-all rounded-xl ${
-          isSelected
-            ? 'text-accent'
-            : 'text-muted opacity-50'
+          isSelected ? 'text-accent' : 'text-muted opacity-50'
         }`}
       >
         {floor.icon ? (

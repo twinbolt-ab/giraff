@@ -87,12 +87,12 @@ function getTroubleshootingSteps(errorType: ConnectionErrorType): string[] {
       'Try using HTTP instead of HTTPS if your server supports it',
     ],
     'ssl-hostname-mismatch': [
-      'The SSL certificate doesn\'t match the server address you\'re connecting to',
-      'If you\'re using DNS rebinding (router maps your domain to a local IP), your phone may be using a different DNS server',
+      "The SSL certificate doesn't match the server address you're connecting to",
+      "If you're using DNS rebinding (router maps your domain to a local IP), your phone may be using a different DNS server",
       'On Android: Go to Settings → Network & Internet → Private DNS and set it to "Off" to use your router\'s DNS',
       'On Samsung: Settings → Connections → More → Private DNS → Off',
       'Alternatively, try connecting via the local IP address with HTTP instead',
-      'If using Nabu Casa or similar, ensure you\'re using the correct external URL',
+      "If using Nabu Casa or similar, ensure you're using the correct external URL",
     ],
     'dns-resolution': [
       'The hostname could not be resolved to an IP address',
@@ -429,11 +429,7 @@ export function ConnectionErrorModal({
       </motion.div>
 
       {/* Troubleshooting Help Modal */}
-      <EditModal
-        isOpen={showHelp}
-        onClose={() => setShowHelp(false)}
-        title="Troubleshooting Help"
-      >
+      <EditModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Troubleshooting Help">
         <TroubleshootingHelpContent errorType={errorType} diagnostic={diagnostic} />
       </EditModal>
     </>,

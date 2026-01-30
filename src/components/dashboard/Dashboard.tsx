@@ -29,6 +29,7 @@ import { saveFloorOrderBatch, updateArea } from '@/lib/ha-websocket'
 import { ORDER_GAP } from '@/lib/constants'
 import { t } from '@/lib/i18n'
 import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
+import * as orderStorage from '@/lib/services/order-storage'
 
 // Inner component that uses the context
 function DashboardContent() {
@@ -76,6 +77,13 @@ function DashboardContent() {
       setShowConnectionError(true)
     }
   }, [connectionError, hasReceivedData])
+
+  // Migrate room order from HA labels to localStorage on first connection
+  useEffect(() => {
+    if (isConnected && hasReceivedData) {
+      void orderStorage.migrateRoomOrderFromHA()
+    }
+  }, [isConnected, hasReceivedData])
 
   // Expanded room state (kept separate as it's used for toggling)
   const [expandedRoomId, setExpandedRoomId] = useState<string | null>(null)
@@ -425,7 +433,10 @@ function DashboardContent() {
         )}
       </AnimatePresence>
 
-      <div onClick={handleBackgroundClick} className={`flex-1 flex flex-col overflow-hidden ${hasBottomNav ? 'pb-nav' : 'pb-safe'}`}>
+      <div
+        onClick={handleBackgroundClick}
+        className={`flex-1 flex flex-col overflow-hidden ${hasBottomNav ? 'pb-nav' : 'pb-safe'}`}
+      >
         <section className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden">
           {selectedFloorId === '__all_devices__' ? (
             // All devices view (not part of swipe navigation)
@@ -520,7 +531,12 @@ function DashboardContent() {
         onFloorCreated={handleSelectFloor}
       />
 
-      <DeviceEditModal device={editingDevice} rooms={rooms} onClose={closeDeviceEdit} onDeviceHidden={deselect} />
+      <DeviceEditModal
+        device={editingDevice}
+        rooms={rooms}
+        onClose={closeDeviceEdit}
+        onDeviceHidden={deselect}
+      />
 
       <BulkEditRoomsModal
         isOpen={showBulkEditRooms}

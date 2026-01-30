@@ -1,7 +1,5 @@
 import { useState, useRef, useCallback, useEffect, RefObject } from 'react'
 import { haptic } from '@/lib/haptics'
-import { LONG_PRESS_DURATION } from '@/lib/constants'
-const MOVE_THRESHOLD = 10
 const EDGE_THRESHOLD_PERCENT = 0.08 // 8% of screen width
 
 interface Position {
@@ -58,11 +56,6 @@ export function useGridDrag<T>({
   const [dragStartPos, setDragStartPos] = useState<Position>({ x: 0, y: 0 })
   const [orderedItems, setOrderedItems] = useState<T[]>(items)
   const [draggedIndices, setDraggedIndices] = useState<number[]>([])
-
-  // Long-press state
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [pendingDragIndex, setPendingDragIndex] = useState<number | null>(null)
-  const pendingDragPosRef = useRef<Position>({ x: 0, y: 0 })
   const lastEdgeRef = useRef<'left' | 'right' | null>(null)
 
   // Track previous items for change detection
@@ -72,7 +65,7 @@ export function useGridDrag<T>({
   if (prevItems !== items) {
     setPrevItems(items)
     const isExternalDrag = externalDragKey !== null && externalDragKey !== undefined
-    if (draggedIndex === null && pendingDragIndex === null) {
+    if (draggedIndex === null) {
       setOrderedItems(items)
     } else if (isExternalDrag) {
       setOrderedItems(items)
@@ -142,14 +135,6 @@ export function useGridDrag<T>({
     containerRef,
   ])
 
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
-    }
-    setPendingDragIndex(null)
-  }, [])
-
   const handleDragStart = useCallback(
     (index: number, clientX: number, clientY: number) => {
       haptic.medium()
@@ -180,34 +165,10 @@ export function useGridDrag<T>({
     (index: number, clientX: number, clientY: number) => {
       if (reorderingDisabled) return
 
-      clearLongPressTimer()
-      setPendingDragIndex(index)
-      pendingDragPosRef.current = { x: clientX, y: clientY }
-
-      longPressTimerRef.current = setTimeout(() => {
-        handleDragStart(index, clientX, clientY)
-        longPressTimerRef.current = null
-      }, LONG_PRESS_DURATION)
+      // Start drag immediately - ReorderableGrid is only used in edit mode
+      handleDragStart(index, clientX, clientY)
     },
-    [reorderingDisabled, clearLongPressTimer, handleDragStart]
-  )
-
-  const handlePointerCancel = useCallback(() => {
-    clearLongPressTimer()
-  }, [clearLongPressTimer])
-
-  const checkLongPressMove = useCallback(
-    (clientX: number, clientY: number): boolean => {
-      if (pendingDragIndex === null || draggedIndex !== null) return false
-      const dx = clientX - pendingDragPosRef.current.x
-      const dy = clientY - pendingDragPosRef.current.y
-      if (Math.abs(dx) > MOVE_THRESHOLD || Math.abs(dy) > MOVE_THRESHOLD) {
-        handlePointerCancel()
-        return true
-      }
-      return false
-    },
-    [pendingDragIndex, draggedIndex, handlePointerCancel]
+    [reorderingDisabled, handleDragStart]
   )
 
   const handleDragMove = useCallback(
@@ -310,7 +271,6 @@ export function useGridDrag<T>({
   )
 
   const handleDragEnd = useCallback(() => {
-    clearLongPressTimer()
     const draggedItem = draggedIndex !== null ? orderedItems[draggedIndex] : null
 
     if (draggedIndex !== null) {
@@ -328,7 +288,7 @@ export function useGridDrag<T>({
     if (draggedItem) {
       onDragEndCallback?.(draggedItem)
     }
-  }, [draggedIndex, orderedItems, onReorder, clearLongPressTimer, onEdgeHover, onDragEndCallback])
+  }, [draggedIndex, orderedItems, onReorder, onEdgeHover, onDragEndCallback])
 
   // Touch handlers
   const handleTouchStart = useCallback(
@@ -342,13 +302,11 @@ export function useGridDrag<T>({
   // Touch move/end event listeners - attached to document during active drag
   // This mirrors the mouse event pattern and allows touch events to persist across floor switches
   useEffect(() => {
-    if (draggedIndex === null && pendingDragIndex === null) return
+    if (draggedIndex === null) return
 
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0]
       if (!touch) return
-      if (checkLongPressMove(touch.clientX, touch.clientY)) return
-      if (draggedIndex === null) return
       e.preventDefault()
       handleDragMove(touch.clientX, touch.clientY)
     }
@@ -366,7 +324,7 @@ export function useGridDrag<T>({
       document.removeEventListener('touchend', handleTouchEnd)
       document.removeEventListener('touchcancel', handleTouchEnd)
     }
-  }, [draggedIndex, pendingDragIndex, checkLongPressMove, handleDragMove, handleDragEnd])
+  }, [draggedIndex, handleDragMove, handleDragEnd])
 
   // Mouse handlers
   const handleMouseDown = useCallback(
@@ -378,13 +336,10 @@ export function useGridDrag<T>({
   )
 
   useEffect(() => {
-    if (draggedIndex === null && pendingDragIndex === null) return
+    if (draggedIndex === null) return
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (checkLongPressMove(e.clientX, e.clientY)) return
-      if (draggedIndex !== null) {
-        handleDragMove(e.clientX, e.clientY)
-      }
+      handleDragMove(e.clientX, e.clientY)
     }
 
     const handleMouseUp = () => {
@@ -398,7 +353,7 @@ export function useGridDrag<T>({
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
     }
-  }, [draggedIndex, pendingDragIndex, checkLongPressMove, handleDragMove, handleDragEnd])
+  }, [draggedIndex, handleDragMove, handleDragEnd])
 
   return {
     orderedItems,

@@ -51,7 +51,11 @@ export async function putMetric(traceName: string, metricName: string, num: numb
 }
 
 // Increment a metric on an active trace
-export async function incrementMetric(traceName: string, metricName: string, incrementBy = 1): Promise<void> {
+export async function incrementMetric(
+  traceName: string,
+  metricName: string,
+  incrementBy = 1
+): Promise<void> {
   if (!isNative) return
 
   try {
@@ -62,7 +66,11 @@ export async function incrementMetric(traceName: string, metricName: string, inc
 }
 
 // Add an attribute to an active trace
-export async function putAttribute(traceName: string, attribute: string, value: string): Promise<void> {
+export async function putAttribute(
+  traceName: string,
+  attribute: string,
+  value: string
+): Promise<void> {
   if (!isNative) return
 
   try {

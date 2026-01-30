@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, useMotionValue, useDragControls, animate, PanInfo } from 'framer-motion'
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useDragControls,
+  animate,
+  PanInfo,
+} from 'framer-motion'
 import { ChevronDown, Plus, Loader2, X, Search } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { t } from '@/lib/i18n'
