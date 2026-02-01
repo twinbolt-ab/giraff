@@ -8,6 +8,7 @@ import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -20,15 +21,8 @@ interface LightsSectionProps {
   compact?: boolean
   singleColumn?: boolean
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  /** Selected keys for multi-drag during reorder mode */
-  reorderSelectedKeys?: Set<string>
-  /** Toggle selection for reorder multi-drag */
-  onToggleReorderSelection?: (key: string) => void
 }
 
 function LightItem({
@@ -109,19 +103,19 @@ export function LightsSection({
   compact = false,
   singleColumn = false,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: LightsSectionProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('light')
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || lights.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('light'),
   })
 
   // Sort lights by order
@@ -146,10 +140,10 @@ export function LightsSection({
           items={sortedLights}
           getKey={(light) => light.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(light, _index, _isDragging, isReorderSelected) => (
             <LightItem
               key={light.entity_id}

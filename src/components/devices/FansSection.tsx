@@ -11,6 +11,7 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -26,13 +27,8 @@ interface FansSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 function FanItem({
@@ -155,19 +151,19 @@ export function FansSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: FansSectionProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('fan')
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || fans.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('fan'),
   })
 
   // Sort fans by order
@@ -189,10 +185,10 @@ export function FansSection({
           items={sortedFans}
           getKey={(fan) => fan.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(fan, _index, _isDragging, isReorderSelected) => (
             <FanItem
               key={fan.entity_id}

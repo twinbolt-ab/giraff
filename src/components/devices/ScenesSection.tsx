@@ -11,6 +11,7 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -27,13 +28,8 @@ interface ScenesSectionProps {
   onEnterEditModeWithSelection?: (deviceId: string) => void
   getDisplayName?: (scene: HAEntity) => string
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 function SceneItem({
@@ -143,21 +139,21 @@ export function ScenesSection({
   onEnterEditModeWithSelection,
   getDisplayName,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: ScenesSectionProps) {
   const displayName = getDisplayName || getEntityDisplayName
+
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('scene')
 
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || scenes.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('scene'),
   })
 
   // Sort scenes by order
@@ -179,10 +175,10 @@ export function ScenesSection({
           items={sortedScenes}
           getKey={(scene) => scene.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="flex-wrap"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(scene, _index, _isDragging, isReorderSelected) => (
             <SceneItem
               key={scene.entity_id}

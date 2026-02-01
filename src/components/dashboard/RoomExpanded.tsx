@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
+import { ReorderProvider, useReorder } from '@/lib/contexts/ReorderContext'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { useEntityOrder } from '@/lib/hooks/useEntityOrder'
@@ -30,7 +31,15 @@ interface RoomExpandedProps {
   isExpanded: boolean
 }
 
-export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpandedProps) {
+export function RoomExpanded({ room, allRooms, isExpanded }: RoomExpandedProps) {
+  return (
+    <ReorderProvider>
+      <RoomExpandedContent room={room} allRooms={allRooms} isExpanded={isExpanded} />
+    </ReorderProvider>
+  )
+}
+
+function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpandedProps) {
   const { enabledDomains } = useEnabledDomains()
   const handlers = useDeviceHandlers()
   const contentRef = useRef<HTMLDivElement>(null)
@@ -56,38 +65,9 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
     }
   }, [isDeviceEditMode, initialSelection])
 
-  // Entity reordering state - tracks which section is being reordered (null = none)
-  const [activeReorderSection, setActiveReorderSection] = useState<string | null>(null)
-  const [reorderSelectedKeys, setReorderSelectedKeys] = useState<Set<string>>(new Set())
+  // Entity reordering - state managed by ReorderContext
+  const { activeSection: activeReorderSection, exitReorder } = useReorder()
   const { getDomainOrder, updateDomainOrder } = useEntityOrder(room.id)
-
-  // Toggle selection for an item during reorder mode
-  const toggleReorderSelection = useCallback((key: string) => {
-    setReorderSelectedKeys((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.add(key)
-      }
-      return next
-    })
-  }, [])
-
-  // Handlers for section-specific reordering
-  const handleEnterSectionReorder = useCallback(
-    (section: string) => {
-      if (!isInEditMode) {
-        setActiveReorderSection(section)
-      }
-    },
-    [isInEditMode]
-  )
-
-  const handleExitSectionReorder = useCallback(() => {
-    setActiveReorderSection(null)
-    setReorderSelectedKeys(new Set())
-  }, [])
 
   // Enter device edit mode and select the device
   const handleEnterEditModeWithSelection = useCallback(
@@ -191,7 +171,7 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setActiveReorderSection(null)
+        exitReorder()
       }
     }
 
@@ -204,7 +184,7 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
       clearTimeout(timer)
       document.removeEventListener('click', handleClickOutside)
     }
-  }, [activeReorderSection])
+  }, [activeReorderSection, exitReorder])
 
   // Measure content height whenever it might change
   useLayoutEffect(() => {
@@ -308,15 +288,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               getDisplayName={getEntityDisplayName}
-              isEntityReordering={activeReorderSection === 'scene'}
               entityOrder={getDomainOrder('scene')}
               onReorderEntities={(entities) => updateDomainOrder('scene', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('scene')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'scene' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -332,15 +305,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               isSelected={isSelected}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'light'}
               entityOrder={getDomainOrder('light')}
               onReorderEntities={(entities) => updateDomainOrder('light', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('light')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'light' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -357,15 +323,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onToggle={handlers.handleSwitchToggle}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'switch'}
               entityOrder={getDomainOrder('switch')}
               onReorderEntities={(entities) => updateDomainOrder('switch', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('switch')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'switch' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -384,15 +343,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onNumberChange={handlers.handleInputNumberChange}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'input'}
               entityOrder={getDomainOrder('input_boolean')}
               onReorderEntities={(entities) => updateDomainOrder('input_boolean', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('input')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'input' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -409,15 +361,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onToggle={handlers.handleClimateToggle}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'climate'}
               entityOrder={getDomainOrder('climate')}
               onReorderEntities={(entities) => updateDomainOrder('climate', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('climate')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'climate' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -436,15 +381,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onStop={handlers.handleCoverStop}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'cover'}
               entityOrder={getDomainOrder('cover')}
               onReorderEntities={(entities) => updateDomainOrder('cover', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('cover')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'cover' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -461,13 +399,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onToggle={handlers.handleFanToggle}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'fan'}
               entityOrder={getDomainOrder('fan')}
               onReorderEntities={(entities) => updateDomainOrder('fan', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('fan')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={activeReorderSection === 'fan' ? reorderSelectedKeys : undefined}
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
 
@@ -484,15 +417,8 @@ export function RoomExpanded({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               isSelected={isSelected}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
-              isEntityReordering={activeReorderSection === 'sensor'}
               entityOrder={getDomainOrder('sensor')}
               onReorderEntities={(entities) => updateDomainOrder('sensor', entities)}
-              onEnterSectionReorder={() => handleEnterSectionReorder('sensor')}
-              onExitSectionReorder={handleExitSectionReorder}
-              reorderSelectedKeys={
-                activeReorderSection === 'sensor' ? reorderSelectedKeys : undefined
-              }
-              onToggleReorderSelection={toggleReorderSelection}
             />
           </div>
         </div>

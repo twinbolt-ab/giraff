@@ -11,6 +11,7 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import { formatTemperatureCompact } from '@/lib/temperature'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -27,13 +28,8 @@ interface ClimateSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 function ClimateItem({
@@ -203,19 +199,19 @@ export function ClimateSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: ClimateSectionProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('climate')
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || climates.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('climate'),
   })
 
   // Sort climates by order
@@ -237,10 +233,10 @@ export function ClimateSection({
           items={sortedClimates}
           getKey={(climate) => climate.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(climate, _index, _isDragging, isReorderSelected) => (
             <ClimateItem
               key={climate.entity_id}

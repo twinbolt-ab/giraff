@@ -6,6 +6,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -18,13 +19,8 @@ interface SwitchesSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 export function SwitchesSection({
@@ -35,19 +31,19 @@ export function SwitchesSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: SwitchesSectionProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('switch')
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || switches.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('switch'),
   })
 
   // Sort switches by order
@@ -69,10 +65,10 @@ export function SwitchesSection({
           items={sortedSwitches}
           getKey={(sw) => sw.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(sw, _index, _isDragging, isReorderSelected) => (
             <DeviceToggleButton
               key={sw.entity_id}

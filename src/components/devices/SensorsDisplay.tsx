@@ -10,6 +10,7 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import { formatTemperature } from '@/lib/temperature'
 
@@ -103,13 +104,8 @@ interface SensorsDisplayProps {
   isSelected: (id: string) => boolean
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 export function SensorsDisplay({
@@ -119,14 +115,14 @@ export function SensorsDisplay({
   isSelected,
   onToggleSelection,
   onEnterEditModeWithSelection,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: SensorsDisplayProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('sensor')
+
   // Combine and sort all sensors by order
   const sortedSensors = useMemo(() => {
     const allSensors = [...temperatureSensors, ...humiditySensors]
@@ -137,7 +133,7 @@ export function SensorsDisplay({
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || sortedSensors.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('sensor'),
   })
 
   if (temperatureSensors.length === 0 && humiditySensors.length === 0) {
@@ -180,10 +176,10 @@ export function SensorsDisplay({
           items={sortedSensors}
           getKey={(sensor) => sensor.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(sensor, _index, _isDragging, isReorderSelected) =>
             renderSensor(sensor, true, isReorderSelected)
           }

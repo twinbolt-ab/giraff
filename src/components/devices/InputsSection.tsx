@@ -12,6 +12,7 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
+import { useReorder } from '@/lib/contexts/ReorderContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -29,13 +30,8 @@ interface InputsSectionProps {
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: Map<string, EntityMeta>
-  isEntityReordering?: boolean
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
-  onEnterSectionReorder?: () => void
-  onExitSectionReorder?: () => void
-  reorderSelectedKeys?: Set<string>
-  onToggleReorderSelection?: (key: string) => void
 }
 
 function InputNumberItem({
@@ -208,14 +204,14 @@ export function InputsSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isEntityReordering = false,
   entityOrder = {},
   onReorderEntities,
-  onEnterSectionReorder,
-  onExitSectionReorder,
-  reorderSelectedKeys,
-  onToggleReorderSelection,
 }: InputsSectionProps) {
+  // Get reorder state from context
+  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
+    useReorder()
+  const isEntityReordering = isSectionReordering('input')
+
   // Combine and sort all inputs by order
   const sortedInputs = useMemo(() => {
     const allInputs = [...inputBooleans, ...inputNumbers]
@@ -226,7 +222,7 @@ export function InputsSection({
   const sectionLongPress = useLongPress({
     duration: 500,
     disabled: isInEditMode || isEntityReordering || sortedInputs.length < 2,
-    onLongPress: () => onEnterSectionReorder?.(),
+    onLongPress: () => enterReorder('input'),
   })
 
   if (inputBooleans.length === 0 && inputNumbers.length === 0) return null
@@ -282,10 +278,10 @@ export function InputsSection({
           items={sortedInputs}
           getKey={(input) => input.entity_id}
           onReorder={handleReorder}
-          onDragEnd={onExitSectionReorder}
+          onDragEnd={exitReorder}
           layout="vertical"
-          selectedKeys={reorderSelectedKeys}
-          onItemTap={onToggleReorderSelection}
+          selectedKeys={selectedKeys}
+          onItemTap={toggleSelection}
           renderItem={(input, _index, _isDragging, isReorderSelected) =>
             renderInput(input, true, isReorderSelected)
           }
