@@ -47,7 +47,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
   const [measuredHeight, setMeasuredHeight] = useState(0)
 
   // Get edit mode state from context
-  const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit, exitEditMode, initialSelection } =
+  const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit, exitEditMode, selectedDomain, initialSelection } =
     useEditMode()
   const isInEditMode = isDeviceEditMode
 
@@ -307,7 +307,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <ScenesSection
               scenes={scenes}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'scene'}
               isSelected={isSelected}
               onActivate={handlers.handleSceneActivate}
               onToggleSelection={toggleSelection}
@@ -326,7 +326,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <LightsSection
               lights={lights}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'light'}
               isSelected={isSelected}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
@@ -343,7 +343,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <SwitchesSection
               switches={switches}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'switch'}
               isSelected={isSelected}
               onToggle={handlers.handleSwitchToggle}
               onToggleSelection={toggleSelection}
@@ -362,7 +362,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
             <InputsSection
               inputBooleans={inputBooleans}
               inputNumbers={inputNumbers}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')}
               isSelected={isSelected}
               onBooleanToggle={handlers.handleInputBooleanToggle}
               onNumberChange={handlers.handleInputNumberChange}
@@ -381,7 +381,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <ClimateSection
               climates={climates}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'climate'}
               isSelected={isSelected}
               onToggle={handlers.handleClimateToggle}
               onToggleSelection={toggleSelection}
@@ -399,7 +399,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <CoversSection
               covers={covers}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'cover'}
               isSelected={isSelected}
               onOpen={handlers.handleCoverOpen}
               onClose={handlers.handleCoverClose}
@@ -419,7 +419,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           >
             <FansSection
               fans={fans}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'fan'}
               isSelected={isSelected}
               onToggle={handlers.handleFanToggle}
               onToggleSelection={toggleSelection}
@@ -438,7 +438,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
             <SensorsDisplay
               temperatureSensors={temperatureSensors}
               humiditySensors={humiditySensors}
-              isInEditMode={isInEditMode}
+              isInEditMode={isInEditMode && selectedDomain === 'sensor'}
               isSelected={isSelected}
               onToggleSelection={toggleSelection}
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}

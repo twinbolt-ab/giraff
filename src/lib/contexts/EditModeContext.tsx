@@ -2,12 +2,12 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
 // Entity domain type for tracking selected entity type
-export type EntityDomain = 'light' | 'switch' | 'scene' | 'input_boolean' | 'input_number' | 'climate' | 'cover' | 'fan' | 'vacuum' | 'media_player'
+export type EntityDomain = 'light' | 'switch' | 'scene' | 'input_boolean' | 'input_number' | 'climate' | 'cover' | 'fan' | 'vacuum' | 'media_player' | 'sensor'
 
 // Helper to extract domain from entity_id
 export function getEntityDomain(entityId: string): EntityDomain | null {
   const domain = entityId.split('.')[0]
-  const validDomains: EntityDomain[] = ['light', 'switch', 'scene', 'input_boolean', 'input_number', 'climate', 'cover', 'fan', 'vacuum', 'media_player']
+  const validDomains: EntityDomain[] = ['light', 'switch', 'scene', 'input_boolean', 'input_number', 'climate', 'cover', 'fan', 'vacuum', 'media_player', 'sensor']
   return validDomains.includes(domain as EntityDomain) ? (domain as EntityDomain) : null
 }
 

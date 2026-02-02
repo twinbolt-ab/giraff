@@ -40,6 +40,7 @@ export function AllDevicesView() {
     toggleSelection,
     enterAllDevicesEdit,
     exitEditMode,
+    selectedDomain,
     initialSelection,
   } = useEditMode()
   const isInEditMode = isAllDevicesEditMode
@@ -231,7 +232,7 @@ export function AllDevicesView() {
       <ScenesSection
         scenes={scenes}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'scene'}
         isSelected={isSelected}
         onActivate={handlers.handleSceneActivate}
         onToggleSelection={toggleSelection}
@@ -241,7 +242,7 @@ export function AllDevicesView() {
       <LightsSection
         lights={lights}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'light'}
         isSelected={isSelected}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
@@ -251,7 +252,7 @@ export function AllDevicesView() {
       <SwitchesSection
         switches={switches}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'switch'}
         isSelected={isSelected}
         onToggle={handlers.handleSwitchToggle}
         onToggleSelection={toggleSelection}
@@ -262,7 +263,7 @@ export function AllDevicesView() {
         inputBooleans={inputBooleans}
         inputNumbers={inputNumbers}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')}
         isSelected={isSelected}
         onBooleanToggle={handlers.handleInputBooleanToggle}
         onNumberChange={handlers.handleInputNumberChange}
@@ -273,7 +274,7 @@ export function AllDevicesView() {
       <ClimateSection
         climates={climates}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'climate'}
         isSelected={isSelected}
         onToggle={handlers.handleClimateToggle}
         onToggleSelection={toggleSelection}
@@ -283,7 +284,7 @@ export function AllDevicesView() {
       <CoversSection
         covers={covers}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'cover'}
         isSelected={isSelected}
         onOpen={handlers.handleCoverOpen}
         onClose={handlers.handleCoverClose}
@@ -295,7 +296,7 @@ export function AllDevicesView() {
       <FansSection
         fans={fans}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode}
+        isInEditMode={isInEditMode && selectedDomain === 'fan'}
         isSelected={isSelected}
         onToggle={handlers.handleFanToggle}
         onToggleSelection={toggleSelection}
