@@ -171,7 +171,12 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
   useExitEditModeOnClickOutside({
     isActive: isInEditMode,
     onExit: exitEditMode,
-    excludeSelectors: ['[data-entity-id]', '[data-edit-mode-header]', '[data-edit-modal]'],
+    excludeSelectors: [
+      '[data-entity-id]',
+      '[data-edit-mode-header]',
+      '[data-edit-modal]',
+      '[data-edit-backdrop]',
+    ],
   })
 
   // Measure content height whenever it might change
@@ -261,11 +266,25 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           }
         }}
       >
-        <div ref={containerRef}>
+        <div ref={containerRef} className="relative">
+          {/* Backdrop overlay when in edit mode - click to exit */}
+          {isInEditMode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="absolute inset-0 bg-card/60 backdrop-blur-[2px] z-10 cursor-pointer"
+              onClick={exitEditMode}
+              data-edit-backdrop
+            />
+          )}
+
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'scene' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'scene' && 'opacity-50',
+              selectedDomain === 'scene' && 'z-20'
             )}
           >
             <ScenesSection
@@ -284,8 +303,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'light' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'light' && 'opacity-50',
+              selectedDomain === 'light' && 'z-20'
             )}
           >
             <LightsSection
@@ -302,8 +322,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'switch' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'switch' && 'opacity-50',
+              selectedDomain === 'switch' && 'z-20'
             )}
           >
             <SwitchesSection
@@ -321,11 +342,12 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
+              'transition-opacity duration-200 relative',
               selectedDomain !== null &&
                 selectedDomain !== 'input_boolean' &&
                 selectedDomain !== 'input_number' &&
-                'opacity-50'
+                'opacity-50',
+              (selectedDomain === 'input_boolean' || selectedDomain === 'input_number') && 'z-20'
             )}
           >
             <InputsSection
@@ -348,8 +370,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'climate' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'climate' && 'opacity-50',
+              selectedDomain === 'climate' && 'z-20'
             )}
           >
             <ClimateSection
@@ -367,8 +390,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'cover' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'cover' && 'opacity-50',
+              selectedDomain === 'cover' && 'z-20'
             )}
           >
             <CoversSection
@@ -388,8 +412,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'fan' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'fan' && 'opacity-50',
+              selectedDomain === 'fan' && 'z-20'
             )}
           >
             <FansSection
@@ -407,8 +432,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
 
           <div
             className={clsx(
-              'transition-opacity duration-200',
-              selectedDomain !== null && selectedDomain !== 'sensor' && 'opacity-50'
+              'transition-opacity duration-200 relative',
+              selectedDomain !== null && selectedDomain !== 'sensor' && 'opacity-50',
+              selectedDomain === 'sensor' && 'z-20'
             )}
           >
             <SensorsDisplay
