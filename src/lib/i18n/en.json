@@ -456,5 +456,9 @@
     "later": "Maybe later",
     "rate": "Rate Stuga",
     "dismissed": "Thanks anyway!"
+  },
+  "feedback": {
+    "title": "Feedback & discussions",
+    "description": "Ideas, bugs, or questions"
   }
 }

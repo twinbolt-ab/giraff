@@ -23,6 +23,7 @@ import {
   RefreshCw,
   Sparkles,
   Star,
+  MessageSquare,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
@@ -384,6 +385,16 @@ export function SettingsMenu({
                 title={t.settings.connection.title}
                 description={t.settings.connection.description}
                 onClick={() => menuState.openModal('connectionSettings')}
+              />
+
+              {/* Feedback */}
+              <MenuItem
+                icon={<MessageSquare className="w-5 h-5 text-foreground" />}
+                title={t.feedback.title}
+                description={t.feedback.description}
+                onClick={() =>
+                  window.open('https://github.com/twinbolt-ab/stuga/discussions', '_blank')
+                }
               />
 
               {/* Developer Menu - only shown when dev mode is active */}
