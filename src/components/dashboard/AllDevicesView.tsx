@@ -39,6 +39,7 @@ export function AllDevicesView() {
     isSelected,
     toggleSelection,
     enterAllDevicesEdit,
+    exitEditMode,
     initialSelection,
   } = useEditMode()
   const isInEditMode = isAllDevicesEditMode
@@ -86,6 +87,31 @@ export function AllDevicesView() {
       container.removeEventListener('touchmove', handleTouchMove)
     }
   }, [])
+
+  // Exit edit mode when clicking outside entity items
+  useEffect(() => {
+    if (!isInEditMode) return
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement
+      // Check if the click is on an entity item (has data-entity-id attribute)
+      const entityElement = target.closest('[data-entity-id]')
+      if (!entityElement) {
+        // Clicked outside any entity - exit edit mode
+        exitEditMode()
+      }
+    }
+
+    // Use a small delay to avoid immediately exiting when entering edit mode
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', handlePointerDown)
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [isInEditMode, exitEditMode])
 
   // Enter edit mode and select the device (for long-press)
   const handleEnterEditModeWithSelection = useCallback(

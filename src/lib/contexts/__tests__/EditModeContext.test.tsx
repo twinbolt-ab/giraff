@@ -148,6 +148,7 @@ describe('editModeReducer', () => {
         type: 'edit-devices',
         roomId: 'room-1',
         selectedIds: new Set(['light.1']),
+        selectedDomain: 'light',
       }
       const result = editModeReducer(editState, { type: 'EXIT_EDIT_MODE' })
       expect(result.type).toBe('normal')
@@ -157,6 +158,7 @@ describe('editModeReducer', () => {
       const editState: EditMode = {
         type: 'edit-all-devices',
         selectedIds: new Set(['switch.1']),
+        selectedDomain: 'switch',
       }
       const result = editModeReducer(editState, { type: 'EXIT_EDIT_MODE' })
       expect(result.type).toBe('normal')
@@ -201,6 +203,7 @@ describe('editModeReducer', () => {
         type: 'edit-devices',
         roomId: 'room-1',
         selectedIds: new Set(),
+        selectedDomain: null,
       }
       const result = editModeReducer(editState, {
         type: 'TOGGLE_SELECTION',
@@ -209,6 +212,7 @@ describe('editModeReducer', () => {
 
       if (result.type === 'edit-devices') {
         expect(result.selectedIds.has('light.1')).toBe(true)
+        expect(result.selectedDomain).toBe('light')
       }
     })
 
@@ -216,6 +220,7 @@ describe('editModeReducer', () => {
       const editState: EditMode = {
         type: 'edit-all-devices',
         selectedIds: new Set(['switch.1']),
+        selectedDomain: 'switch',
       }
       const result = editModeReducer(editState, {
         type: 'TOGGLE_SELECTION',
@@ -226,6 +231,38 @@ describe('editModeReducer', () => {
         expect(result.selectedIds.has('switch.1')).toBe(true)
         expect(result.selectedIds.has('switch.2')).toBe(true)
         expect(result.selectedIds.size).toBe(2)
+      }
+    })
+
+    it('should exit edit mode when selecting different entity type', () => {
+      const editState: EditMode = {
+        type: 'edit-all-devices',
+        selectedIds: new Set(['switch.1']),
+        selectedDomain: 'switch',
+      }
+      const result = editModeReducer(editState, {
+        type: 'TOGGLE_SELECTION',
+        id: 'light.1',
+      })
+
+      expect(result.type).toBe('normal')
+    })
+
+    it('should set domain on first selection when domain is null', () => {
+      const editState: EditMode = {
+        type: 'edit-devices',
+        roomId: 'room-1',
+        selectedIds: new Set(),
+        selectedDomain: null,
+      }
+      const result = editModeReducer(editState, {
+        type: 'TOGGLE_SELECTION',
+        id: 'scene.test',
+      })
+
+      if (result.type === 'edit-devices') {
+        expect(result.selectedIds.has('scene.test')).toBe(true)
+        expect(result.selectedDomain).toBe('scene')
       }
     })
 
@@ -270,6 +307,7 @@ describe('editModeReducer', () => {
         type: 'edit-devices',
         roomId: 'room-1',
         selectedIds: new Set(['light.1', 'light.2']),
+        selectedDomain: 'light',
       }
       const result = editModeReducer(editState, { type: 'CLEAR_SELECTION' })
 
@@ -282,6 +320,7 @@ describe('editModeReducer', () => {
       const editState: EditMode = {
         type: 'edit-all-devices',
         selectedIds: new Set(['switch.1', 'switch.2']),
+        selectedDomain: 'switch',
       }
       const result = editModeReducer(editState, { type: 'CLEAR_SELECTION' })
 
@@ -320,6 +359,7 @@ describe('editModeReducer', () => {
         type: 'edit-devices',
         roomId: 'room-1',
         selectedIds: new Set(),
+        selectedDomain: null,
       }
       const result = editModeReducer(editState, {
         type: 'REORDER_ROOMS',

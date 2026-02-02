@@ -47,7 +47,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
   const [measuredHeight, setMeasuredHeight] = useState(0)
 
   // Get edit mode state from context
-  const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit, initialSelection } =
+  const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit, exitEditMode, initialSelection } =
     useEditMode()
   const isInEditMode = isDeviceEditMode
 
@@ -185,6 +185,31 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
       document.removeEventListener('click', handleClickOutside)
     }
   }, [activeReorderSection, exitReorder])
+
+  // Exit edit mode when clicking outside entity items
+  useEffect(() => {
+    if (!isInEditMode) return
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement
+      // Check if the click is on an entity item (has data-entity-id attribute)
+      const entityElement = target.closest('[data-entity-id]')
+      if (!entityElement) {
+        // Clicked outside any entity - exit edit mode
+        exitEditMode()
+      }
+    }
+
+    // Use a small delay to avoid immediately exiting when entering edit mode
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', handlePointerDown)
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('pointerdown', handlePointerDown)
+    }
+  }, [isInEditMode, exitEditMode])
 
   // Measure content height whenever it might change
   useLayoutEffect(() => {

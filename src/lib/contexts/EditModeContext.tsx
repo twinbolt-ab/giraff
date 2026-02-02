@@ -1,6 +1,16 @@
 import { createContext, useContext, useReducer, useCallback, useMemo, type ReactNode } from 'react'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
+// Entity domain type for tracking selected entity type
+export type EntityDomain = 'light' | 'switch' | 'scene' | 'input_boolean' | 'input_number' | 'climate' | 'cover' | 'fan' | 'vacuum' | 'media_player'
+
+// Helper to extract domain from entity_id
+export function getEntityDomain(entityId: string): EntityDomain | null {
+  const domain = entityId.split('.')[0]
+  const validDomains: EntityDomain[] = ['light', 'switch', 'scene', 'input_boolean', 'input_number', 'climate', 'cover', 'fan', 'vacuum', 'media_player']
+  return validDomains.includes(domain as EntityDomain) ? (domain as EntityDomain) : null
+}
+
 // State machine types
 export type EditMode =
   | { type: 'normal' }
@@ -10,8 +20,8 @@ export type EditMode =
       orderedRooms: RoomWithDevices[]
       initialSelection?: string
     }
-  | { type: 'edit-devices'; roomId: string; selectedIds: Set<string>; initialSelection?: string }
-  | { type: 'edit-all-devices'; selectedIds: Set<string>; initialSelection?: string }
+  | { type: 'edit-devices'; roomId: string; selectedIds: Set<string>; selectedDomain: EntityDomain | null; initialSelection?: string }
+  | { type: 'edit-all-devices'; selectedIds: Set<string>; selectedDomain: EntityDomain | null; initialSelection?: string }
   | { type: 'edit-floors'; selectedFloorId: string; orderedFloors: HAFloor[] }
 
 // Actions
@@ -47,10 +57,12 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
+      const selectedDomain = action.initialSelection ? getEntityDomain(action.initialSelection) : null
       return {
         type: 'edit-devices',
         roomId: action.roomId,
         selectedIds,
+        selectedDomain,
         initialSelection: action.initialSelection,
       }
     }
@@ -59,7 +71,8 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      return { type: 'edit-all-devices', selectedIds, initialSelection: action.initialSelection }
+      const selectedDomain = action.initialSelection ? getEntityDomain(action.initialSelection) : null
+      return { type: 'edit-all-devices', selectedIds, selectedDomain, initialSelection: action.initialSelection }
     }
 
     case 'ENTER_FLOOR_EDIT':
@@ -73,11 +86,7 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       return { type: 'normal' }
 
     case 'TOGGLE_SELECTION':
-      if (
-        state.type === 'edit-rooms' ||
-        state.type === 'edit-devices' ||
-        state.type === 'edit-all-devices'
-      ) {
+      if (state.type === 'edit-rooms') {
         const newSelectedIds = new Set(state.selectedIds)
         if (newSelectedIds.has(action.id)) {
           newSelectedIds.delete(action.id)
@@ -89,6 +98,30 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
           return { type: 'normal' }
         }
         return { ...state, selectedIds: newSelectedIds }
+      }
+      if (state.type === 'edit-devices' || state.type === 'edit-all-devices') {
+        // Check if the entity domain matches the currently selected domain
+        const entityDomain = getEntityDomain(action.id)
+
+        // If we have a selected domain and this entity is a different type, exit edit mode
+        if (state.selectedDomain && entityDomain !== state.selectedDomain) {
+          return { type: 'normal' }
+        }
+
+        const newSelectedIds = new Set(state.selectedIds)
+        if (newSelectedIds.has(action.id)) {
+          newSelectedIds.delete(action.id)
+        } else {
+          newSelectedIds.add(action.id)
+        }
+        // Exit edit mode if all items are deselected
+        if (newSelectedIds.size === 0) {
+          return { type: 'normal' }
+        }
+
+        // Update the selected domain if this is the first selection
+        const newSelectedDomain = state.selectedDomain || entityDomain
+        return { ...state, selectedIds: newSelectedIds, selectedDomain: newSelectedDomain }
       }
       return state
 
@@ -157,6 +190,7 @@ interface EditModeContextValue {
   isSelected: (id: string) => boolean
   selectedCount: number
   selectedIds: Set<string>
+  selectedDomain: EntityDomain | null
   orderedRooms: RoomWithDevices[]
   orderedFloors: HAFloor[]
   selectedFloorId: string | null
@@ -210,6 +244,13 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
   }, [mode])
 
   const selectedCount = selectedIds.size
+
+  const selectedDomain = useMemo(() => {
+    if (mode.type === 'edit-devices' || mode.type === 'edit-all-devices') {
+      return mode.selectedDomain
+    }
+    return null
+  }, [mode])
 
   const orderedRooms = useMemo(() => {
     if (mode.type === 'edit-rooms') {
@@ -291,6 +332,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       isSelected,
       selectedCount,
       selectedIds,
+      selectedDomain,
       orderedRooms,
       orderedFloors,
       selectedFloorId,
@@ -317,6 +359,7 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       isSelected,
       selectedCount,
       selectedIds,
+      selectedDomain,
       orderedRooms,
       orderedFloors,
       selectedFloorId,
