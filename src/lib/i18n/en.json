@@ -424,5 +424,23 @@
   "demo": {
     "banner": "You're exploring with sample data",
     "connect": "Connect to Home Assistant"
+  },
+  "news": {
+    "title": "What's New",
+    "menuTitle": "What's new",
+    "noRecent": "No recent updates",
+    "newFeatures": "New Features",
+    "improvements": "Improvements",
+    "bugFixes": "Bug Fixes",
+    "technical": "Technical"
+  },
+  "rateApp": {
+    "title": "Rate the app",
+    "description": "Help others discover Stuga",
+    "prompt": "Enjoying Stuga?",
+    "promptDescription": "If you have a moment, a review on the app store would help others discover Stuga.",
+    "later": "Maybe later",
+    "rate": "Rate Stuga",
+    "dismissed": "Thanks anyway!"
   }
 }

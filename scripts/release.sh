@@ -291,6 +291,10 @@ fi
 echo -e "${GREEN}Generating SEO-optimized web changelog...${NC}"
 "$SCRIPT_DIR/generate-seo-changelog.sh"
 
+# Generate news changelog for the app
+echo -e "${GREEN}Generating app news changelog...${NC}"
+node "$SCRIPT_DIR/generate-news-changelog.cjs"
+
 # Update Android version (not tracked in git, but updated locally for native builds)
 echo -e "${GREEN}Updating Android version...${NC}"
 ANDROID_BUILD_GRADLE="android/app/build.gradle"
@@ -356,7 +360,7 @@ fi
 
 # Commit with changelog in message body
 # Using a special format that GHA can parse
-git add package.json CHANGELOG.md web/src/content/changelog.json android/fastlane/metadata/android/en-US/changelogs/ ios/App/fastlane/metadata/en-US/release_notes.txt android/app/build.gradle ios/App/App.xcodeproj/project.pbxproj
+git add package.json CHANGELOG.md web/src/content/changelog.json src/lib/changelog-data.json android/fastlane/metadata/android/en-US/changelogs/ ios/App/fastlane/metadata/en-US/release_notes.txt android/app/build.gradle ios/App/App.xcodeproj/project.pbxproj
 if git diff --cached --quiet; then
   echo -e "${YELLOW}No changes to commit (version files may already be updated)${NC}"
   echo "Proceeding with tag creation..."

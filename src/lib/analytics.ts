@@ -170,6 +170,24 @@ export async function logRoomReorder(): Promise<void> {
   }
 }
 
+// Rate app events
+export async function logRateAppAction(
+  action: 'shown' | 'rated' | 'dismissed'
+): Promise<void> {
+  if (!isNative) return
+
+  try {
+    await FirebaseAnalytics.logEvent({
+      name: 'rate_app',
+      params: {
+        action,
+      },
+    })
+  } catch (e) {
+    console.error('[Analytics] Failed to log rate app action:', e)
+  }
+}
+
 // Settings events
 export async function logSettingChange(
   setting:

@@ -21,6 +21,8 @@ import {
   EyeOff,
   GripVertical,
   RefreshCw,
+  Sparkles,
+  Star,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
@@ -29,6 +31,12 @@ import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
 import { EditModeInfoModal } from '@/components/settings/EditModeInfoModal'
 import { AlsoHideInHADialog } from '@/components/settings/AlsoHideInHADialog'
 import { RoomOrderSyncDisableDialog } from '@/components/settings/RoomOrderSyncDisableDialog'
+import { NewsModal } from '@/components/settings/NewsModal'
+import { RateAppModal } from '@/components/settings/RateAppModal'
+import { Capacitor } from '@capacitor/core'
+import { hasRecentNews, getLatestEntry } from '@/lib/changelog'
+import { getStorage } from '@/lib/storage'
+import { STORAGE_KEYS } from '@/lib/constants'
 import { useDevMode } from '@/lib/hooks/useDevMode'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { useSettingsMenuState } from '@/lib/hooks/useSettingsMenuState'
@@ -82,6 +90,8 @@ export function SettingsMenu({
   const { copied: debugIdCopied, copy: copyDebugId } = useCopyToClipboard()
 
   const [debugId, setDebugId] = useState<string | null>(null)
+  const [rateAppDismissed, setRateAppDismissed] = useState(true) // Start hidden until checked
+  const isNative = Capacitor.isNativePlatform()
 
   // Load debug ID when advanced section opens
   useEffect(() => {
@@ -89,6 +99,22 @@ export function SettingsMenu({
       void getDebugId().then(setDebugId)
     }
   }, [menuState.advancedOpen, debugId])
+
+  // Check if rate app has been dismissed (only on native)
+  useEffect(() => {
+    if (!isNative) return
+
+    const checkRateAppDismissed = async () => {
+      try {
+        const storage = getStorage()
+        const dismissed = await storage.getItem(STORAGE_KEYS.RATE_APP_DISMISSED)
+        setRateAppDismissed(dismissed === 'true')
+      } catch {
+        setRateAppDismissed(false)
+      }
+    }
+    void checkRateAppDismissed()
+  }, [isNative])
 
   // Blur focused element when modal opens
   useEffect(() => {
@@ -208,6 +234,28 @@ export function SettingsMenu({
               className="px-2 pb-safe overflow-y-auto"
               style={{ height: 'calc(100% - 60px - env(safe-area-inset-top, 0px))' }}
             >
+              {/* What's New - only shown when there's recent news */}
+              {hasRecentNews(30) && (
+                <MenuItem
+                  icon={<Sparkles className="w-5 h-5 text-amber-500" />}
+                  iconBgClass="bg-amber-500/10"
+                  title={t.news?.menuTitle || "What's new"}
+                  description={getLatestEntry()?.summary?.slice(0, 60) + '...'}
+                  onClick={() => menuState.openModal('news')}
+                />
+              )}
+
+              {/* Rate App - only shown on native and when not dismissed */}
+              {isNative && !rateAppDismissed && (
+                <MenuItem
+                  icon={<Star className="w-5 h-5 text-accent" />}
+                  iconBgClass="bg-accent/10"
+                  title={t.rateApp?.title || 'Rate the app'}
+                  description={t.rateApp?.description || 'It would mean a lot'}
+                  onClick={() => menuState.openModal('rateApp')}
+                />
+              )}
+
               {/* Advanced Section */}
               <CollapsibleSection
                 icon={<Settings2 className="w-5 h-5 text-foreground" />}
@@ -375,6 +423,20 @@ export function SettingsMenu({
           </motion.div>
 
           {/* Modals */}
+          <NewsModal
+            isOpen={menuState.isModalOpen('news')}
+            onClose={() => menuState.closeModal('news')}
+          />
+
+          <RateAppModal
+            isOpen={menuState.isModalOpen('rateApp')}
+            onClose={() => menuState.closeModal('rateApp')}
+            onDismissed={() => {
+              menuState.closeModal('rateApp')
+              setRateAppDismissed(true)
+            }}
+          />
+
           <ConnectionSettingsModal
             isOpen={menuState.isModalOpen('connectionSettings')}
             onClose={() => menuState.closeModal('connectionSettings')}

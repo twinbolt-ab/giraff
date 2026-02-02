@@ -6,6 +6,8 @@ type ModalKey =
   | 'developerMenu'
   | 'editModeInfo'
   | 'roomOrderSyncDisable'
+  | 'news'
+  | 'rateApp'
 
 type DialogVariant = 'enable' | 'disable'
 

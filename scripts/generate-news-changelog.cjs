@@ -2,7 +2,7 @@
 
 /**
  * Generates src/lib/changelog-data.json from CHANGELOG.md
- * Run before build to include latest news in the app
+ * Used by release.sh to include latest news in the app
  */
 
 const fs = require('fs')
