@@ -18,6 +18,12 @@ interface Position {
   y: number
 }
 
+interface ItemRect {
+  index: number
+  centerX: number
+  centerY: number
+}
+
 interface UseListDragOptions<T> {
   items: T[]
   getKey: (item: T) => string
@@ -30,6 +36,10 @@ interface UseListDragOptions<T> {
   selectedKeys?: Set<string>
   /** Called when an item is tapped (pointer up without significant movement) */
   onItemTap?: (index: number) => void
+  /** Layout mode - affects how drop position is calculated */
+  layout?: 'vertical' | 'flex-wrap'
+  /** Ref to the container element - required for flex-wrap layout */
+  containerRef?: React.RefObject<HTMLElement | null>
 }
 
 interface UseListDragReturn<T> {
@@ -49,6 +59,8 @@ export function useListDrag<T>({
   immediateMode = false,
   selectedKeys,
   onItemTap,
+  layout = 'vertical',
+  containerRef,
 }: UseListDragOptions<T>): UseListDragReturn<T> {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [draggedIndices, setDraggedIndices] = useState<number[]>([])
@@ -74,6 +86,9 @@ export function useListDrag<T>({
 
   // Track cumulative position shift from reordering - keeps item under finger
   const reorderShiftRef = useRef<Position>({ x: 0, y: 0 })
+
+  // Cache item positions for flex-wrap layout
+  const itemRectsRef = useRef<ItemRect[]>([])
 
   // Track if drag actually started (movement beyond threshold)
   const hasDraggedRef = useRef(false)
@@ -114,6 +129,68 @@ export function useListDrag<T>({
     setPendingDragIndex(null)
   }, [])
 
+  // Measure positions of all items in the container (for flex-wrap layout)
+  const measureItemPositions = useCallback(() => {
+    if (!containerRef?.current) return
+
+    const container = containerRef.current
+    const children = Array.from(container.children) as HTMLElement[]
+
+    itemRectsRef.current = children.map((child, index) => {
+      const rect = child.getBoundingClientRect()
+      return {
+        index,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+      }
+    })
+  }, [containerRef])
+
+  // Find the insertion index based on pointer position for flex-wrap layout
+  // Returns the index where the dragged item should be inserted
+  const findInsertionIndex = useCallback(
+    (clientX: number, clientY: number, draggedIdx: number): number => {
+      const rects = itemRectsRef.current
+      if (rects.length === 0) return 0
+
+      // Find which item the pointer is closest to
+      let closestIdx = 0
+      let closestDistance = Infinity
+
+      for (const rect of rects) {
+        const dx = clientX - rect.centerX
+        const dy = clientY - rect.centerY
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        if (distance < closestDistance) {
+          closestDistance = distance
+          closestIdx = rect.index
+        }
+      }
+
+      // If we're on the dragged item itself, no change
+      if (closestIdx === draggedIdx) {
+        return draggedIdx
+      }
+
+      // Determine if we should insert before or after the closest item
+      const closestRect = rects.find((r) => r.index === closestIdx)
+      if (!closestRect) return draggedIdx
+
+      // If pointer is to the left of center, insert before; otherwise after
+      const insertBefore = clientX < closestRect.centerX
+
+      if (closestIdx < draggedIdx) {
+        // Moving backward
+        return insertBefore ? closestIdx : closestIdx + 1
+      } else {
+        // Moving forward - account for the removal of dragged item
+        return insertBefore ? closestIdx - 1 : closestIdx
+      }
+    },
+    []
+  )
+
   const startDrag = useCallback(
     (
       index: number,
@@ -144,6 +221,11 @@ export function useListDrag<T>({
         indices = [index]
       }
 
+      // Measure item positions before starting drag (for flex-wrap)
+      if (layout === 'flex-wrap') {
+        measureItemPositions()
+      }
+
       // Update refs immediately so handleMove sees the new values
       // before React re-renders (pointermove can fire before render)
       draggedIndexRef.current = index
@@ -172,7 +254,7 @@ export function useListDrag<T>({
       setPendingDragIndex(null)
       haptic.medium()
     },
-    [disabled, getKey]
+    [disabled, getKey, layout, measureItemPositions]
   )
 
   const handleMove = useCallback(
@@ -216,89 +298,130 @@ export function useListDrag<T>({
         hasDraggedRef.current = true
       }
 
-      const ITEM_HEIGHT_ESTIMATE = 60 // Approximate item height
       const isMultiDrag = currentDraggedIndices.length > 1
 
-      if (isMultiDrag) {
-        // Multi-drag: move entire block together
-        const primaryPositionInSelection = currentDraggedIndices.indexOf(currentDraggedIndex)
-        const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
-        const targetPrimaryIndex = Math.max(
-          0,
-          Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
-        )
+      // For flex-wrap layout, use position-based detection
+      if (layout === 'flex-wrap' && itemRectsRef.current.length > 0) {
+        // For now, only support single-item drag in flex-wrap
+        // Multi-drag in flex-wrap is complex and rarely needed for scenes
+        if (!isMultiDrag) {
+          const newIndex = findInsertionIndex(clientX, clientY, currentDraggedIndex)
 
-        // Calculate where the block should start
-        const blockSize = currentDraggedIndices.length
-        const blockStartIndex = Math.max(
-          0,
-          Math.min(
-            currentOrderedItems.length - blockSize,
-            targetPrimaryIndex - primaryPositionInSelection
-          )
-        )
+          if (newIndex !== currentDraggedIndex) {
+            // Get current position before reorder
+            const oldRect = itemRectsRef.current.find((r) => r.index === currentDraggedIndex)
+            const targetRect = itemRectsRef.current.find((r) => r.index === newIndex)
 
-        // Check if current block start differs from where we want it
-        const currentBlockStart = Math.min(...currentDraggedIndices)
-        if (blockStartIndex !== currentBlockStart) {
-          // Extract dragged items in their selection order
-          const draggedItems = currentDraggedIndices.map((i) => currentOrderedItems[i])
+            const newOrdered = [...currentOrderedItems]
+            const [removed] = newOrdered.splice(currentDraggedIndex, 1)
+            newOrdered.splice(newIndex, 0, removed)
 
-          // Remove dragged items from array
-          const newOrdered = currentOrderedItems.filter(
-            (_, i) => !currentDraggedIndices.includes(i)
-          )
+            setOrderedItems(newOrdered)
+            setDraggedIndex(newIndex)
+            setDraggedIndices([newIndex])
+            draggedIndexRef.current = newIndex
+            draggedIndicesRef.current = [newIndex]
+            orderedItemsRef.current = newOrdered
 
-          // Insert block at new position
-          newOrdered.splice(blockStartIndex, 0, ...draggedItems)
+            // Compensate for position change to keep item under finger
+            if (oldRect && targetRect) {
+              const dx = targetRect.centerX - oldRect.centerX
+              const dy = targetRect.centerY - oldRect.centerY
+              reorderShiftRef.current = {
+                x: reorderShiftRef.current.x - dx,
+                y: reorderShiftRef.current.y - dy,
+              }
+            }
 
-          // Update indices to reflect new positions
-          const newIndices = draggedItems.map((_, i) => blockStartIndex + i)
-          const newPrimaryIndex = newIndices[primaryPositionInSelection]
-
-          // Adjust shift to compensate
-          const indexDiff = newPrimaryIndex - currentDraggedIndex
-          reorderShiftRef.current = {
-            x: reorderShiftRef.current.x,
-            y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+            // Re-measure after reorder on next frame
+            requestAnimationFrame(() => measureItemPositions())
           }
-
-          setOrderedItems(newOrdered)
-          setDraggedIndex(newPrimaryIndex)
-          setDraggedIndices(newIndices)
-          draggedIndexRef.current = newPrimaryIndex
-          draggedIndicesRef.current = newIndices
-          orderedItemsRef.current = newOrdered
         }
       } else {
-        // Single item drag
-        const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
-        const newIndex = Math.max(
-          0,
-          Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
-        )
+        // Vertical layout - use Y-axis based detection
+        const ITEM_HEIGHT_ESTIMATE = 60
 
-        if (newIndex !== currentDraggedIndex) {
-          // Adjust shift to compensate for the reorder
-          const indexDiff = newIndex - currentDraggedIndex
-          reorderShiftRef.current = {
-            x: reorderShiftRef.current.x,
-            y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+        if (isMultiDrag) {
+          // Multi-drag: move entire block together
+          const primaryPositionInSelection = currentDraggedIndices.indexOf(currentDraggedIndex)
+          const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
+          const targetPrimaryIndex = Math.max(
+            0,
+            Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
+          )
+
+          // Calculate where the block should start
+          const blockSize = currentDraggedIndices.length
+          const blockStartIndex = Math.max(
+            0,
+            Math.min(
+              currentOrderedItems.length - blockSize,
+              targetPrimaryIndex - primaryPositionInSelection
+            )
+          )
+
+          // Check if current block start differs from where we want it
+          const currentBlockStart = Math.min(...currentDraggedIndices)
+          if (blockStartIndex !== currentBlockStart) {
+            // Extract dragged items in their selection order
+            const draggedItems = currentDraggedIndices.map((i) => currentOrderedItems[i])
+
+            // Remove dragged items from array
+            const newOrdered = currentOrderedItems.filter(
+              (_, i) => !currentDraggedIndices.includes(i)
+            )
+
+            // Insert block at new position
+            newOrdered.splice(blockStartIndex, 0, ...draggedItems)
+
+            // Update indices to reflect new positions
+            const newIndices = draggedItems.map((_, i) => blockStartIndex + i)
+            const newPrimaryIndex = newIndices[primaryPositionInSelection]
+
+            // Adjust shift to compensate
+            const indexDiff = newPrimaryIndex - currentDraggedIndex
+            reorderShiftRef.current = {
+              x: reorderShiftRef.current.x,
+              y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+            }
+
+            setOrderedItems(newOrdered)
+            setDraggedIndex(newPrimaryIndex)
+            setDraggedIndices(newIndices)
+            draggedIndexRef.current = newPrimaryIndex
+            draggedIndicesRef.current = newIndices
+            orderedItemsRef.current = newOrdered
           }
+        } else {
+          // Single item drag
+          const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
+          const newIndex = Math.max(
+            0,
+            Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
+          )
 
-          const newOrdered = [...currentOrderedItems]
-          const [removed] = newOrdered.splice(currentDraggedIndex, 1)
-          newOrdered.splice(newIndex, 0, removed)
-          setOrderedItems(newOrdered)
-          setDraggedIndex(newIndex)
-          setDraggedIndices([newIndex])
-          draggedIndexRef.current = newIndex
-          draggedIndicesRef.current = [newIndex]
-          orderedItemsRef.current = newOrdered
+          if (newIndex !== currentDraggedIndex) {
+            // Adjust shift to compensate for the reorder
+            const indexDiff = newIndex - currentDraggedIndex
+            reorderShiftRef.current = {
+              x: reorderShiftRef.current.x,
+              y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
+            }
+
+            const newOrdered = [...currentOrderedItems]
+            const [removed] = newOrdered.splice(currentDraggedIndex, 1)
+            newOrdered.splice(newIndex, 0, removed)
+            setOrderedItems(newOrdered)
+            setDraggedIndex(newIndex)
+            setDraggedIndices([newIndex])
+            draggedIndexRef.current = newIndex
+            draggedIndicesRef.current = [newIndex]
+            orderedItemsRef.current = newOrdered
+          }
         }
       }
     },
-    [cancelLongPress]
+    [cancelLongPress, layout, findInsertionIndex, measureItemPositions]
   )
 
   const handleEnd = useCallback(() => {

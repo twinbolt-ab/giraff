@@ -5,6 +5,7 @@
  * Simplified version of ReorderableGrid for 1D lists.
  */
 
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { useListDrag } from '@/lib/hooks/useListDrag'
@@ -37,6 +38,8 @@ export function ReorderableList<T>({
   selectedKeys,
   onItemTap,
 }: ReorderableListProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null)
+
   const { orderedItems, draggedIndex, draggedIndices, dragOffset, handlePointerDown } = useListDrag(
     {
       items,
@@ -51,11 +54,14 @@ export function ReorderableList<T>({
             if (item) onItemTap(getKey(item))
           }
         : undefined,
+      layout,
+      containerRef,
     }
   )
 
   return (
     <div
+      ref={containerRef}
       className={clsx(
         layout === 'flex-wrap' ? 'flex flex-wrap gap-2' : 'flex flex-col gap-3',
         className
