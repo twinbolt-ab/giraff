@@ -31,6 +31,7 @@ import * as areaSvc from './area-service'
 import * as floorSvc from './floor-service'
 import * as entitySvc from './entity-service'
 import * as labelSvc from './label-service'
+import * as favoritesSvc from './favorites-service'
 import { logger } from '@/lib/logger'
 import { getConnectionType } from '@/lib/crashlytics'
 import { logConnectionSuccess, logConnectionFailure } from '@/lib/analytics'
@@ -167,11 +168,8 @@ export const setEntityHidden = (entityId: string, hidden: boolean) =>
 export const isEntityHiddenInStuga = (entityId: string) =>
   entitySvc.isEntityHiddenInStuga(state, entityId)
 export const getStugaHiddenEntities = () => entitySvc.getStugaHiddenEntities(state)
-export const setEntityHiddenInStuga = (
-  entityId: string,
-  hidden: boolean,
-  alsoHideInHA: boolean = false
-) => entitySvc.setEntityHiddenInStuga(state, entityId, hidden, alsoHideInHA)
+export const setEntityHiddenInStuga = (entityId: string, hidden: boolean, alsoHideInHA = false) =>
+  entitySvc.setEntityHiddenInStuga(state, entityId, hidden, alsoHideInHA)
 export const syncStugaHiddenToHA = (hideInHA: boolean) =>
   entitySvc.syncStugaHiddenToHA(state, hideInHA)
 export const deleteScene = (entityId: string) => entitySvc.deleteScene(state, entityId)
@@ -218,6 +216,26 @@ export const updateAreaLabels = (areaId: string, labels: string[]) =>
   areaSvc.updateAreaLabels(state, areaId, labels)
 export const updateEntityLabels = (entityId: string, labels: string[]) =>
   entitySvc.updateEntityLabels(state, entityId, labels)
+
+// Favorites
+export const hasFavorites = () => favoritesSvc.hasFavorites(state)
+export const getEntityFavoriteInfo = (entityId: string) =>
+  favoritesSvc.getEntityFavoriteInfo(state, entityId)
+export const getAreaFavoriteInfo = (areaId: string) =>
+  favoritesSvc.getAreaFavoriteInfo(state, areaId)
+export const getAllFavoriteEntityIds = () => favoritesSvc.getAllFavoriteEntityIds(state)
+export const getAllFavoriteAreaIds = () => favoritesSvc.getAllFavoriteAreaIds(state)
+export const addEntityToFavorites = (entityId: string, section: 'scene' | 'entity') =>
+  favoritesSvc.addEntityToFavorites(state, entityId, section)
+export const addAreaToFavorites = (areaId: string) => favoritesSvc.addAreaToFavorites(state, areaId)
+export const removeEntityFromFavorites = (entityId: string) =>
+  favoritesSvc.removeEntityFromFavorites(state, entityId)
+export const removeAreaFromFavorites = (areaId: string) =>
+  favoritesSvc.removeAreaFromFavorites(state, areaId)
+export const updateEntityFavoriteOrder = (entityId: string, newOrder: number) =>
+  favoritesSvc.updateEntityFavoriteOrder(state, entityId, newOrder)
+export const updateAreaFavoriteOrder = (areaId: string, newOrder: number) =>
+  favoritesSvc.updateAreaFavoriteOrder(state, areaId, newOrder)
 
 // State access (for metadata service)
 export const getState = () => state

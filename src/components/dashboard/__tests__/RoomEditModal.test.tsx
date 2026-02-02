@@ -14,6 +14,10 @@ import {
 vi.mock('@/lib/ha-websocket', () => ({
   updateArea: (...args: unknown[]) => mockUpdateArea(...args),
   createFloor: (...args: unknown[]) => mockCreateFloor(...args),
+  // Favorites
+  getAreaFavoriteInfo: vi.fn().mockReturnValue(null),
+  addAreaToFavorites: vi.fn().mockResolvedValue(undefined),
+  removeAreaFromFavorites: vi.fn().mockResolvedValue(undefined),
 }))
 
 // Mock the metadata module

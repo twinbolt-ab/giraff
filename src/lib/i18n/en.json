@@ -264,6 +264,15 @@
     "other": "Other",
     "none": "None"
   },
+  "favorites": {
+    "title": "Favorites",
+    "subtitle": "Quick access to starred items",
+    "empty": "No favorites yet. Star rooms, scenes, or devices to add them here.",
+    "rooms": "Rooms",
+    "scenes": "Scenes",
+    "devices": "Devices",
+    "removeFromFavorites": "Remove"
+  },
   "allDevices": {
     "title": "All Devices",
     "menuTitle": "All devices",
@@ -294,7 +303,8 @@
       "floor": "Floor",
       "icon": "Icon",
       "temperatureSensor": "Temperature sensor",
-      "autoSensor": "Auto (first available)"
+      "autoSensor": "Auto (first available)",
+      "favorite": "Favorite"
     },
     "device": {
       "title": "Edit Device",
@@ -305,7 +315,8 @@
       "hiddenHintStugaOnly": "Hidden in Stuga only",
       "hiddenHintAlsoHA": "Hidden in Stuga and Home Assistant",
       "actAsLight": "Act as light",
-      "actAsLightHint": "Toggles with room lights"
+      "actAsLightHint": "Toggles with room lights",
+      "favorite": "Favorite"
     },
     "scene": {
       "title": "Edit Scene",
@@ -314,7 +325,8 @@
       "room": "Room",
       "hidden": "Hidden",
       "hiddenHintStugaOnly": "Hidden in Stuga only",
-      "hiddenHintAlsoHA": "Hidden in Stuga and Home Assistant"
+      "hiddenHintAlsoHA": "Hidden in Stuga and Home Assistant",
+      "favorite": "Favorite"
     },
     "floor": {
       "title": "Edit Floor",
@@ -374,7 +386,9 @@
       "moveToRoom": "Move to room",
       "setIcon": "Set icon",
       "hide": "Hide all",
-      "unhide": "Unhide all"
+      "unhide": "Unhide all",
+      "addFavorite": "Add all",
+      "removeFavorite": "Remove all"
     }
   },
   "delete": {

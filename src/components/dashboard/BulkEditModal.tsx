@@ -12,6 +12,8 @@ import {
   updateEntity,
   createArea,
   setEntityHiddenInStuga,
+  addEntityToFavorites,
+  removeEntityFromFavorites,
 } from '@/lib/ha-websocket'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { logger } from '@/lib/logger'
@@ -132,6 +134,7 @@ export function BulkEditDevicesModal({
   const [roomId, setRoomId] = useState<string>('')
   const [icon, setIcon] = useState<string>('')
   const [hidden, setHidden] = useState<string>('')
+  const [favorite, setFavorite] = useState<string>('')
   const [isSaving, setIsSaving] = useState(false)
   const { showError } = useToast()
   const { alsoHideInHA } = useSettings()
@@ -142,6 +145,7 @@ export function BulkEditDevicesModal({
       setRoomId('')
       setIcon('')
       setHidden('')
+      setFavorite('')
       setIsSaving(false)
     }
   }, [isOpen])
@@ -158,8 +162,14 @@ export function BulkEditDevicesModal({
     { value: 'unhide', label: t.bulkEdit.devices.unhide },
   ]
 
+  const favoriteOptions = [
+    { value: '', label: t.bulkEdit.noChange },
+    { value: 'add', label: t.bulkEdit.devices.addFavorite },
+    { value: 'remove', label: t.bulkEdit.devices.removeFavorite },
+  ]
+
   const handleSave = async () => {
-    if (!roomId && !icon && !hidden) {
+    if (!roomId && !icon && !hidden && !favorite) {
       onClose()
       return
     }
@@ -189,7 +199,19 @@ export function BulkEditDevicesModal({
           )
         : []
 
-      await Promise.all([...entityUpdates, ...hiddenUpdates])
+      // Handle favorite state
+      const favoriteUpdates = favorite
+        ? devices.map((device) => {
+            const isScene = device.entity_id.startsWith('scene.')
+            if (favorite === 'add') {
+              return addEntityToFavorites(device.entity_id, isScene ? 'scene' : 'entity')
+            } else {
+              return removeEntityFromFavorites(device.entity_id)
+            }
+          })
+        : []
+
+      await Promise.all([...entityUpdates, ...hiddenUpdates, ...favoriteUpdates])
 
       // Notify parent of hidden devices so they can be deselected
       if (hidden === 'hide') {
@@ -237,6 +259,26 @@ export function BulkEditDevicesModal({
                 onClick={() => setHidden(option.value)}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-colors ${
                   hidden === option.value
+                    ? 'bg-accent text-white'
+                    : 'bg-border/50 text-foreground hover:bg-border'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </FormField>
+
+        <FormField label={t.edit.device.favorite}>
+          <div className="flex gap-2">
+            {favoriteOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={() => setFavorite(option.value)}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-sm font-medium transition-colors ${
+                  favorite === option.value
                     ? 'bg-accent text-white'
                     : 'bg-border/50 text-foreground hover:bg-border'
                 }`}

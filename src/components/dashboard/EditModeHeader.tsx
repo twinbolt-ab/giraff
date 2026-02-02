@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { X, Plus } from 'lucide-react'
+import { X, Plus, Trash2 } from 'lucide-react'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t, interpolate } from '@/lib/i18n'
 
@@ -46,11 +46,23 @@ interface EditModeHeaderProps {
   onEditClick: () => void
   onDone: () => void
   onAddFloor?: () => void
+  onRemoveFromFavorites?: () => void
 }
 
-export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHeaderProps) {
-  const { isDeviceEditMode, isAllDevicesEditMode, isFloorEditMode, selectedCount, selectedIds } =
-    useEditMode()
+export function EditModeHeader({
+  onEditClick,
+  onDone,
+  onAddFloor,
+  onRemoveFromFavorites,
+}: EditModeHeaderProps) {
+  const {
+    isDeviceEditMode,
+    isAllDevicesEditMode,
+    isFloorEditMode,
+    isFavoritesEditMode,
+    selectedCount,
+    selectedIds,
+  } = useEditMode()
 
   // Floor edit mode has its own simpler UI
   if (isFloorEditMode) {
@@ -102,6 +114,47 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
             </button>
           </div>
         </motion.div>
+      </motion.div>
+    )
+  }
+
+  // Favorites edit mode - shows "Remove from favorites" button
+  if (isFavoritesEditMode) {
+    return (
+      <motion.div
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+        className="fixed left-4 right-4 z-20 floating-bar rounded-2xl shadow-lg glass"
+        data-edit-mode-header
+      >
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onDone}
+              className="p-1 rounded-full hover:bg-accent/20 transition-colors"
+              aria-label="Exit favorites edit mode"
+            >
+              <X className="w-4 h-4 text-accent" />
+            </button>
+            {selectedCount > 0 && (
+              <span className="text-sm font-semibold text-accent">
+                {interpolate(t.bulkEdit.selected, { count: selectedCount })}
+              </span>
+            )}
+          </div>
+
+          {selectedCount > 0 && (
+            <button
+              onClick={onRemoveFromFavorites}
+              className="px-3 py-1.5 rounded-full bg-accent text-white text-sm font-medium hover:bg-accent/90 transition-colors flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {t.favorites.removeFromFavorites}
+            </button>
+          )}
+        </div>
       </motion.div>
     )
   }

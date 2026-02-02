@@ -34,6 +34,9 @@ export function getEntityDomain(entityId: string): EntityDomain | null {
   return validDomains.includes(domain as EntityDomain) ? (domain as EntityDomain) : null
 }
 
+// Favorite item type for tracking what kind of item is selected
+export type FavoriteItemType = 'scene' | 'room' | 'entity'
+
 // State machine types
 export type EditMode =
   | { type: 'normal' }
@@ -57,6 +60,12 @@ export type EditMode =
       initialSelection?: string
     }
   | { type: 'edit-floors'; selectedFloorId: string; orderedFloors: HAFloor[] }
+  | {
+      type: 'edit-favorites'
+      selectedIds: Set<string>
+      selectedItemType: FavoriteItemType | null
+      initialSelection?: string
+    }
 
 // Actions
 type EditModeAction =
@@ -64,8 +73,14 @@ type EditModeAction =
   | { type: 'ENTER_DEVICE_EDIT'; roomId: string; initialSelection?: string }
   | { type: 'ENTER_ALL_DEVICES_EDIT'; initialSelection?: string }
   | { type: 'ENTER_FLOOR_EDIT'; floors: HAFloor[]; selectedFloorId: string }
+  | {
+      type: 'ENTER_FAVORITES_EDIT'
+      initialSelection?: string
+      itemType: FavoriteItemType
+    }
   | { type: 'EXIT_EDIT_MODE' }
   | { type: 'TOGGLE_SELECTION'; id: string }
+  | { type: 'TOGGLE_FAVORITES_SELECTION'; id: string; itemType: FavoriteItemType }
   | { type: 'DESELECT'; id: string }
   | { type: 'CLEAR_SELECTION' }
   | { type: 'REORDER_ROOMS'; rooms: RoomWithDevices[] }
@@ -125,6 +140,18 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
         orderedFloors: action.floors,
       }
 
+    case 'ENTER_FAVORITES_EDIT': {
+      const selectedIds = action.initialSelection
+        ? new Set([action.initialSelection])
+        : new Set<string>()
+      return {
+        type: 'edit-favorites',
+        selectedIds,
+        selectedItemType: action.itemType,
+        initialSelection: action.initialSelection,
+      }
+    }
+
     case 'EXIT_EDIT_MODE':
       return { type: 'normal' }
 
@@ -168,11 +195,36 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       }
       return state
 
+    case 'TOGGLE_FAVORITES_SELECTION':
+      if (state.type === 'edit-favorites') {
+        // If selecting a different item type, exit edit mode
+        if (state.selectedItemType && action.itemType !== state.selectedItemType) {
+          return { type: 'normal' }
+        }
+
+        const newSelectedIds = new Set(state.selectedIds)
+        if (newSelectedIds.has(action.id)) {
+          newSelectedIds.delete(action.id)
+        } else {
+          newSelectedIds.add(action.id)
+        }
+        // Exit edit mode if all items are deselected
+        if (newSelectedIds.size === 0) {
+          return { type: 'normal' }
+        }
+
+        // Update the selected item type if this is the first selection
+        const newSelectedItemType = state.selectedItemType || action.itemType
+        return { ...state, selectedIds: newSelectedIds, selectedItemType: newSelectedItemType }
+      }
+      return state
+
     case 'DESELECT':
       if (
         state.type === 'edit-rooms' ||
         state.type === 'edit-devices' ||
-        state.type === 'edit-all-devices'
+        state.type === 'edit-all-devices' ||
+        state.type === 'edit-favorites'
       ) {
         const newSelectedIds = new Set(state.selectedIds)
         newSelectedIds.delete(action.id)
@@ -188,7 +240,8 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       if (
         state.type === 'edit-rooms' ||
         state.type === 'edit-devices' ||
-        state.type === 'edit-all-devices'
+        state.type === 'edit-all-devices' ||
+        state.type === 'edit-favorites'
       ) {
         return { ...state, selectedIds: new Set() }
       }
@@ -230,10 +283,12 @@ interface EditModeContextValue {
   isDeviceEditMode: boolean
   isAllDevicesEditMode: boolean
   isFloorEditMode: boolean
+  isFavoritesEditMode: boolean
   isSelected: (id: string) => boolean
   selectedCount: number
   selectedIds: Set<string>
   selectedDomain: EntityDomain | null
+  selectedFavoriteItemType: FavoriteItemType | null
   orderedRooms: RoomWithDevices[]
   orderedFloors: HAFloor[]
   selectedFloorId: string | null
@@ -244,8 +299,10 @@ interface EditModeContextValue {
   enterDeviceEdit: (roomId: string, initialSelection?: string) => void
   enterAllDevicesEdit: (initialSelection?: string) => void
   enterFloorEdit: (floors: HAFloor[], selectedFloorId: string) => void
+  enterFavoritesEdit: (itemType: FavoriteItemType, initialSelection?: string) => void
   exitEditMode: () => void
   toggleSelection: (id: string) => void
+  toggleFavoritesSelection: (id: string, itemType: FavoriteItemType) => void
   deselect: (id: string) => void
   clearSelection: () => void
   reorderRooms: (rooms: RoomWithDevices[]) => void
@@ -274,12 +331,14 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
   const isDeviceEditMode = mode.type === 'edit-devices'
   const isAllDevicesEditMode = mode.type === 'edit-all-devices'
   const isFloorEditMode = mode.type === 'edit-floors'
+  const isFavoritesEditMode = mode.type === 'edit-favorites'
 
   const selectedIds = useMemo(() => {
     if (
       mode.type === 'edit-rooms' ||
       mode.type === 'edit-devices' ||
-      mode.type === 'edit-all-devices'
+      mode.type === 'edit-all-devices' ||
+      mode.type === 'edit-favorites'
     ) {
       return mode.selectedIds
     }
@@ -320,9 +379,17 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
     if (
       mode.type === 'edit-rooms' ||
       mode.type === 'edit-devices' ||
-      mode.type === 'edit-all-devices'
+      mode.type === 'edit-all-devices' ||
+      mode.type === 'edit-favorites'
     ) {
       return mode.initialSelection ?? null
+    }
+    return null
+  }, [mode])
+
+  const selectedFavoriteItemType = useMemo(() => {
+    if (mode.type === 'edit-favorites') {
+      return mode.selectedItemType
     }
     return null
   }, [mode])
@@ -342,11 +409,20 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
   const enterFloorEdit = useCallback((floors: HAFloor[], selectedFloorId: string) => {
     dispatch({ type: 'ENTER_FLOOR_EDIT', floors, selectedFloorId })
   }, [])
+  const enterFavoritesEdit = useCallback(
+    (itemType: FavoriteItemType, initialSelection?: string) => {
+      dispatch({ type: 'ENTER_FAVORITES_EDIT', itemType, initialSelection })
+    },
+    []
+  )
   const exitEditMode = useCallback(() => {
     dispatch({ type: 'EXIT_EDIT_MODE' })
   }, [])
   const toggleSelection = useCallback((id: string) => {
     dispatch({ type: 'TOGGLE_SELECTION', id })
+  }, [])
+  const toggleFavoritesSelection = useCallback((id: string, itemType: FavoriteItemType) => {
+    dispatch({ type: 'TOGGLE_FAVORITES_SELECTION', id, itemType })
   }, [])
   const deselect = useCallback((id: string) => {
     dispatch({ type: 'DESELECT', id })
@@ -372,10 +448,12 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       isDeviceEditMode,
       isAllDevicesEditMode,
       isFloorEditMode,
+      isFavoritesEditMode,
       isSelected,
       selectedCount,
       selectedIds,
       selectedDomain,
+      selectedFavoriteItemType,
       orderedRooms,
       orderedFloors,
       selectedFloorId,
@@ -384,8 +462,10 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       enterDeviceEdit,
       enterAllDevicesEdit,
       enterFloorEdit,
+      enterFavoritesEdit,
       exitEditMode,
       toggleSelection,
+      toggleFavoritesSelection,
       deselect,
       clearSelection,
       reorderRooms,
@@ -399,10 +479,12 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       isDeviceEditMode,
       isAllDevicesEditMode,
       isFloorEditMode,
+      isFavoritesEditMode,
       isSelected,
       selectedCount,
       selectedIds,
       selectedDomain,
+      selectedFavoriteItemType,
       orderedRooms,
       orderedFloors,
       selectedFloorId,
@@ -411,8 +493,10 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
       enterDeviceEdit,
       enterAllDevicesEdit,
       enterFloorEdit,
+      enterFavoritesEdit,
       exitEditMode,
       toggleSelection,
+      toggleFavoritesSelection,
       deselect,
       clearSelection,
       reorderRooms,

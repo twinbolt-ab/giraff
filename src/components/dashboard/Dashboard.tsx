@@ -6,6 +6,7 @@ import { ConnectionBanner } from './ConnectionBanner'
 import { ConnectionErrorModal } from './ConnectionErrorModal'
 import { RoomsGrid } from './RoomsGrid'
 import { AllDevicesView } from './AllDevicesView'
+import { FavoritesView } from './FavoritesView'
 import { FloorSwipeContainer } from './FloorSwipeContainer'
 import { FloorToast } from './FloorToast'
 import { RoomEditModal } from './RoomEditModal'
@@ -25,8 +26,16 @@ import { useFloorNavigation } from '@/lib/hooks/useFloorNavigation'
 import { useModalState } from '@/lib/hooks/useModalState'
 import { useCrossFloorDrag } from '@/lib/hooks/useCrossFloorDrag'
 import { useSettings } from '@/lib/hooks/useSettings'
-import { saveFloorOrderBatch, updateArea } from '@/lib/ha-websocket'
-import { ORDER_GAP } from '@/lib/constants'
+import { useFavorites } from '@/lib/hooks/useFavorites'
+import {
+  saveFloorOrderBatch,
+  updateArea,
+  removeEntityFromFavorites,
+  removeAreaFromFavorites,
+  updateEntityFavoriteOrder,
+  updateAreaFavoriteOrder,
+} from '@/lib/ha-websocket'
+import { ORDER_GAP, FAVORITES_FLOOR_ID } from '@/lib/constants'
 import { t } from '@/lib/i18n'
 import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
 import * as orderStorage from '@/lib/services/order-storage'
@@ -40,6 +49,12 @@ function DashboardContent() {
   const { activeMockScenario } = useDevMode()
   const { reloadRoomOrderSyncSetting } = useSettings()
 
+  // Get favorites
+  const { hasFavorites, favoriteScenes, favoriteRooms, favoriteEntities } = useFavorites(
+    rooms,
+    entities
+  )
+
   // Edit mode from context
   const {
     isEditMode,
@@ -47,6 +62,8 @@ function DashboardContent() {
     isDeviceEditMode,
     isAllDevicesEditMode,
     isFloorEditMode,
+    isFavoritesEditMode,
+    selectedFavoriteItemType,
     selectedCount,
     selectedIds,
     orderedRooms: rawOrderedRooms,
@@ -110,6 +127,7 @@ function DashboardContent() {
     hasReceivedData,
     activeMockScenario,
     isEntityVisible,
+    hasFavorites,
     onFloorChange: closeExpandedRoom,
   })
 
@@ -127,12 +145,17 @@ function DashboardContent() {
       return
     }
 
-    // Don't show toast for all devices view or when no floor selected
+    // Don't show toast for all devices view
     if (selectedFloorId === '__all_devices__') return
 
-    // Get floor name
-    const floor = floors.find((f) => f.floor_id === selectedFloorId)
-    const floorName = floor?.name || (selectedFloorId === null ? t.floors.other : null)
+    // Get floor name - handle favorites tab specially
+    let floorName: string | null = null
+    if (selectedFloorId === FAVORITES_FLOOR_ID) {
+      floorName = t.favorites.title
+    } else {
+      const floor = floors.find((f) => f.floor_id === selectedFloorId)
+      floorName = floor?.name || (selectedFloorId === null ? t.floors.other : null)
+    }
 
     if (floorName) {
       // Clear existing timeout
@@ -332,6 +355,39 @@ function DashboardContent() {
     [rooms, getRoomsForFloor, filteredRooms, enterRoomEdit]
   )
 
+  // Handler for removing selected items from favorites
+  const handleRemoveFromFavorites = useCallback(async () => {
+    if (!isFavoritesEditMode || selectedIds.size === 0) return
+
+    const idsToRemove = Array.from(selectedIds)
+
+    // Remove based on item type
+    if (selectedFavoriteItemType === 'room') {
+      await Promise.all(idsToRemove.map((areaId) => removeAreaFromFavorites(areaId)))
+    } else {
+      // scenes and entities are both stored in entity registry
+      await Promise.all(idsToRemove.map((entityId) => removeEntityFromFavorites(entityId)))
+    }
+
+    exitEditMode()
+  }, [isFavoritesEditMode, selectedIds, selectedFavoriteItemType, exitEditMode])
+
+  // Handler for reordering favorite scenes
+  const handleReorderFavoriteScenes = useCallback(async (scenes: HAEntity[]) => {
+    await Promise.all(
+      scenes.map((scene, idx) => updateEntityFavoriteOrder(scene.entity_id, (idx + 1) * ORDER_GAP))
+    )
+  }, [])
+
+  // Handler for reordering favorite rooms
+  const handleReorderFavoriteRooms = useCallback(async (rooms: RoomWithDevices[]) => {
+    await Promise.all(
+      rooms
+        .filter((room) => room.areaId)
+        .map((room, idx) => updateAreaFavoriteOrder(room.areaId!, (idx + 1) * ORDER_GAP))
+    )
+  }, [])
+
   // Handle clicks on empty area (gaps between cards)
   const handleBackgroundClick = useCallback(
     (e: React.MouseEvent) => {
@@ -341,7 +397,8 @@ function DashboardContent() {
       if (!isInsideCard) {
         // Don't exit floor edit mode from background click - it's handled in Header
         // Don't exit all-devices edit mode from background click - there are no .card elements
-        if (isEditMode && !isFloorEditMode && !isAllDevicesEditMode) {
+        // Don't exit favorites edit mode from background click - it's handled in FavoritesView
+        if (isEditMode && !isFloorEditMode && !isAllDevicesEditMode && !isFavoritesEditMode) {
           void handleExitEditMode()
           return
         }
@@ -350,7 +407,14 @@ function DashboardContent() {
         }
       }
     },
-    [expandedRoomId, isEditMode, isFloorEditMode, isAllDevicesEditMode, handleExitEditMode]
+    [
+      expandedRoomId,
+      isEditMode,
+      isFloorEditMode,
+      isAllDevicesEditMode,
+      isFavoritesEditMode,
+      handleExitEditMode,
+    ]
   )
 
   // Get selected rooms for bulk edit modal
@@ -436,6 +500,7 @@ function DashboardContent() {
             onEditClick={handleEditButtonClick}
             onDone={handleExitEditMode}
             onAddFloor={handleAddFloor}
+            onRemoveFromFavorites={handleRemoveFromFavorites}
           />
         )}
       </AnimatePresence>
@@ -480,10 +545,27 @@ function DashboardContent() {
               <FloorSwipeContainer
                 floors={floors}
                 hasUncategorized={hasUnassignedRooms}
+                hasFavorites={hasFavorites}
                 selectedFloorId={selectedFloorId}
                 onSelectFloor={handleSelectFloor}
               >
                 {(floorId) => {
+                  // Render FavoritesView for favorites tab
+                  if (floorId === FAVORITES_FLOOR_ID) {
+                    return (
+                      <FavoritesView
+                        favoriteScenes={favoriteScenes}
+                        favoriteRooms={favoriteRooms}
+                        favoriteEntities={favoriteEntities}
+                        allRooms={rooms}
+                        expandedRoomId={expandedRoomId}
+                        onToggleExpand={handleToggleExpand}
+                        onReorderScenes={handleReorderFavoriteScenes}
+                        onReorderRooms={handleReorderFavoriteRooms}
+                      />
+                    )
+                  }
+
                   const floorRooms = getRoomsForFloor(floorId)
 
                   return (
@@ -519,6 +601,7 @@ function DashboardContent() {
         selectedFloorId={selectedFloorId}
         onSelectFloor={handleSelectFloor}
         hasUnassignedRooms={hasUnassignedRooms}
+        hasFavorites={hasFavorites}
         isEditMode={isRoomEditMode}
         onViewAllDevices={handleViewAllDevices}
         onEditFloor={setEditingFloor}

@@ -155,6 +155,7 @@ export function ReorderableList<T>({
             key={key}
             ref={index === 0 ? measureRef : undefined}
             data-list-item
+            data-reorderable-item
             className={clsx('absolute', isPrimaryDrag && 'z-50')}
             style={{
               top: 0,

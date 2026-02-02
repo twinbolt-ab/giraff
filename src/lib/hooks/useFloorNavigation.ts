@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
+import { FAVORITES_FLOOR_ID } from '@/lib/constants'
 
 interface UseFloorNavigationOptions {
   rooms: RoomWithDevices[]
@@ -7,12 +8,14 @@ interface UseFloorNavigationOptions {
   hasReceivedData: boolean
   activeMockScenario: string | null
   isEntityVisible: (entityId: string) => boolean
+  /** Whether favorites exist (for showing favorites tab) */
+  hasFavorites?: boolean
   /** Called when floor selection changes (for closing expanded rooms, etc.) */
   onFloorChange?: () => void
 }
 
 interface UseFloorNavigationReturn {
-  /** The currently selected floor ID (null = unassigned rooms, '__all_devices__' = all devices view) */
+  /** The currently selected floor ID (null = unassigned rooms, '__all_devices__' = all devices view, '__favorites__' = favorites) */
   selectedFloorId: string | null
   /** Rooms filtered by selected floor */
   filteredRooms: RoomWithDevices[]
@@ -32,6 +35,7 @@ export function useFloorNavigation({
   hasReceivedData,
   activeMockScenario,
   isEntityVisible,
+  hasFavorites = false,
   onFloorChange,
 }: UseFloorNavigationOptions): UseFloorNavigationReturn {
   const [userSelectedFloorId, setUserSelectedFloorId] = useState<string | null | undefined>(
@@ -72,12 +76,19 @@ export function useFloorNavigation({
     if (userSelectedFloorId !== undefined) {
       // Validate the selection still exists
       if (userSelectedFloorId === '__all_devices__') return '__all_devices__'
+      if (userSelectedFloorId === FAVORITES_FLOOR_ID) {
+        // Only allow favorites if they exist
+        return hasFavorites ? FAVORITES_FLOOR_ID : null
+      }
       if (userSelectedFloorId === null) return null // "Other" tab
       if (floors.some((f) => f.floor_id === userSelectedFloorId)) return userSelectedFloorId
       // Selection is stale, fall through to auto-select
     }
 
-    // Auto-select based on data
+    // Auto-select based on data - favorites first if they exist
+    if (hasFavorites) {
+      return FAVORITES_FLOOR_ID
+    }
     if (floors.length > 0) {
       return floors[0].floor_id
     }
@@ -85,10 +96,14 @@ export function useFloorNavigation({
       return '__all_devices__'
     }
     return null
-  }, [userSelectedFloorId, floors, hasReceivedData, rooms.length])
+  }, [userSelectedFloorId, floors, hasReceivedData, rooms.length, hasFavorites])
 
   // Filter rooms by selected floor
   const filteredRooms = useMemo(() => {
+    // Favorites tab handles its own data
+    if (selectedFloorId === FAVORITES_FLOOR_ID) {
+      return []
+    }
     if (selectedFloorId === null) {
       // Show rooms with no floor OR with a non-existent floor (orphaned)
       return rooms.filter((room) => {

@@ -11,6 +11,15 @@ export const FLOOR_ORDER_LABEL_PREFIX = `${STUGA_PREFIX}floor-order-`
 // Label prefix for enabled domains configuration
 export const DOMAINS_LABEL_PREFIX = `${STUGA_PREFIX}domains-`
 
+// Label prefixes for favorites (A=scenes, B=rooms, C=entities)
+export const FAVORITE_LABEL_PREFIX = `${STUGA_PREFIX}favorite-`
+export const FAVORITE_SCENE_PREFIX = `${FAVORITE_LABEL_PREFIX}A-`
+export const FAVORITE_ROOM_PREFIX = `${FAVORITE_LABEL_PREFIX}B-`
+export const FAVORITE_ENTITY_PREFIX = `${FAVORITE_LABEL_PREFIX}C-`
+
+// Special floor ID for favorites tab
+export const FAVORITES_FLOOR_ID = '__favorites__'
+
 // Label prefix for selected temperature sensor per area (stores entity_id)
 export const TEMPERATURE_SENSOR_LABEL_PREFIX = `${STUGA_PREFIX}temp-`
 

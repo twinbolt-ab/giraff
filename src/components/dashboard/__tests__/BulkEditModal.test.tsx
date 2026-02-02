@@ -13,6 +13,8 @@ import {
   mockSetEntityHidden,
   mockUpdateArea,
   mockCreateFloor,
+  mockAddEntityToFavorites,
+  mockRemoveEntityFromFavorites,
   resetAllHAMocks,
 } from '@/test/ha-mocks'
 
@@ -23,6 +25,8 @@ vi.mock('@/lib/ha-websocket', () => ({
   updateArea: (...args: unknown[]) => mockUpdateArea(...args),
   createArea: vi.fn().mockResolvedValue('new-area-id'),
   createFloor: (...args: unknown[]) => mockCreateFloor(...args),
+  addEntityToFavorites: (...args: unknown[]) => mockAddEntityToFavorites(...args),
+  removeEntityFromFavorites: (...args: unknown[]) => mockRemoveEntityFromFavorites(...args),
 }))
 
 describe('BulkEditDevicesModal', () => {

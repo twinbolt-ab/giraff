@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { Reorder } from 'framer-motion'
-import { MoreVertical } from 'lucide-react'
+import { MoreVertical, Star } from 'lucide-react'
 import { SettingsMenu } from './SettingsMenu'
 import { MdiIcon } from '@/components/ui/MdiIcon'
 import { saveFloorOrderBatch } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
-import { LONG_PRESS_DURATION, scrollTo } from '@/lib/constants'
+import { LONG_PRESS_DURATION, FAVORITES_FLOOR_ID, scrollTo } from '@/lib/constants'
 import { t } from '@/lib/i18n'
 import { haptic } from '@/lib/haptics'
 import type { HAFloor } from '@/types/ha'
@@ -17,6 +17,8 @@ interface BottomNavProps {
   selectedFloorId: string | null
   onSelectFloor: (floorId: string | null) => void
   hasUnassignedRooms: boolean
+  /** Whether favorites exist (for showing favorites tab) */
+  hasFavorites?: boolean
   isEditMode?: boolean
   onViewAllDevices?: () => void
   onEditFloor?: (floor: HAFloor | null) => void
@@ -135,6 +137,7 @@ export function BottomNav({
   selectedFloorId,
   onSelectFloor,
   hasUnassignedRooms,
+  hasFavorites = false,
   isEditMode: isRoomEditMode = false,
   onViewAllDevices,
   onEditFloor,
@@ -259,7 +262,7 @@ export function BottomNav({
     }
   }, [dragPosition, isRoomEditMode, floorIdsForHitTest, onDragEnterFloor, onDragLeaveFloor])
 
-  const showBottomNav = floors.length > 0
+  const showBottomNav = floors.length > 0 || hasFavorites
 
   return (
     <>
@@ -340,6 +343,27 @@ export function BottomNav({
             ) : (
               // Normal mode - long-press to enter floor edit mode
               <div className="flex items-center overflow-x-auto">
+                {/* Favorites tab - shown first when favorites exist */}
+                {hasFavorites && (
+                  <button
+                    onClick={() => {
+                      haptic.selection()
+                      if (selectedFloorId !== FAVORITES_FLOOR_ID) {
+                        onSelectFloor(FAVORITES_FLOOR_ID)
+                        scrollTo({ top: 0, behavior: 'smooth' })
+                      }
+                    }}
+                    className={`flex flex-col items-center gap-1 px-4 py-2 min-w-[72px] flex-shrink-0 transition-colors touch-feedback ${
+                      selectedFloorId === FAVORITES_FLOOR_ID
+                        ? 'text-accent'
+                        : 'text-muted hover:text-foreground'
+                    }`}
+                    style={{ touchAction: 'pan-x' }}
+                  >
+                    <Star className="w-6 h-6" />
+                    <span className="text-xs font-medium">{t.favorites.title}</span>
+                  </button>
+                )}
                 {displayFloors.map((floor) => {
                   const isActive = selectedFloorId === floor.floor_id
                   return (

@@ -10,24 +10,25 @@ import {
 } from '@/test/test-utils'
 import {
   mockUpdateEntity,
-  mockSetEntityHidden,
   mockDeleteScene,
   mockGetEntityRegistry,
-  mockIsEntityHidden,
   mockIsEntityHiddenInStuga,
+  mockSetEntityHiddenInStuga,
   resetAllHAMocks,
 } from '@/test/ha-mocks'
 
 // Mock the ha-websocket module
 vi.mock('@/lib/ha-websocket', () => ({
   updateEntity: (...args: unknown[]) => mockUpdateEntity(...args),
-  setEntityHidden: (...args: unknown[]) => mockSetEntityHidden(...args),
-  setEntityHiddenInStuga: vi.fn().mockResolvedValue(undefined),
+  setEntityHiddenInStuga: (...args: unknown[]) => mockSetEntityHiddenInStuga(...args),
   deleteScene: (...args: unknown[]) => mockDeleteScene(...args),
   getEntityRegistry: () => mockGetEntityRegistry(),
-  isEntityHidden: (id: string) => mockIsEntityHidden(id),
   isEntityHiddenInStuga: (id: string) => mockIsEntityHiddenInStuga(id),
   createArea: vi.fn().mockResolvedValue('new-area-id'),
+  // Favorites
+  getEntityFavoriteInfo: vi.fn().mockReturnValue(null),
+  addEntityToFavorites: vi.fn().mockResolvedValue(undefined),
+  removeEntityFromFavorites: vi.fn().mockResolvedValue(undefined),
 }))
 
 describe('DeviceEditModal', () => {
@@ -74,12 +75,13 @@ describe('DeviceEditModal', () => {
 
     it('should hide light via toggle', async () => {
       const light = createMockLight({ entity_id: 'light.living_room' })
-      mockIsEntityHidden.mockReturnValue(false)
+      mockIsEntityHiddenInStuga.mockReturnValue(false)
 
       renderWithProviders(<DeviceEditModal device={light} rooms={rooms} onClose={mockOnClose} />)
 
-      // Find hidden toggle (uses role="switch")
-      const hiddenToggle = screen.getByRole('switch')
+      // Find hidden toggle (first switch role - Hidden toggle comes before Favorite)
+      const toggles = screen.getAllByRole('switch')
+      const hiddenToggle = toggles[0] // Hidden toggle is first
       await act(async () => {
         fireEvent.click(hiddenToggle)
       })
@@ -90,17 +92,18 @@ describe('DeviceEditModal', () => {
       })
 
       await waitFor(() => {
-        expect(mockSetEntityHidden).toHaveBeenCalledWith('light.living_room', true)
+        expect(mockSetEntityHiddenInStuga).toHaveBeenCalledWith('light.living_room', true, false)
       })
     })
 
     it('should unhide light via toggle', async () => {
       const light = createMockLight({ entity_id: 'light.living_room' })
-      mockIsEntityHidden.mockReturnValue(true)
+      mockIsEntityHiddenInStuga.mockReturnValue(true)
 
       renderWithProviders(<DeviceEditModal device={light} rooms={rooms} onClose={mockOnClose} />)
 
-      const hiddenToggle = screen.getByRole('switch')
+      const toggles = screen.getAllByRole('switch')
+      const hiddenToggle = toggles[0] // Hidden toggle is first
       expect(hiddenToggle).toHaveAttribute('aria-checked', 'true')
 
       await act(async () => {
@@ -113,7 +116,7 @@ describe('DeviceEditModal', () => {
       })
 
       await waitFor(() => {
-        expect(mockSetEntityHidden).toHaveBeenCalledWith('light.living_room', false)
+        expect(mockSetEntityHiddenInStuga).toHaveBeenCalledWith('light.living_room', false, false)
       })
     })
 
@@ -128,7 +131,7 @@ describe('DeviceEditModal', () => {
       })
 
       expect(mockUpdateEntity).not.toHaveBeenCalled()
-      expect(mockSetEntityHidden).not.toHaveBeenCalled()
+      expect(mockSetEntityHiddenInStuga).not.toHaveBeenCalled()
       expect(mockOnClose).toHaveBeenCalled()
     })
 
@@ -192,13 +195,15 @@ describe('DeviceEditModal', () => {
 
     it('should hide switch via toggle', async () => {
       const switchEntity = createMockSwitch({ entity_id: 'switch.garage' })
-      mockIsEntityHidden.mockReturnValue(false)
+      mockIsEntityHiddenInStuga.mockReturnValue(false)
 
       renderWithProviders(
         <DeviceEditModal device={switchEntity} rooms={rooms} onClose={mockOnClose} />
       )
 
-      const hiddenToggle = screen.getByRole('switch')
+      // Hidden toggle is first, Favorite is second, Act as light is third for switches
+      const toggles = screen.getAllByRole('switch')
+      const hiddenToggle = toggles[0]
       await act(async () => {
         fireEvent.click(hiddenToggle)
       })
@@ -209,7 +214,7 @@ describe('DeviceEditModal', () => {
       })
 
       await waitFor(() => {
-        expect(mockSetEntityHidden).toHaveBeenCalledWith('switch.garage', true)
+        expect(mockSetEntityHiddenInStuga).toHaveBeenCalledWith('switch.garage', true, false)
       })
     })
 

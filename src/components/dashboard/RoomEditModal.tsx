@@ -5,6 +5,7 @@ import { ModalActions } from '@/components/ui/ModalActions'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { ComboBox } from '@/components/ui/ComboBox'
+import { Toggle } from '@/components/ui/Toggle'
 import { IconPickerField } from '@/components/ui/IconPickerField'
 import { RoomDeleteDialog } from '@/components/dashboard/RoomDeleteDialog'
 import { useToast } from '@/providers/ToastProvider'
@@ -12,6 +13,7 @@ import { t } from '@/lib/i18n'
 import { updateArea, createFloor } from '@/lib/ha-websocket'
 import { logRoomEdit, logFloorCreate } from '@/lib/analytics'
 import { getAreaTemperatureSensor, setAreaTemperatureSensor } from '@/lib/metadata'
+import { isAreaFavorite, toggleAreaFavorite } from '@/lib/hooks/useFavorites'
 import { logger } from '@/lib/logger'
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
@@ -34,6 +36,7 @@ export function RoomEditModal({
   const [floorId, setFloorId] = useState('')
   const [icon, setIcon] = useState('')
   const [temperatureSensor, setTemperatureSensor] = useState('')
+  const [favorite, setFavorite] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const { showError } = useToast()
@@ -69,6 +72,8 @@ export function RoomEditModal({
       // Get current temperature sensor selection from HA
       const currentSensor = getAreaTemperatureSensor(roomId)
       setTemperatureSensor(currentSensor || '')
+      // Get favorite status
+      setFavorite(isAreaFavorite(roomId))
     }
     // Only re-run when roomId changes, not when room object reference changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,6 +96,11 @@ export function RoomEditModal({
       })
       // Save temperature sensor selection (empty string clears selection)
       await setAreaTemperatureSensor(room.areaId, temperatureSensor || null)
+      // Update favorite status if changed
+      const currentFavorite = isAreaFavorite(room.areaId)
+      if (favorite !== currentFavorite) {
+        await toggleAreaFavorite(room.areaId)
+      }
       void logRoomEdit()
       onClose()
     } catch (error) {
@@ -138,6 +148,10 @@ export function RoomEditModal({
             />
           </FormField>
         )}
+
+        <FormField label={t.edit.room.favorite}>
+          <Toggle checked={favorite} onChange={setFavorite} />
+        </FormField>
 
         <div className="pt-4">
           <ModalActions

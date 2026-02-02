@@ -19,6 +19,7 @@ import {
   createArea,
 } from '@/lib/ha-websocket'
 import { useSettings } from '@/lib/hooks/useSettings'
+import { isEntityFavorite, toggleEntityFavorite } from '@/lib/hooks/useFavorites'
 import { logger } from '@/lib/logger'
 import { logDeviceEdit } from '@/lib/analytics'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
@@ -35,6 +36,7 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
   const [icon, setIcon] = useState('')
   const [roomId, setRoomId] = useState('')
   const [hidden, setHidden] = useState(false)
+  const [favorite, setFavorite] = useState(false)
   const [actsAsLight, setActsAsLight] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -74,6 +76,9 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
       // Get hidden state (use Stuga-hidden state)
       setHidden(isEntityHiddenInStuga(deviceId))
 
+      // Get favorite status
+      setFavorite(isEntityFavorite(deviceId))
+
       // Get "acts as light" state (for switches: device_class === 'light')
       setActsAsLight(device.attributes.device_class === 'light')
     }
@@ -105,6 +110,12 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
 
       // Update hidden state (in Stuga, and optionally in HA based on setting)
       await setEntityHiddenInStuga(device.entity_id, hidden, alsoHideInHA)
+
+      // Update favorite status if changed
+      const currentFavorite = isEntityFavorite(device.entity_id)
+      if (favorite !== currentFavorite) {
+        await toggleEntityFavorite(device.entity_id, isScene)
+      }
 
       // Notify parent if device was hidden (so it can be deselected)
       if (hidden) {
@@ -166,6 +177,10 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
             hint={alsoHideInHA ? labels.hiddenHintAlsoHA : labels.hiddenHintStugaOnly}
           >
             <Toggle checked={hidden} onChange={setHidden} />
+          </FormField>
+
+          <FormField label={labels.favorite}>
+            <Toggle checked={favorite} onChange={setFavorite} />
           </FormField>
 
           {isSwitch && (

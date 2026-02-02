@@ -16,7 +16,10 @@ export const mockGetAreaTemperatureSensor = vi.fn().mockReturnValue(null)
 export const mockGetEntityRegistry = vi.fn().mockReturnValue(new Map<string, EntityRegistryEntry>())
 export const mockIsEntityHidden = vi.fn().mockReturnValue(false)
 export const mockIsEntityHiddenInStuga = vi.fn().mockReturnValue(false)
+export const mockSetEntityHiddenInStuga = vi.fn().mockResolvedValue(undefined)
 export const mockIsEntityAuxiliary = vi.fn().mockReturnValue(false)
+export const mockAddEntityToFavorites = vi.fn().mockResolvedValue(undefined)
+export const mockRemoveEntityFromFavorites = vi.fn().mockResolvedValue(undefined)
 
 // Reset all mocks helper
 export function resetAllHAMocks() {
@@ -34,7 +37,10 @@ export function resetAllHAMocks() {
   mockGetEntityRegistry.mockClear().mockReturnValue(new Map())
   mockIsEntityHidden.mockClear().mockReturnValue(false)
   mockIsEntityHiddenInStuga.mockClear().mockReturnValue(false)
+  mockSetEntityHiddenInStuga.mockClear().mockResolvedValue(undefined)
   mockIsEntityAuxiliary.mockClear().mockReturnValue(false)
+  mockAddEntityToFavorites.mockClear().mockResolvedValue(undefined)
+  mockRemoveEntityFromFavorites.mockClear().mockResolvedValue(undefined)
 }
 
 // Mock module factory - use this in vi.mock()
@@ -51,7 +57,10 @@ export const haWebsocketMock = {
   getEntityRegistry: mockGetEntityRegistry,
   isEntityHidden: mockIsEntityHidden,
   isEntityHiddenInStuga: mockIsEntityHiddenInStuga,
+  setEntityHiddenInStuga: mockSetEntityHiddenInStuga,
   isEntityAuxiliary: mockIsEntityAuxiliary,
+  addEntityToFavorites: mockAddEntityToFavorites,
+  removeEntityFromFavorites: mockRemoveEntityFromFavorites,
 }
 
 export const metadataMock = {

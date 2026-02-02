@@ -75,6 +75,16 @@ export type EntityDomain =
   | 'vacuum'
   | 'scene'
 
+// Favorite sections: A=scenes, B=rooms, C=entities
+export type FavoriteSection = 'scene' | 'room' | 'entity'
+
+export interface FavoriteItem {
+  id: string // entity_id or area_id
+  section: FavoriteSection
+  order: number
+  labelId: string
+}
+
 export interface RoomWithDevices {
   id: string
   name: string

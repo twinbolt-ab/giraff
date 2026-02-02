@@ -9,7 +9,7 @@ import {
 } from 'framer-motion'
 import type { HAFloor } from '@/types/ha'
 import { useWindowWidth } from '@/lib/hooks/useWindowWidth'
-import { scrollTo } from '@/lib/constants'
+import { scrollTo, FAVORITES_FLOOR_ID } from '@/lib/constants'
 
 // Spring animation config for floor transitions
 const SPRING_CONFIG = { type: 'spring', stiffness: 300, damping: 30 } as const
@@ -31,6 +31,8 @@ interface FloorSwipeContainerProps {
   floors: HAFloor[]
   /** Whether there are uncategorized rooms */
   hasUncategorized: boolean
+  /** Whether favorites exist (for showing favorites tab) */
+  hasFavorites?: boolean
   /** Currently selected floor ID (or null for uncategorized) */
   selectedFloorId: string | null
   /** Callback when floor selection changes */
@@ -44,6 +46,7 @@ interface FloorSwipeContainerProps {
 export function FloorSwipeContainer({
   floors,
   hasUncategorized,
+  hasFavorites = false,
   selectedFloorId,
   onSelectFloor,
   children,
@@ -56,18 +59,29 @@ export function FloorSwipeContainer({
   // Track if we've done the initial position setup (to avoid animating on mount/remount)
   const hasInitializedRef = useRef(false)
 
-  // Build list of floor IDs (including uncategorized at end if present)
+  // Build list of floor IDs (favorites first, then floors, then uncategorized at end if present)
   const floorIds = useMemo((): (string | null)[] => {
-    const ids: (string | null)[] = floors.map((f) => f.floor_id)
+    const ids: (string | null)[] = []
+    if (hasFavorites) {
+      ids.push(FAVORITES_FLOOR_ID)
+    }
+    ids.push(...floors.map((f) => f.floor_id))
     if (hasUncategorized) {
       ids.push(null) // null represents uncategorized
     }
     return ids
-  }, [floors, hasUncategorized])
+  }, [floors, hasUncategorized, hasFavorites])
 
   // Get current index from selected floor ID
   const currentIndex = useMemo(() => {
-    if (selectedFloorId === null || selectedFloorId === '__all_devices__') {
+    if (selectedFloorId === '__all_devices__') {
+      return 0
+    }
+    if (selectedFloorId === FAVORITES_FLOOR_ID) {
+      const idx = floorIds.indexOf(FAVORITES_FLOOR_ID)
+      return idx >= 0 ? idx : 0
+    }
+    if (selectedFloorId === null) {
       const idx = floorIds.indexOf(null)
       return idx >= 0 ? idx : 0
     }
