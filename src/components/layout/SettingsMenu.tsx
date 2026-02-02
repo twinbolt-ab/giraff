@@ -20,14 +20,15 @@ import {
   Hash,
   EyeOff,
   GripVertical,
+  RefreshCw,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
 import { EditModeInfoModal } from '@/components/settings/EditModeInfoModal'
-import { RoomOrderingDisableDialog } from '@/components/settings/RoomOrderingDisableDialog'
 import { AlsoHideInHADialog } from '@/components/settings/AlsoHideInHADialog'
+import { RoomOrderSyncDisableDialog } from '@/components/settings/RoomOrderSyncDisableDialog'
 import { useDevMode } from '@/lib/hooks/useDevMode'
 import { useSettings } from '@/lib/hooks/useSettings'
 import { useSettingsMenuState } from '@/lib/hooks/useSettingsMenuState'
@@ -63,8 +64,6 @@ export function SettingsMenu({
   const isDark = resolvedTheme === 'dark'
   const { isDevMode } = useDevMode()
   const {
-    roomOrderingEnabled,
-    setRoomOrderingEnabled,
     showTemperature,
     setShowTemperature,
     showHumidity,
@@ -136,12 +135,17 @@ export function SettingsMenu({
     void logSettingChange('theme', newTheme)
   }
 
-  const handleRoomOrderingToggle = () => {
-    if (roomOrderingEnabled) {
-      menuState.openModal('roomOrderingDisable')
+  const handleRoomOrderSyncToggle = () => {
+    if (roomOrderSyncToHA) {
+      menuState.openModal('roomOrderSyncDisable')
     } else {
-      setRoomOrderingEnabled(true)
+      void setRoomOrderSyncToHA(true)
     }
+  }
+
+  const handleRoomOrderSyncDisabled = () => {
+    void setRoomOrderSyncToHA(false)
+    menuState.closeModal('roomOrderSyncDisable')
   }
 
   const handleAlsoHideInHAToggle = () => {
@@ -151,10 +155,6 @@ export function SettingsMenu({
   const handleAlsoHideInHAConfirmed = () => {
     setAlsoHideInHA(menuState.alsoHideInHAVariant === 'enable')
     menuState.closeAlsoHideInHADialog()
-  }
-
-  const handleRoomOrderSyncToggle = () => {
-    void setRoomOrderSyncToHA(!roomOrderSyncToHA)
   }
 
   return (
@@ -212,33 +212,18 @@ export function SettingsMenu({
               <CollapsibleSection
                 icon={<Settings2 className="w-5 h-5 text-foreground" />}
                 title={t.settings.advanced?.title || 'Advanced'}
-                description={t.settings.advanced?.description || 'Room ordering settings'}
+                description={t.settings.advanced?.description || 'Sync and debug info'}
                 isOpen={menuState.advancedOpen}
                 onToggle={menuState.toggleAdvanced}
               >
-                {/* Room Ordering Toggle */}
+                {/* Room Order Sync Toggle */}
                 <SubMenuItem
-                  icon={<Layers className="w-4 h-4 text-foreground" />}
-                  title={t.settings.advanced?.roomOrdering?.title || 'Room ordering'}
+                  icon={<RefreshCw className="w-4 h-4 text-foreground" />}
+                  title={t.settings.advanced?.roomOrderSync?.title || 'Sync room order across devices'}
                   description={
-                    t.settings.advanced?.roomOrdering?.description ||
-                    'Hold and drag to reorder rooms'
+                    t.settings.advanced?.roomOrderSync?.description ||
+                    'Store room order in Home Assistant. Without this, order is saved locally on this device only.'
                   }
-                  onClick={handleRoomOrderingToggle}
-                  rightElement={
-                    <StatusBadge
-                      enabled={roomOrderingEnabled}
-                      enabledLabel={t.settings.advanced?.roomOrdering?.enabled || 'Enabled'}
-                      disabledLabel={t.settings.advanced?.roomOrdering?.disabled || 'Disabled'}
-                    />
-                  }
-                />
-
-                {/* Room Order Sync to HA Toggle */}
-                <SubMenuItem
-                  icon={<Wifi className="w-4 h-4 text-foreground" />}
-                  title="Sync room order to Home Assistant"
-                  description="Store room order in HA for multi-device sync. Adds stuga-room-order-XX labels to areas."
                   onClick={handleRoomOrderSyncToggle}
                   rightElement={<ToggleSwitch checked={roomOrderSyncToHA} />}
                 />
@@ -409,10 +394,10 @@ export function SettingsMenu({
             onConfirm={handleEditConfirm}
           />
 
-          <RoomOrderingDisableDialog
-            isOpen={menuState.isModalOpen('roomOrderingDisable')}
-            onClose={() => menuState.closeModal('roomOrderingDisable')}
-            onDisabled={() => menuState.closeModal('roomOrderingDisable')}
+          <RoomOrderSyncDisableDialog
+            isOpen={menuState.isModalOpen('roomOrderSyncDisable')}
+            onClose={() => menuState.closeModal('roomOrderSyncDisable')}
+            onDisabled={handleRoomOrderSyncDisabled}
           />
 
           {menuState.alsoHideInHAVariant && (

@@ -221,12 +221,13 @@
     },
     "advanced": {
       "title": "Advanced",
-      "description": "Room ordering and debug info",
-      "roomOrdering": {
-        "title": "Room ordering",
-        "description": "Hold and drag to reorder rooms",
-        "enabled": "Enabled",
-        "disabled": "Disabled"
+      "description": "Sync and debug info",
+      "roomOrderSync": {
+        "title": "Sync room order across devices",
+        "description": "Store room order in Home Assistant. Without this, order is saved locally on this device only.",
+        "disableTitle": "Stop syncing room order?",
+        "disableMessage": "This will remove room order labels from Home Assistant. Your room order will be kept locally on this device.",
+        "disableConfirm": "Stop syncing"
       },
       "debugId": {
         "title": "Debug ID",
@@ -244,14 +245,6 @@
       "disableTitle": "Stop hiding in Home Assistant?",
       "disableMessage": "This will unhide all Stuga-hidden devices from Home Assistant. They will remain hidden in Stuga.",
       "disableConfirm": "Unhide from HA"
-    }
-  },
-  "roomOrdering": {
-    "disable": {
-      "title": "Disable Room Ordering",
-      "message": "This will remove the hold-to-reorder feature and delete all room order data from Home Assistant. You can re-enable this later, but you'll need to set up your room order again.",
-      "confirm": "Disable",
-      "cancel": "Cancel"
     }
   },
   "domains": {

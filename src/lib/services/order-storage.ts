@@ -95,18 +95,20 @@ async function markRoomOrderMigrated(): Promise<void> {
 }
 
 /**
- * One-time migration: Read room order from HA labels and save to localStorage
+ * One-time migration: Read room order from HA labels and save to localStorage.
+ * If HA labels exist, also enables HA sync so future changes sync back.
+ * Returns true if HA labels were found and sync was enabled.
  */
-export async function migrateRoomOrderFromHA(): Promise<void> {
+export async function migrateRoomOrderFromHA(): Promise<boolean> {
   // Check if already migrated
   if (await isRoomOrderMigrated()) {
-    return
+    return false
   }
 
   const state = getState()
   if (!state) {
     console.warn('Cannot migrate room order: WebSocket not connected')
-    return
+    return false
   }
 
   const orderMap: RoomOrderMap = {}
@@ -127,16 +129,22 @@ export async function migrateRoomOrderFromHA(): Promise<void> {
     }
   }
 
+  const foundHALabels = Object.keys(orderMap).length > 0
+
   // Save to localStorage
-  if (Object.keys(orderMap).length > 0) {
+  if (foundHALabels) {
     await setAllRoomOrders(orderMap)
+    // Enable HA sync since labels already exist in HA
+    const storage = getStorage()
+    await storage.setItem(STORAGE_KEYS.ROOM_ORDER_SYNC_TO_HA, 'true')
     console.log(
-      `Migrated room order for ${Object.keys(orderMap).length} rooms from HA labels to localStorage`
+      `Migrated room order for ${Object.keys(orderMap).length} rooms from HA labels to localStorage (sync enabled)`
     )
   }
 
   // Mark migration as complete
   await markRoomOrderMigrated()
+  return foundHALabels
 }
 
 /**

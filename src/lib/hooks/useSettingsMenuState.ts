@@ -5,7 +5,7 @@ type ModalKey =
   | 'domainConfig'
   | 'developerMenu'
   | 'editModeInfo'
-  | 'roomOrderingDisable'
+  | 'roomOrderSyncDisable'
 
 type DialogVariant = 'enable' | 'disable'
 

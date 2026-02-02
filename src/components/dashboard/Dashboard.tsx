@@ -21,10 +21,10 @@ import { useRooms } from '@/lib/hooks/useRooms'
 import { useRoomOrder } from '@/lib/hooks/useRoomOrder'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDevMode } from '@/lib/hooks/useDevMode'
-import { useSettings } from '@/lib/hooks/useSettings'
 import { useFloorNavigation } from '@/lib/hooks/useFloorNavigation'
 import { useModalState } from '@/lib/hooks/useModalState'
 import { useCrossFloorDrag } from '@/lib/hooks/useCrossFloorDrag'
+import { useSettings } from '@/lib/hooks/useSettings'
 import { saveFloorOrderBatch, updateArea } from '@/lib/ha-websocket'
 import { ORDER_GAP } from '@/lib/constants'
 import { t } from '@/lib/i18n'
@@ -38,7 +38,7 @@ function DashboardContent() {
   const { isEntityVisible } = useEnabledDomains()
   const { setAreaOrder } = useRoomOrder()
   const { activeMockScenario } = useDevMode()
-  const { roomOrderingEnabled } = useSettings()
+  const { reloadRoomOrderSyncSetting } = useSettings()
 
   // Edit mode from context
   const {
@@ -81,9 +81,14 @@ function DashboardContent() {
   // Migrate room order from HA labels to localStorage on first connection
   useEffect(() => {
     if (isConnected && hasReceivedData) {
-      void orderStorage.migrateRoomOrderFromHA()
+      void orderStorage.migrateRoomOrderFromHA().then((syncEnabled) => {
+        // If migration found HA labels and enabled sync, reload the setting
+        if (syncEnabled) {
+          void reloadRoomOrderSyncSetting()
+        }
+      })
     }
-  }, [isConnected, hasReceivedData])
+  }, [isConnected, hasReceivedData, reloadRoomOrderSyncSetting])
 
   // Expanded room state (kept separate as it's used for toggling)
   const [expandedRoomId, setExpandedRoomId] = useState<string | null>(null)
@@ -458,7 +463,6 @@ function DashboardContent() {
                 orderedRooms={orderedRooms}
                 onReorder={reorderRooms}
                 onClickOutside={handleExitEditMode}
-                reorderingDisabled={!roomOrderingEnabled}
                 selectedIds={selectedIds}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}

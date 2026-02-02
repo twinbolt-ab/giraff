@@ -8,7 +8,6 @@ export type GridColumnsOption = 1 | 2 | 3
 
 interface Settings {
   groupByFloors: boolean
-  roomOrderingEnabled: boolean
   showTemperature: boolean
   showHumidity: boolean
   gridColumns: GridColumnsOption
@@ -17,7 +16,6 @@ interface Settings {
 
 const defaultSettings: Settings = {
   groupByFloors: true,
-  roomOrderingEnabled: true,
   showTemperature: true,
   showHumidity: false,
   gridColumns: 2,
@@ -102,11 +100,6 @@ export function useSettings() {
     updateSettingsStore({ groupByFloors: value })
   }, [])
 
-  const setRoomOrderingEnabled = useCallback((value: boolean) => {
-    updateSettingsStore({ roomOrderingEnabled: value })
-    void logSettingChange('room_ordering', value)
-  }, [])
-
   const setShowTemperature = useCallback((value: boolean) => {
     updateSettingsStore({ showTemperature: value })
     void logSettingChange('show_temperature', value)
@@ -154,11 +147,14 @@ export function useSettings() {
     void logSettingChange('room_order_sync_to_ha', value)
   }, [])
 
+  const reloadRoomOrderSyncSetting = useCallback(async () => {
+    const enabled = await orderStorage.isRoomOrderHASyncEnabled()
+    setRoomOrderSyncToHAState(enabled)
+  }, [])
+
   return {
     groupByFloors: settings.groupByFloors,
     setGroupByFloors,
-    roomOrderingEnabled: settings.roomOrderingEnabled,
-    setRoomOrderingEnabled,
     showTemperature: settings.showTemperature,
     setShowTemperature,
     showHumidity: settings.showHumidity,
@@ -169,6 +165,7 @@ export function useSettings() {
     setAlsoHideInHA,
     roomOrderSyncToHA,
     setRoomOrderSyncToHA,
+    reloadRoomOrderSyncSetting,
     isLoaded: initialized,
   }
 }
