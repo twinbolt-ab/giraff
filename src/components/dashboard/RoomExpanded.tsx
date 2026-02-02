@@ -6,6 +6,7 @@ import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { useEntityOrder } from '@/lib/hooks/useEntityOrder'
+import { useExitEditModeOnClickOutside } from '@/lib/hooks/useExitEditModeOnClickOutside'
 import { t } from '@/lib/i18n'
 import { ROOM_EXPAND_DURATION } from '@/lib/constants'
 
@@ -166,32 +167,12 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
     covers.length > 0 ||
     fans.length > 0
 
-  // Exit edit mode when clicking outside entity items
-  useEffect(() => {
-    if (!isInEditMode) return
-
-    const handlePointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement
-      // Check if the click is on an entity item (has data-entity-id attribute)
-      const entityElement = target.closest('[data-entity-id]')
-      // Check if the click is on the edit mode header/floating bar
-      const editModeHeader = target.closest('[data-edit-mode-header]')
-      if (!entityElement && !editModeHeader) {
-        // Clicked outside any entity and outside the edit header - exit edit mode
-        exitEditMode()
-      }
-    }
-
-    // Use a small delay to avoid immediately exiting when entering edit mode
-    const timer = setTimeout(() => {
-      document.addEventListener('pointerdown', handlePointerDown)
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('pointerdown', handlePointerDown)
-    }
-  }, [isInEditMode, exitEditMode])
+  // Exit edit mode when clicking outside entity items or the edit header
+  useExitEditModeOnClickOutside({
+    isActive: isInEditMode,
+    onExit: exitEditMode,
+    excludeSelectors: ['[data-entity-id]', '[data-edit-mode-header]', '[data-edit-modal]'],
+  })
 
   // Measure content height whenever it might change
   useLayoutEffect(() => {

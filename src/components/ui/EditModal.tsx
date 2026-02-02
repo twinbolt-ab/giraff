@@ -122,6 +122,7 @@ export function EditModal({ isOpen, onClose, title, children }: EditModalProps) 
       {/* Bottom Sheet */}
       <motion.div
         ref={sheetRef}
+        data-edit-modal
         initial={{ y: '100%' }}
         animate={{ y: isOpen ? 0 : '100%' }}
         exit={{ y: '100%' }}

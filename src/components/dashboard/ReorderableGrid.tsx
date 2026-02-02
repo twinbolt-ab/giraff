@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { useGridMeasurement } from '@/lib/hooks/useGridMeasurement'
 import { useGridDrag } from '@/lib/hooks/useGridDrag'
+import { useExitEditModeOnClickOutside } from '@/lib/hooks/useExitEditModeOnClickOutside'
 
 interface ReorderableGridProps<T> {
   items: T[]
@@ -103,30 +103,12 @@ export function ReorderableGrid<T>({
     externalDragPosition,
   })
 
-  // Click outside to save
-  useEffect(() => {
-    if (!onClickOutside) return
-
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as Node
-      if (containerRef.current?.contains(target)) return
-      const floatingBar = document.querySelector('.floating-bar')
-      if (floatingBar?.contains(target)) return
-
-      onClickOutside()
-    }
-
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside)
-      document.addEventListener('touchstart', handleClickOutside)
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
-  }, [onClickOutside, containerRef])
+  // Exit edit mode when clicking outside grid items or the edit header
+  useExitEditModeOnClickOutside({
+    isActive: !!onClickOutside,
+    onExit: onClickOutside ?? (() => {}),
+    excludeSelectors: ['[data-grid-item]', '[data-edit-mode-header]', '[data-edit-modal]'],
+  })
 
   // Multi-drag state
   const isMultiDrag = draggedIndices.length > 1
