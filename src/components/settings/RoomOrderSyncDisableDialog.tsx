@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { t } from '@/lib/i18n'
-import { cleanupRoomOrderLabels } from '@/lib/metadata/cleanup'
+import { cleanupAllOrderLabels } from '@/lib/metadata/cleanup'
 
 interface RoomOrderSyncDisableDialogProps {
   isOpen: boolean
@@ -19,10 +19,10 @@ export function RoomOrderSyncDisableDialog({
   const handleConfirm = async () => {
     setIsLoading(true)
     try {
-      await cleanupRoomOrderLabels()
+      await cleanupAllOrderLabels()
       onDisabled()
     } catch (error) {
-      console.error('Failed to disable room order sync:', error)
+      console.error('Failed to disable order sync:', error)
     } finally {
       setIsLoading(false)
     }

@@ -92,8 +92,8 @@ export function useEntityOrder(roomId: string): UseEntityOrderReturn {
         newDomainOrder[entity.entity_id] = index
       })
 
-      // Save to storage
-      await orderStorage.setDomainEntityOrders(roomId, domain, newDomainOrder)
+      // Save to storage (with HA sync if enabled)
+      await orderStorage.setDomainEntityOrdersWithSync(roomId, domain, newDomainOrder)
 
       // Update local state
       setEntityOrderMap((prev) => ({

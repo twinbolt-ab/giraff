@@ -2,12 +2,35 @@ import { createContext, useContext, useReducer, useCallback, useMemo, type React
 import type { RoomWithDevices, HAFloor } from '@/types/ha'
 
 // Entity domain type for tracking selected entity type
-export type EntityDomain = 'light' | 'switch' | 'scene' | 'input_boolean' | 'input_number' | 'climate' | 'cover' | 'fan' | 'vacuum' | 'media_player' | 'sensor'
+export type EntityDomain =
+  | 'light'
+  | 'switch'
+  | 'scene'
+  | 'input_boolean'
+  | 'input_number'
+  | 'climate'
+  | 'cover'
+  | 'fan'
+  | 'vacuum'
+  | 'media_player'
+  | 'sensor'
 
 // Helper to extract domain from entity_id
 export function getEntityDomain(entityId: string): EntityDomain | null {
   const domain = entityId.split('.')[0]
-  const validDomains: EntityDomain[] = ['light', 'switch', 'scene', 'input_boolean', 'input_number', 'climate', 'cover', 'fan', 'vacuum', 'media_player', 'sensor']
+  const validDomains: EntityDomain[] = [
+    'light',
+    'switch',
+    'scene',
+    'input_boolean',
+    'input_number',
+    'climate',
+    'cover',
+    'fan',
+    'vacuum',
+    'media_player',
+    'sensor',
+  ]
   return validDomains.includes(domain as EntityDomain) ? (domain as EntityDomain) : null
 }
 
@@ -20,8 +43,19 @@ export type EditMode =
       orderedRooms: RoomWithDevices[]
       initialSelection?: string
     }
-  | { type: 'edit-devices'; roomId: string; selectedIds: Set<string>; selectedDomain: EntityDomain | null; initialSelection?: string }
-  | { type: 'edit-all-devices'; selectedIds: Set<string>; selectedDomain: EntityDomain | null; initialSelection?: string }
+  | {
+      type: 'edit-devices'
+      roomId: string
+      selectedIds: Set<string>
+      selectedDomain: EntityDomain | null
+      initialSelection?: string
+    }
+  | {
+      type: 'edit-all-devices'
+      selectedIds: Set<string>
+      selectedDomain: EntityDomain | null
+      initialSelection?: string
+    }
   | { type: 'edit-floors'; selectedFloorId: string; orderedFloors: HAFloor[] }
 
 // Actions
@@ -57,7 +91,9 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      const selectedDomain = action.initialSelection ? getEntityDomain(action.initialSelection) : null
+      const selectedDomain = action.initialSelection
+        ? getEntityDomain(action.initialSelection)
+        : null
       return {
         type: 'edit-devices',
         roomId: action.roomId,
@@ -71,8 +107,15 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
-      const selectedDomain = action.initialSelection ? getEntityDomain(action.initialSelection) : null
-      return { type: 'edit-all-devices', selectedIds, selectedDomain, initialSelection: action.initialSelection }
+      const selectedDomain = action.initialSelection
+        ? getEntityDomain(action.initialSelection)
+        : null
+      return {
+        type: 'edit-all-devices',
+        selectedIds,
+        selectedDomain,
+        initialSelection: action.initialSelection,
+      }
     }
 
     case 'ENTER_FLOOR_EDIT':

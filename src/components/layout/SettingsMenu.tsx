@@ -219,7 +219,9 @@ export function SettingsMenu({
                 {/* Room Order Sync Toggle */}
                 <SubMenuItem
                   icon={<RefreshCw className="w-4 h-4 text-foreground" />}
-                  title={t.settings.advanced?.roomOrderSync?.title || 'Sync room order across devices'}
+                  title={
+                    t.settings.advanced?.roomOrderSync?.title || 'Sync room order across devices'
+                  }
                   description={
                     t.settings.advanced?.roomOrderSync?.description ||
                     'Store room order in Home Assistant. Without this, order is saved locally on this device only.'

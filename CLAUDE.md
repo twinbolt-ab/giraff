@@ -2,6 +2,14 @@
 
 See @README.md for project overview and @package.json for available npm commands.
 
+## Terminology
+
+| Stuga | Home Assistant |
+|-------|----------------|
+| Room | Area |
+| Tab (bottom nav) | Floor |
+| Device | Entity |
+
 ## Commands
 
 ```bash
