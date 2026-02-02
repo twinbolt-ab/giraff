@@ -150,6 +150,7 @@ while true; do
   echo "  [y] Proceed with this changelog"
   echo "  [e] Edit changelog in \$EDITOR"
   echo "  [r] Regenerate changelog"
+  echo "  [f] Regenerate with feedback (tell Claude what to change)"
   echo "  [p] Use previous release's changelog"
   echo "  [c] Commit only (no push - for manual edits)"
   echo "  [s] Silent release (no GitHub Discussion announcement)"
@@ -210,6 +211,42 @@ Commits:
 $COMMITS
 
 Write ONLY the announcement text:")
+      echo ""
+      echo -e "${BOLD}Regenerated Announcement:${NC}"
+      echo "─────────────────────────────────────"
+      echo "$CHANGELOG"
+      echo "─────────────────────────────────────"
+      echo ""
+      ;;
+    f|F)
+      echo ""
+      echo -e "${CYAN}Enter feedback for Claude (what should be different):${NC}"
+      read -r FEEDBACK
+      echo ""
+      echo -e "${CYAN}Regenerating with feedback...${NC}"
+      CHANGELOG=$(claude -p "You are writing a release announcement for Stuga, a Home Assistant dashboard app for iOS and Android.
+
+Given these git commit messages since the last release, write a friendly release announcement for app store users.
+
+Format:
+1. Start with a brief, conversational intro sentence summarizing what's in this release
+2. Then list the changes using bullet points (-)
+
+Rules:
+- Use simple language that end users can understand
+- Focus on what changed from the user's perspective, not technical details
+- Keep it brief - one line per change
+- Don't include commit hashes or technical jargon
+- If a commit is clearly internal/refactoring with no user impact, skip it
+- Group related changes under categories if appropriate (e.g., '**Improvements**', '**Bug Fixes**')
+
+Commits:
+$COMMITS
+
+IMPORTANT - User feedback on what to change:
+$FEEDBACK
+
+Write ONLY the announcement text, incorporating the user's feedback:")
       echo ""
       echo -e "${BOLD}Regenerated Announcement:${NC}"
       echo "─────────────────────────────────────"
