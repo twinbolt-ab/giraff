@@ -302,7 +302,8 @@
       "icon": "Icon",
       "room": "Room",
       "hidden": "Hidden",
-      "hiddenHint": "Hide this device",
+      "hiddenHintStugaOnly": "Hidden in Stuga only",
+      "hiddenHintAlsoHA": "Hidden in Stuga and Home Assistant",
       "actAsLight": "Act as light",
       "actAsLightHint": "Toggles with room lights"
     },
@@ -312,7 +313,8 @@
       "icon": "Icon",
       "room": "Room",
       "hidden": "Hidden",
-      "hiddenHint": "Hide this scene"
+      "hiddenHintStugaOnly": "Hidden in Stuga only",
+      "hiddenHintAlsoHA": "Hidden in Stuga and Home Assistant"
     },
     "floor": {
       "title": "Edit Floor",

@@ -160,7 +160,10 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
             />
           </FormField>
 
-          <FormField label={labels.hidden} hint={labels.hiddenHint}>
+          <FormField
+            label={labels.hidden}
+            hint={alsoHideInHA ? labels.hiddenHintAlsoHA : labels.hiddenHintStugaOnly}
+          >
             <Toggle checked={hidden} onChange={setHidden} />
           </FormField>
 
