@@ -219,9 +219,9 @@ Write ONLY the announcement text:")
       echo ""
       ;;
     f|F)
-      echo ""
-      echo -e "${CYAN}Enter feedback for Claude (what should be different):${NC}"
-      read -r FEEDBACK
+      # Clear any remaining input from the -n 1 read
+      read -r -t 0.1 _ 2>/dev/null || true
+      read -p "Feedback for Claude: " FEEDBACK
       echo ""
       echo -e "${CYAN}Regenerating with feedback...${NC}"
       CHANGELOG=$(claude -p "You are writing a release announcement for Stuga, a Home Assistant dashboard app for iOS and Android.
