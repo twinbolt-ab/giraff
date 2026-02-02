@@ -107,8 +107,7 @@ export function LightsSection({
   onReorderEntities,
 }: LightsSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('light')
 
   // Long-press to enter reorder mode for this section
@@ -140,7 +139,6 @@ export function LightsSection({
           items={sortedLights}
           getKey={(light) => light.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

@@ -119,8 +119,7 @@ export function SensorsDisplay({
   onReorderEntities,
 }: SensorsDisplayProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('sensor')
 
   // Combine and sort all sensors by order
@@ -176,7 +175,6 @@ export function SensorsDisplay({
           items={sortedSensors}
           getKey={(sensor) => sensor.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

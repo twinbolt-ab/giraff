@@ -35,8 +35,7 @@ export function SwitchesSection({
   onReorderEntities,
 }: SwitchesSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('switch')
 
   // Long-press to enter reorder mode for this section
@@ -65,7 +64,6 @@ export function SwitchesSection({
           items={sortedSwitches}
           getKey={(sw) => sw.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

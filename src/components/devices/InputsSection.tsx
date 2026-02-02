@@ -208,8 +208,7 @@ export function InputsSection({
   onReorderEntities,
 }: InputsSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('input')
 
   // Combine and sort all inputs by order
@@ -278,7 +277,6 @@ export function InputsSection({
           items={sortedInputs}
           getKey={(input) => input.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

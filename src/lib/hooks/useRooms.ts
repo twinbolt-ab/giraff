@@ -1,12 +1,17 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useHAConnection } from './useHAConnection'
 import { useDevMode } from './useDevMode'
 import * as ws from '../ha-websocket'
 import * as metadata from '../metadata'
+import * as orderStorage from '../services/order-storage'
 import { generateMockData } from '../mock-data'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
+import type { EntityOrderMap, DomainOrderMap } from '@/types/ordering'
 import { DEFAULT_ORDER } from '../constants'
 import { isEntityAuxiliary } from '../ha-websocket'
+
+// Map of room slug -> EntityOrderMap
+type AllEntityOrders = Map<string, EntityOrderMap>
 
 function slugify(name: string): string {
   return name
@@ -23,6 +28,7 @@ export function useRooms() {
   const { entities, isConnected, hasReceivedData } = useHAConnection()
   const { activeMockScenario } = useDevMode()
   const [registryVersion, setRegistryVersion] = useState(0)
+  const [entityOrders, setEntityOrders] = useState<AllEntityOrders>(new Map())
 
   // Subscribe to registry updates for order changes
   useEffect(() => {
@@ -34,12 +40,37 @@ export function useRooms() {
     }
   }, [])
 
-  const { rooms, floors } = useMemo(() => {
+  // Load entity orders for sensor domains when room slugs are known
+  const loadEntityOrders = useCallback(async (roomSlugs: string[]) => {
+    const newOrders: AllEntityOrders = new Map()
+    for (const slug of roomSlugs) {
+      const orders = await orderStorage.getAllEntityOrders(slug)
+      if (Object.keys(orders).length > 0) {
+        newOrders.set(slug, orders)
+      }
+    }
+    setEntityOrders(newOrders)
+  }, [])
+
+  // Helper to get sensor order from loaded entity orders
+  const getSensorOrder = useCallback(
+    (roomSlug: string, entityId: string): number => {
+      const roomOrders = entityOrders.get(roomSlug)
+      if (!roomOrders) return DEFAULT_ORDER
+      // Sensors are stored under the 'sensor' domain
+      const sensorOrders = roomOrders.sensor as DomainOrderMap | undefined
+      if (!sensorOrders) return DEFAULT_ORDER
+      return sensorOrders[entityId] ?? DEFAULT_ORDER
+    },
+    [entityOrders]
+  )
+
+  const { rooms, floors, roomSlugs } = useMemo(() => {
     // If mock scenario is active, return mock data
     if (activeMockScenario !== 'none') {
       const mockData = generateMockData(activeMockScenario)
       if (mockData) {
-        return mockData
+        return { ...mockData, roomSlugs: mockData.rooms.map((r) => r.id) }
       }
     }
 
@@ -80,40 +111,51 @@ export function useRooms() {
     const result: RoomWithDevices[] = []
 
     for (const [name, { entities: devices, areaId }] of roomMap) {
+      const roomSlug = slugify(name)
       const lights = devices.filter((d) => d.entity_id.startsWith('light.'))
       const lightsOn = lights.filter((l) => l.state === 'on').length
 
-      // Find temperature sensors
+      // Find temperature sensors, sorted by entity order (first in order shows on card)
       const tempSensors = devices
         .filter(
           (d) => d.entity_id.startsWith('sensor.') && d.attributes.device_class === 'temperature'
         )
         .filter((s) => !isNaN(parseFloat(s.state)))
-        .sort((a, b) => a.entity_id.localeCompare(b.entity_id))
+        .sort((a, b) => {
+          const orderA = getSensorOrder(roomSlug, a.entity_id)
+          const orderB = getSensorOrder(roomSlug, b.entity_id)
+          if (orderA !== orderB) return orderA - orderB
+          return a.entity_id.localeCompare(b.entity_id)
+        })
 
-      // Get temperature from selected sensor, or first one alphabetically
+      // Get temperature from selected sensor, or first one by entity order
       let temperature: number | undefined
       if (tempSensors.length > 0) {
         const selectedSensorId = areaId ? metadata.getAreaTemperatureSensor(areaId) : undefined
         const selectedSensor = selectedSensorId
           ? tempSensors.find((s) => s.entity_id === selectedSensorId)
           : undefined
-        // Use selected sensor if valid, otherwise fall back to first sensor
+        // Use selected sensor if valid, otherwise fall back to first sensor by order
         const sensorToUse = selectedSensor || tempSensors[0]
         temperature = parseFloat(sensorToUse.state)
       }
 
-      // Find humidity sensors and average valid values
-      const humiditySensors = devices.filter(
-        (d) => d.entity_id.startsWith('sensor.') && d.attributes.device_class === 'humidity'
-      )
-      const validHumidities = humiditySensors
-        .map((s) => parseFloat(s.state))
-        .filter((v) => !isNaN(v))
+      // Find humidity sensors, sorted by entity order (first in order shows on card)
+      const humiditySensors = devices
+        .filter(
+          (d) => d.entity_id.startsWith('sensor.') && d.attributes.device_class === 'humidity'
+        )
+        .filter((s) => !isNaN(parseFloat(s.state)))
+        .sort((a, b) => {
+          const orderA = getSensorOrder(roomSlug, a.entity_id)
+          const orderB = getSensorOrder(roomSlug, b.entity_id)
+          if (orderA !== orderB) return orderA - orderB
+          return a.entity_id.localeCompare(b.entity_id)
+        })
+
+      // Get humidity from first sensor by entity order
       const humidity =
-        validHumidities.length > 0
-          ? Math.round(validHumidities.reduce((a, b) => a + b, 0) / validHumidities.length)
-          : undefined
+        humiditySensors.length > 0 ? Math.round(parseFloat(humiditySensors[0].state)) : undefined
 
       // Get order, icon, and floor from HA
       const order = areaId ? metadata.getAreaOrder(areaId) : DEFAULT_ORDER
@@ -122,7 +164,7 @@ export function useRooms() {
       const floorId = areaEntry?.floor_id
 
       result.push({
-        id: slugify(name),
+        id: roomSlug,
         name,
         areaId: areaId || undefined,
         floorId,
@@ -153,8 +195,39 @@ export function useRooms() {
       return a.floor_id.localeCompare(b.floor_id)
     })
 
-    return { rooms: result, floors: floorsArray }
-  }, [entities, registryVersion, activeMockScenario])
+    return { rooms: result, floors: floorsArray, roomSlugs: result.map((r) => r.id) }
+  }, [entities, registryVersion, activeMockScenario, getSensorOrder])
+
+  // Load entity orders for all rooms when room slugs are known
+  // This triggers a re-render once orders are loaded, updating sensor display
+  const roomSlugsKey = roomSlugs.join(',')
+  useEffect(() => {
+    if (roomSlugs.length > 0) {
+      void loadEntityOrders(roomSlugs)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomSlugsKey, loadEntityOrders])
+
+  // Listen for entity order changes (dispatched when sensors are reordered)
+  useEffect(() => {
+    const handleEntityOrderChange = () => {
+      if (roomSlugs.length > 0) {
+        void loadEntityOrders(roomSlugs)
+      }
+    }
+
+    window.addEventListener('stuga:entity-order-changed', handleEntityOrderChange)
+    return () => {
+      window.removeEventListener('stuga:entity-order-changed', handleEntityOrderChange)
+    }
+  }, [roomSlugs, loadEntityOrders])
+
+  // Provide a way to refresh entity orders (called after reordering sensors)
+  const refreshEntityOrders = useCallback(() => {
+    if (roomSlugs.length > 0) {
+      void loadEntityOrders(roomSlugs)
+    }
+  }, [roomSlugs, loadEntityOrders])
 
   // When mock mode is active, always report as connected and data received
   const effectiveIsConnected = activeMockScenario !== 'none' ? true : isConnected
@@ -165,6 +238,7 @@ export function useRooms() {
     floors,
     isConnected: effectiveIsConnected,
     hasReceivedData: effectiveHasReceivedData,
+    refreshEntityOrders,
   }
 }
 

@@ -203,8 +203,7 @@ export function ClimateSection({
   onReorderEntities,
 }: ClimateSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('climate')
 
   // Long-press to enter reorder mode for this section
@@ -233,7 +232,6 @@ export function ClimateSection({
           items={sortedClimates}
           getKey={(climate) => climate.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

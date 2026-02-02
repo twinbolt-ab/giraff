@@ -210,8 +210,7 @@ export function CoversSection({
   onReorderEntities,
 }: CoversSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('cover')
 
   // Long-press to enter reorder mode for this section
@@ -240,7 +239,6 @@ export function CoversSection({
           items={sortedCovers}
           getKey={(cover) => cover.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

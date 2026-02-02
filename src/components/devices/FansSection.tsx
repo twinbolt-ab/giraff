@@ -155,8 +155,7 @@ export function FansSection({
   onReorderEntities,
 }: FansSectionProps) {
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('fan')
 
   // Long-press to enter reorder mode for this section
@@ -185,7 +184,6 @@ export function FansSection({
           items={sortedFans}
           getKey={(fan) => fan.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="vertical"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}

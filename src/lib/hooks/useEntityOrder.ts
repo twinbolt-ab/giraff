@@ -100,6 +100,9 @@ export function useEntityOrder(roomId: string): UseEntityOrderReturn {
         ...prev,
         [domain]: newDomainOrder,
       }))
+
+      // Notify useRooms to refresh entity orders (for collapsed card sensor display)
+      window.dispatchEvent(new CustomEvent('stuga:entity-order-changed'))
     },
     [roomId]
   )

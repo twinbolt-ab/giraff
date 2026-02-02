@@ -145,8 +145,7 @@ export function ScenesSection({
   const displayName = getDisplayName || getEntityDisplayName
 
   // Get reorder state from context
-  const { isSectionReordering, enterReorder, exitReorder, selectedKeys, toggleSelection } =
-    useReorder()
+  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('scene')
 
   // Long-press to enter reorder mode for this section
@@ -175,7 +174,6 @@ export function ScenesSection({
           items={sortedScenes}
           getKey={(scene) => scene.entity_id}
           onReorder={handleReorder}
-          onDragEnd={exitReorder}
           layout="flex-wrap"
           selectedKeys={selectedKeys}
           onItemTap={toggleSelection}
