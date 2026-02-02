@@ -135,9 +135,52 @@ function createRoomDevices(
 
 export function generateComplexHome(): MockData {
   const floors: HAFloor[] = [
+    { floor_id: 'sub_basement', name: 'Sub-Basement', level: -2, icon: 'mdi:home-floor-negative-1' },
     { floor_id: 'basement', name: 'Basement', level: -1, icon: 'mdi:home-floor-b' },
     { floor_id: 'ground_floor', name: 'Ground', level: 0, icon: 'mdi:home-floor-g' },
     { floor_id: 'upper_floor', name: 'Upper', level: 1, icon: 'mdi:home-floor-1' },
+    { floor_id: 'second_floor', name: 'Second', level: 2, icon: 'mdi:home-floor-2' },
+    { floor_id: 'third_floor', name: 'Third', level: 3, icon: 'mdi:home-floor-3' },
+    { floor_id: 'rooftop', name: 'Rooftop', level: 4, icon: 'mdi:home-roof' },
+  ]
+
+  // Sub-basement rooms
+  const subBasementRooms: RoomWithDevices[] = [
+    {
+      id: 'wine-cellar',
+      name: 'Wine Cellar',
+      areaId: 'wine_cellar',
+      floorId: 'sub_basement',
+      icon: 'mdi:glass-wine',
+      devices: createRoomDevices('Wine Cellar', 'wine_cellar', {
+        lights: 2,
+        lightsOn: 0,
+        temperature: 14.0,
+        humidity: 70,
+      }),
+      lightsOn: 0,
+      totalLights: 2,
+      temperature: 14.0,
+      humidity: 70,
+      order: 10,
+    },
+    {
+      id: 'utility-room',
+      name: 'Utility Room',
+      areaId: 'utility_room',
+      floorId: 'sub_basement',
+      icon: 'mdi:water-boiler',
+      devices: createRoomDevices('Utility Room', 'utility', {
+        lights: 1,
+        lightsOn: 0,
+        switches: 2,
+        temperature: 18.0,
+      }),
+      lightsOn: 0,
+      totalLights: 1,
+      temperature: 18.0,
+      order: 20,
+    },
   ]
 
   // Basement rooms
@@ -346,7 +389,178 @@ export function generateComplexHome(): MockData {
     },
   ]
 
-  const rooms = [...basementRooms, ...groundFloorRooms, ...upperFloorRooms]
+  // Second floor rooms
+  const secondFloorRooms: RoomWithDevices[] = [
+    {
+      id: 'media-room',
+      name: 'Media Room',
+      areaId: 'media_room',
+      floorId: 'second_floor',
+      icon: 'mdi:television',
+      devices: createRoomDevices('Media Room', 'media', {
+        lights: 4,
+        lightsOn: 0,
+        switches: 3,
+        temperature: 21.5,
+        climate: true,
+        scenes: 3,
+      }),
+      lightsOn: 0,
+      totalLights: 4,
+      temperature: 21.5,
+      order: 10,
+    },
+    {
+      id: 'library',
+      name: 'Library',
+      areaId: 'library',
+      floorId: 'second_floor',
+      icon: 'mdi:bookshelf',
+      devices: createRoomDevices('Library', 'library', {
+        lights: 3,
+        lightsOn: 1,
+        temperature: 20.0,
+        humidity: 45,
+        cover: true,
+      }),
+      lightsOn: 1,
+      totalLights: 3,
+      temperature: 20.0,
+      humidity: 45,
+      order: 20,
+    },
+    {
+      id: 'game-room',
+      name: 'Game Room',
+      areaId: 'game_room',
+      floorId: 'second_floor',
+      icon: 'mdi:gamepad-variant',
+      devices: createRoomDevices('Game Room', 'game', {
+        lights: 3,
+        lightsOn: 2,
+        switches: 2,
+        temperature: 22.0,
+      }),
+      lightsOn: 2,
+      totalLights: 3,
+      temperature: 22.0,
+      order: 30,
+    },
+  ]
+
+  // Third floor rooms
+  const thirdFloorRooms: RoomWithDevices[] = [
+    {
+      id: 'studio',
+      name: 'Studio',
+      areaId: 'studio',
+      floorId: 'third_floor',
+      icon: 'mdi:palette',
+      devices: createRoomDevices('Studio', 'studio', {
+        lights: 5,
+        lightsOn: 3,
+        switches: 1,
+        temperature: 21.0,
+        cover: true,
+      }),
+      lightsOn: 3,
+      totalLights: 5,
+      temperature: 21.0,
+      order: 10,
+    },
+    {
+      id: 'gym',
+      name: 'Gym',
+      areaId: 'gym',
+      floorId: 'third_floor',
+      icon: 'mdi:dumbbell',
+      devices: createRoomDevices('Gym', 'gym', {
+        lights: 3,
+        lightsOn: 0,
+        switches: 2,
+        temperature: 19.0,
+        humidity: 55,
+        climate: true,
+      }),
+      lightsOn: 0,
+      totalLights: 3,
+      temperature: 19.0,
+      humidity: 55,
+      order: 20,
+    },
+    {
+      id: 'sauna',
+      name: 'Sauna',
+      areaId: 'sauna',
+      floorId: 'third_floor',
+      icon: 'mdi:heat-wave',
+      devices: createRoomDevices('Sauna', 'sauna', {
+        lights: 1,
+        lightsOn: 0,
+        temperature: 25.0,
+        humidity: 80,
+        climate: true,
+      }),
+      lightsOn: 0,
+      totalLights: 1,
+      temperature: 25.0,
+      humidity: 80,
+      order: 30,
+    },
+  ]
+
+  // Rooftop rooms
+  const rooftopRooms: RoomWithDevices[] = [
+    {
+      id: 'rooftop-terrace',
+      name: 'Rooftop Terrace',
+      areaId: 'rooftop_terrace',
+      floorId: 'rooftop',
+      icon: 'mdi:balcony',
+      devices: createRoomDevices('Rooftop Terrace', 'terrace', {
+        lights: 6,
+        lightsOn: 4,
+        switches: 2,
+        temperature: 18.0,
+        scenes: 2,
+      }),
+      lightsOn: 4,
+      totalLights: 6,
+      temperature: 18.0,
+      order: 10,
+    },
+    {
+      id: 'greenhouse',
+      name: 'Greenhouse',
+      areaId: 'greenhouse',
+      floorId: 'rooftop',
+      icon: 'mdi:greenhouse',
+      devices: createRoomDevices('Greenhouse', 'greenhouse', {
+        lights: 2,
+        lightsOn: 1,
+        switches: 3,
+        temperature: 26.0,
+        humidity: 75,
+        climate: true,
+        cover: true,
+      }),
+      lightsOn: 1,
+      totalLights: 2,
+      temperature: 26.0,
+      humidity: 75,
+      order: 20,
+    },
+  ]
+
+  const rooms = [
+    ...subBasementRooms,
+    ...basementRooms,
+    ...groundFloorRooms,
+    ...upperFloorRooms,
+    ...secondFloorRooms,
+    ...thirdFloorRooms,
+    ...rooftopRooms,
+  ]
 
   return { rooms, floors }
 }
