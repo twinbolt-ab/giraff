@@ -10,8 +10,6 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import { formatTemperature } from '@/lib/temperature'
 
@@ -107,6 +105,8 @@ interface SensorsDisplayProps {
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 export function SensorsDisplay({
@@ -118,27 +118,13 @@ export function SensorsDisplay({
   onEnterEditModeWithSelection,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: SensorsDisplayProps) {
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('sensor')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
   // Combine and sort all sensors by order
   const sortedSensors = useMemo(() => {
     const allSensors = [...temperatureSensors, ...humiditySensors]
     return sortEntitiesByOrder(allSensors, entityOrder)
   }, [temperatureSensors, humiditySensors, entityOrder])
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || sortedSensors.length < 2,
-    onLongPress: () => enterReorder('sensor'),
-  })
 
   if (temperatureSensors.length === 0 && humiditySensors.length === 0) {
     return null
@@ -148,7 +134,12 @@ export function SensorsDisplay({
     void onReorderEntities?.(reorderedSensors)
   }
 
-  const renderSensor = (sensor: HAEntity, reordering = false, isReorderSelected = false) => {
+  const renderSensor = (
+    sensor: HAEntity,
+    editMode: boolean,
+    reordering = false,
+    isReorderSelected = false
+  ) => {
     const isTemperature = sensor.attributes.device_class === 'temperature'
     return (
       <SensorItem
@@ -162,7 +153,7 @@ export function SensorsDisplay({
             ? formatTemperature(parseFloat(sensor.state))
             : `${Math.round(parseFloat(sensor.state))}%`
         }
-        isInEditMode={isInEditMode}
+        isInEditMode={editMode}
         isSelected={isSelected(sensor.entity_id)}
         onToggleSelection={onToggleSelection}
         onEnterEditModeWithSelection={onEnterEditModeWithSelection}
@@ -175,27 +166,23 @@ export function SensorsDisplay({
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.sensor}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedSensors}
           getKey={(sensor) => sensor.entity_id}
           onReorder={handleReorder}
           layout="vertical"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(sensor, _index, _isDragging, isReorderSelected) =>
-            renderSensor(sensor, true, isReorderSelected)
+            renderSensor(sensor, true, true, isReorderSelected)
           }
         />
       ) : (
-        <div
-          className="space-y-2"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
-          {sortedSensors.map((sensor) => renderSensor(sensor))}
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="space-y-2">
+          {sortedSensors.map((sensor) => renderSensor(sensor, false))}
         </div>
       )}
     </div>

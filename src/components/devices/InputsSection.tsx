@@ -12,8 +12,6 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -33,6 +31,8 @@ interface InputsSectionProps {
   entityMeta?: Map<string, EntityMeta>
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 function InputNumberItem({
@@ -207,27 +207,13 @@ export function InputsSection({
   entityMeta,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: InputsSectionProps) {
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('input')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
   // Combine and sort all inputs by order
   const sortedInputs = useMemo(() => {
     const allInputs = [...inputBooleans, ...inputNumbers]
     return sortEntitiesByOrder(allInputs, entityOrder)
   }, [inputBooleans, inputNumbers, entityOrder])
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || sortedInputs.length < 2,
-    onLongPress: () => enterReorder('input'),
-  })
 
   if (inputBooleans.length === 0 && inputNumbers.length === 0) return null
 
@@ -235,13 +221,18 @@ export function InputsSection({
     void onReorderEntities?.(reorderedInputs)
   }
 
-  const renderInput = (input: HAEntity, reordering = false, isReorderSelected = false) => {
+  const renderInput = (
+    input: HAEntity,
+    editMode: boolean,
+    reordering = false,
+    isReorderSelected = false
+  ) => {
     if (input.entity_id.startsWith('input_boolean.')) {
       return (
         <DeviceToggleButton
           key={input.entity_id}
           entity={input}
-          isInEditMode={isInEditMode}
+          isInEditMode={editMode}
           isSelected={isSelected(input.entity_id)}
           onToggle={() => {
             onBooleanToggle(input)
@@ -261,7 +252,7 @@ export function InputsSection({
         <InputNumberItem
           key={input.entity_id}
           input={input}
-          isInEditMode={isInEditMode}
+          isInEditMode={editMode}
           isSelected={isSelected(input.entity_id)}
           onNumberChange={onNumberChange}
           onToggleSelection={onToggleSelection}
@@ -277,28 +268,22 @@ export function InputsSection({
   return (
     <div className="mb-4">
       <SectionHeader>{t.devices.inputs}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedInputs}
           getKey={(input) => input.entity_id}
           onReorder={handleReorder}
           layout="vertical"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(input, _index, _isDragging, isReorderSelected) =>
-            renderInput(input, true, isReorderSelected)
+            renderInput(input, true, true, isReorderSelected)
           }
         />
       ) : (
-        <div
-          className="space-y-1"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
-          {sortedInputs.map((input) => renderInput(input))}
-        </div>
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="space-y-1">{sortedInputs.map((input) => renderInput(input, false))}</div>
       )}
     </div>
   )

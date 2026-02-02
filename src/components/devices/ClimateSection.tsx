@@ -11,8 +11,6 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import { formatTemperatureCompact } from '@/lib/temperature'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -31,6 +29,8 @@ interface ClimateSectionProps {
   entityMeta?: Map<string, EntityMeta>
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 function ClimateItem({
@@ -202,22 +202,8 @@ export function ClimateSection({
   entityMeta,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: ClimateSectionProps) {
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('climate')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || climates.length < 2,
-    onLongPress: () => enterReorder('climate'),
-  })
-
   // Sort climates by order
   const sortedClimates = useMemo(() => {
     return sortEntitiesByOrder(climates, entityOrder)
@@ -232,19 +218,20 @@ export function ClimateSection({
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.climate}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedClimates}
           getKey={(climate) => climate.entity_id}
           onReorder={handleReorder}
           layout="vertical"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(climate, _index, _isDragging, isReorderSelected) => (
             <ClimateItem
               key={climate.entity_id}
               climate={climate}
-              isInEditMode={isInEditMode}
+              isInEditMode={true}
               isSelected={isSelected(climate.entity_id)}
               onToggle={onToggle}
               onToggleSelection={onToggleSelection}
@@ -256,18 +243,13 @@ export function ClimateSection({
           )}
         />
       ) : (
-        <div
-          className="space-y-2"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="space-y-2">
           {sortedClimates.map((climate) => (
             <ClimateItem
               key={climate.entity_id}
               climate={climate}
-              isInEditMode={isInEditMode}
+              isInEditMode={false}
               isSelected={isSelected(climate.entity_id)}
               onToggle={onToggle}
               onToggleSelection={onToggleSelection}

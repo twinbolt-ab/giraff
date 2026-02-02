@@ -41,6 +41,7 @@ export function AllDevicesView() {
     enterAllDevicesEdit,
     exitEditMode,
     selectedDomain,
+    selectedIds,
     initialSelection,
   } = useEditMode()
   const isInEditMode = isAllDevicesEditMode
@@ -237,6 +238,7 @@ export function AllDevicesView() {
         onActivate={handlers.handleSceneActivate}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
 
       <LightsSection
@@ -247,6 +249,7 @@ export function AllDevicesView() {
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
         singleColumn
+        selectedIds={selectedIds}
       />
 
       <SwitchesSection
@@ -257,18 +260,22 @@ export function AllDevicesView() {
         onToggle={handlers.handleSwitchToggle}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
 
       <InputsSection
         inputBooleans={inputBooleans}
         inputNumbers={inputNumbers}
         entityMeta={entityMeta}
-        isInEditMode={isInEditMode && (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')}
+        isInEditMode={
+          isInEditMode && (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')
+        }
         isSelected={isSelected}
         onBooleanToggle={handlers.handleInputBooleanToggle}
         onNumberChange={handlers.handleInputNumberChange}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
 
       <ClimateSection
@@ -279,6 +286,7 @@ export function AllDevicesView() {
         onToggle={handlers.handleClimateToggle}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
 
       <CoversSection
@@ -291,6 +299,7 @@ export function AllDevicesView() {
         onStop={handlers.handleCoverStop}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
 
       <FansSection
@@ -301,6 +310,7 @@ export function AllDevicesView() {
         onToggle={handlers.handleFanToggle}
         onToggleSelection={toggleSelection}
         onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
+        selectedIds={selectedIds}
       />
     </div>
   )

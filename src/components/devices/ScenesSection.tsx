@@ -11,8 +11,6 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -31,6 +29,8 @@ interface ScenesSectionProps {
   entityMeta?: Map<string, EntityMeta>
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 function SceneItem({
@@ -142,23 +142,9 @@ export function ScenesSection({
   entityMeta,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: ScenesSectionProps) {
   const displayName = getDisplayName || getEntityDisplayName
-
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('scene')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || scenes.length < 2,
-    onLongPress: () => enterReorder('scene'),
-  })
 
   // Sort scenes by order
   const sortedScenes = useMemo(() => {
@@ -174,19 +160,20 @@ export function ScenesSection({
   return (
     <div className="mb-4">
       <SectionHeader>{t.devices.scenes}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedScenes}
           getKey={(scene) => scene.entity_id}
           onReorder={handleReorder}
           layout="flex-wrap"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(scene, _index, _isDragging, isReorderSelected) => (
             <SceneItem
               key={scene.entity_id}
               scene={scene}
-              isInEditMode={isInEditMode}
+              isInEditMode={true}
               isSelected={isSelected(scene.entity_id)}
               onActivate={onActivate}
               onToggleSelection={onToggleSelection}
@@ -199,18 +186,13 @@ export function ScenesSection({
           )}
         />
       ) : (
-        <div
-          className="flex flex-wrap gap-2"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="flex flex-wrap gap-2">
           {sortedScenes.map((scene) => (
             <SceneItem
               key={scene.entity_id}
               scene={scene}
-              isInEditMode={isInEditMode}
+              isInEditMode={false}
               isSelected={isSelected(scene.entity_id)}
               onActivate={onActivate}
               onToggleSelection={onToggleSelection}

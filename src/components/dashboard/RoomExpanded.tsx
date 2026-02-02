@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
-import { ReorderProvider, useReorder } from '@/lib/contexts/ReorderContext'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { useEntityOrder } from '@/lib/hooks/useEntityOrder'
@@ -32,11 +31,7 @@ interface RoomExpandedProps {
 }
 
 export function RoomExpanded({ room, allRooms, isExpanded }: RoomExpandedProps) {
-  return (
-    <ReorderProvider>
-      <RoomExpandedContent room={room} allRooms={allRooms} isExpanded={isExpanded} />
-    </ReorderProvider>
-  )
+  return <RoomExpandedContent room={room} allRooms={allRooms} isExpanded={isExpanded} />
 }
 
 function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpandedProps) {
@@ -47,8 +42,16 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
   const [measuredHeight, setMeasuredHeight] = useState(0)
 
   // Get edit mode state from context
-  const { isDeviceEditMode, isSelected, toggleSelection, enterDeviceEdit, exitEditMode, selectedDomain, initialSelection } =
-    useEditMode()
+  const {
+    isDeviceEditMode,
+    isSelected,
+    toggleSelection,
+    enterDeviceEdit,
+    exitEditMode,
+    selectedDomain,
+    selectedIds,
+    initialSelection,
+  } = useEditMode()
   const isInEditMode = isDeviceEditMode
 
   // Scroll to the initially selected device when entering edit mode
@@ -65,8 +68,6 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
     }
   }, [isDeviceEditMode, initialSelection])
 
-  // Entity reordering - state managed by ReorderContext
-  const { activeSection: activeReorderSection, exitReorder } = useReorder()
   const { getDomainOrder, updateDomainOrder } = useEntityOrder(room.id)
 
   // Enter device edit mode and select the device
@@ -165,27 +166,6 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
     covers.length > 0 ||
     fans.length > 0
 
-  // Click outside to exit reorder mode
-  useEffect(() => {
-    if (!activeReorderSection) return
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        exitReorder()
-      }
-    }
-
-    // Delay adding listener to avoid immediate trigger
-    const timer = setTimeout(() => {
-      document.addEventListener('click', handleClickOutside)
-    }, 100)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('click', handleClickOutside)
-    }
-  }, [activeReorderSection, exitReorder])
-
   // Exit edit mode when clicking outside entity items
   useEffect(() => {
     if (!isInEditMode) return
@@ -269,29 +249,29 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
         }}
         className="mt-3 pt-3 border-t border-border pb-1 px-0.5 -mx-0.5 [&>*:last-child]:mb-0"
         style={{
-          // Disable touch scrolling when reorder mode is active
-          touchAction: activeReorderSection !== null ? 'none' : 'auto',
+          // Disable touch scrolling when in edit mode (reordering)
+          touchAction: isInEditMode ? 'none' : 'auto',
         }}
         onPointerDown={(e) => {
-          // Don't stop propagation during reorder - let events reach document listeners
-          if (activeReorderSection === null) {
+          // Don't stop propagation during edit mode - let events reach document listeners
+          if (!isInEditMode) {
             e.stopPropagation()
           }
         }}
         onPointerMove={(e) => {
-          // Don't stop propagation during reorder - let events reach document listeners
-          if (activeReorderSection === null) {
+          // Don't stop propagation during edit mode - let events reach document listeners
+          if (!isInEditMode) {
             e.stopPropagation()
           }
         }}
         onTouchStart={(e) => {
-          if (activeReorderSection === null) {
+          if (!isInEditMode) {
             e.stopPropagation()
           }
         }}
         onTouchMove={(e) => {
-          // Prevent scrolling during reorder mode
-          if (activeReorderSection !== null) {
+          // Prevent scrolling during edit mode (reordering)
+          if (isInEditMode) {
             e.preventDefault()
           } else {
             e.stopPropagation()
@@ -302,7 +282,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'scene' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'scene' && 'opacity-50'
             )}
           >
             <ScenesSection
@@ -315,13 +295,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               getDisplayName={getEntityDisplayName}
               entityOrder={getDomainOrder('scene')}
               onReorderEntities={(entities) => updateDomainOrder('scene', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'light' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'light' && 'opacity-50'
             )}
           >
             <LightsSection
@@ -332,13 +313,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('light')}
               onReorderEntities={(entities) => updateDomainOrder('light', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'switch' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'switch' && 'opacity-50'
             )}
           >
             <SwitchesSection
@@ -350,19 +332,26 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('switch')}
               onReorderEntities={(entities) => updateDomainOrder('switch', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'input' && 'opacity-50'
+              selectedDomain !== null &&
+                selectedDomain !== 'input_boolean' &&
+                selectedDomain !== 'input_number' &&
+                'opacity-50'
             )}
           >
             <InputsSection
               inputBooleans={inputBooleans}
               inputNumbers={inputNumbers}
-              isInEditMode={isInEditMode && (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')}
+              isInEditMode={
+                isInEditMode &&
+                (selectedDomain === 'input_boolean' || selectedDomain === 'input_number')
+              }
               isSelected={isSelected}
               onBooleanToggle={handlers.handleInputBooleanToggle}
               onNumberChange={handlers.handleInputNumberChange}
@@ -370,13 +359,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('input_boolean')}
               onReorderEntities={(entities) => updateDomainOrder('input_boolean', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'climate' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'climate' && 'opacity-50'
             )}
           >
             <ClimateSection
@@ -388,13 +378,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('climate')}
               onReorderEntities={(entities) => updateDomainOrder('climate', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'cover' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'cover' && 'opacity-50'
             )}
           >
             <CoversSection
@@ -408,13 +399,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('cover')}
               onReorderEntities={(entities) => updateDomainOrder('cover', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'fan' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'fan' && 'opacity-50'
             )}
           >
             <FansSection
@@ -426,13 +418,14 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('fan')}
               onReorderEntities={(entities) => updateDomainOrder('fan', entities)}
+              selectedIds={selectedIds}
             />
           </div>
 
           <div
             className={clsx(
               'transition-opacity duration-200',
-              activeReorderSection !== null && activeReorderSection !== 'sensor' && 'opacity-50'
+              selectedDomain !== null && selectedDomain !== 'sensor' && 'opacity-50'
             )}
           >
             <SensorsDisplay
@@ -444,6 +437,7 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onEnterEditModeWithSelection={handleEnterEditModeWithSelection}
               entityOrder={getDomainOrder('sensor')}
               onReorderEntities={(entities) => updateDomainOrder('sensor', entities)}
+              selectedIds={selectedIds}
             />
           </div>
         </div>

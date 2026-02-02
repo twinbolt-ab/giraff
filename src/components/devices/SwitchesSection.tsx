@@ -6,9 +6,6 @@ import { SectionHeader } from '@/components/ui/SectionHeader'
 import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
-import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -22,6 +19,8 @@ interface SwitchesSectionProps {
   entityMeta?: Map<string, EntityMeta>
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 export function SwitchesSection({
@@ -34,22 +33,8 @@ export function SwitchesSection({
   entityMeta,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: SwitchesSectionProps) {
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('switch')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || switches.length < 2,
-    onLongPress: () => enterReorder('switch'),
-  })
-
   // Sort switches by order
   const sortedSwitches = useMemo(() => {
     return sortEntitiesByOrder(switches, entityOrder)
@@ -64,19 +49,20 @@ export function SwitchesSection({
   return (
     <div className="mb-4">
       <SectionHeader>{t.devices.switches}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedSwitches}
           getKey={(sw) => sw.entity_id}
           onReorder={handleReorder}
           layout="vertical"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(sw, _index, _isDragging, isReorderSelected) => (
             <DeviceToggleButton
               key={sw.entity_id}
               entity={sw}
-              isInEditMode={isInEditMode}
+              isInEditMode={true}
               isSelected={isSelected(sw.entity_id)}
               onToggle={() => {
                 onToggle(sw)
@@ -93,18 +79,13 @@ export function SwitchesSection({
           )}
         />
       ) : (
-        <div
-          className="space-y-1"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="space-y-1">
           {sortedSwitches.map((sw) => (
             <DeviceToggleButton
               key={sw.entity_id}
               entity={sw}
-              isInEditMode={isInEditMode}
+              isInEditMode={false}
               isSelected={isSelected(sw.entity_id)}
               onToggle={() => {
                 onToggle(sw)

@@ -11,8 +11,6 @@ import { getEntityIcon } from '@/lib/ha-websocket'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
-import { useReorder } from '@/lib/contexts/ReorderContext'
-import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -32,6 +30,8 @@ interface CoversSectionProps {
   entityMeta?: Map<string, EntityMeta>
   entityOrder?: DomainOrderMap
   onReorderEntities?: (entities: HAEntity[]) => Promise<void>
+  /** Selected entity IDs for multi-drag support in edit mode */
+  selectedIds?: Set<string>
 }
 
 function CoverItem({
@@ -209,22 +209,8 @@ export function CoversSection({
   entityMeta,
   entityOrder = {},
   onReorderEntities,
+  selectedIds,
 }: CoversSectionProps) {
-  // Get reorder state from context
-  const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
-  const isEntityReordering = isSectionReordering('cover')
-
-  // Check if any edit mode is active (to disable reorder)
-  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
-  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
-
-  // Long-press to enter reorder mode for this section
-  const sectionLongPress = useLongPress({
-    duration: 500,
-    disabled: isAnyEditModeActive || isEntityReordering || covers.length < 2,
-    onLongPress: () => enterReorder('cover'),
-  })
-
   // Sort covers by order
   const sortedCovers = useMemo(() => {
     return sortEntitiesByOrder(covers, entityOrder)
@@ -239,19 +225,20 @@ export function CoversSection({
   return (
     <div className="mb-4">
       <SectionHeader>{t.domains.cover}</SectionHeader>
-      {isEntityReordering ? (
+      {isInEditMode ? (
+        // Edit mode: use ReorderableList for drag-to-reorder + tap-to-select
         <ReorderableList
           items={sortedCovers}
           getKey={(cover) => cover.entity_id}
           onReorder={handleReorder}
           layout="vertical"
-          selectedKeys={selectedKeys}
-          onItemTap={toggleSelection}
+          selectedKeys={selectedIds}
+          onItemTap={onToggleSelection}
           renderItem={(cover, _index, _isDragging, isReorderSelected) => (
             <CoverItem
               key={cover.entity_id}
               cover={cover}
-              isInEditMode={isInEditMode}
+              isInEditMode={true}
               isSelected={isSelected(cover.entity_id)}
               onOpen={onOpen}
               onClose={onClose}
@@ -265,18 +252,13 @@ export function CoversSection({
           )}
         />
       ) : (
-        <div
-          className="space-y-1"
-          onPointerDown={sectionLongPress.onPointerDown}
-          onPointerMove={sectionLongPress.onPointerMove}
-          onPointerUp={sectionLongPress.onPointerUp}
-          onPointerCancel={sectionLongPress.onPointerUp}
-        >
+        // Normal mode: static list with long-press to enter edit mode
+        <div className="space-y-1">
           {sortedCovers.map((cover) => (
             <CoverItem
               key={cover.entity_id}
               cover={cover}
-              isInEditMode={isInEditMode}
+              isInEditMode={false}
               isSelected={isSelected(cover.entity_id)}
               onOpen={onOpen}
               onClose={onClose}
