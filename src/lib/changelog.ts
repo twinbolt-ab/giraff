@@ -27,11 +27,11 @@ function isWithinDays(dateStr: string, days: number): boolean {
   return diffDays <= days
 }
 
-export function getRecentNews(withinDays: number = 30): ChangelogEntry[] {
+export function getRecentNews(withinDays = 30): ChangelogEntry[] {
   return data.entries.filter((entry) => isWithinDays(entry.date, withinDays))
 }
 
-export function hasRecentNews(withinDays: number = 30): boolean {
+export function hasRecentNews(withinDays = 30): boolean {
   return getRecentNews(withinDays).length > 0
 }
 

@@ -2,11 +2,15 @@ import { Capacitor } from '@capacitor/core'
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics'
 import { getStorage } from './storage'
 import { STORAGE_KEYS } from './constants'
+import { isGmsAvailable } from './gms-checker'
 
 const isNative = Capacitor.isNativePlatform()
 
 // In-memory cache for debug ID
 let cachedDebugId: string | null = null
+
+// Track if Crashlytics is enabled (GMS available and initialized)
+let crashlyticsEnabled = false
 
 export async function initCrashlytics(): Promise<void> {
   if (!isNative) {
@@ -14,9 +18,17 @@ export async function initCrashlytics(): Promise<void> {
     return
   }
 
+  // Check GMS availability before initializing Firebase
+  const gmsAvailable = await isGmsAvailable()
+  if (!gmsAvailable) {
+    console.log('[Crashlytics] Skipping init - GMS not available (Huawei/non-GMS device)')
+    return
+  }
+
   try {
     // Enable crash collection
     await FirebaseCrashlytics.setEnabled({ enabled: true })
+    crashlyticsEnabled = true
     console.log('[Crashlytics] Initialized successfully')
   } catch (error) {
     console.error('[Crashlytics] Failed to initialize:', error)
@@ -24,7 +36,7 @@ export async function initCrashlytics(): Promise<void> {
 }
 
 export async function logError(error: Error, context?: string): Promise<void> {
-  if (!isNative) {
+  if (!isNative || !crashlyticsEnabled) {
     console.error(`[Error${context ? ` - ${context}` : ''}]`, error)
     return
   }
@@ -50,18 +62,18 @@ export async function logError(error: Error, context?: string): Promise<void> {
 
 function parseStackTrace(
   stack?: string
-): Array<{ lineNumber?: number; fileName?: string; functionName?: string }> {
+): { lineNumber?: number; fileName?: string; functionName?: string }[] {
   if (!stack) return []
 
   const lines = stack.split('\n')
-  const frames: Array<{ lineNumber?: number; fileName?: string; functionName?: string }> = []
+  const frames: { lineNumber?: number; fileName?: string; functionName?: string }[] = []
 
   for (const line of lines) {
     // Match patterns like "at functionName (fileName:lineNumber:columnNumber)"
     const match =
-      line.match(/at\s+(.+?)\s+\((.+?):(\d+):\d+\)/) ||
-      line.match(/at\s+(.+?):(\d+):\d+/) ||
-      line.match(/(.+?)@(.+?):(\d+):\d+/)
+      /at\s+(.+?)\s+\((.+?):(\d+):\d+\)/.exec(line) ||
+      /at\s+(.+?):(\d+):\d+/.exec(line) ||
+      /(.+?)@(.+?):(\d+):\d+/.exec(line)
 
     if (match) {
       frames.push({
@@ -76,7 +88,7 @@ function parseStackTrace(
 }
 
 export async function log(message: string): Promise<void> {
-  if (!isNative) {
+  if (!isNative || !crashlyticsEnabled) {
     console.log(`[Crashlytics] ${message}`)
     return
   }
@@ -89,7 +101,7 @@ export async function log(message: string): Promise<void> {
 }
 
 export async function setUserId(userId: string): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !crashlyticsEnabled) return
 
   try {
     await FirebaseCrashlytics.setUserId({ userId })
@@ -99,7 +111,7 @@ export async function setUserId(userId: string): Promise<void> {
 }
 
 export async function setCustomKey(key: string, value: string | number | boolean): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !crashlyticsEnabled) return
 
   try {
     await FirebaseCrashlytics.setCustomKey({
@@ -114,8 +126,8 @@ export async function setCustomKey(key: string, value: string | number | boolean
 
 // Force a test crash (only use for testing!)
 export async function testCrash(): Promise<void> {
-  if (!isNative) {
-    console.warn('[Crashlytics] Test crash only works on native platforms')
+  if (!isNative || !crashlyticsEnabled) {
+    console.warn('[Crashlytics] Test crash only works on native platforms with GMS')
     return
   }
 
@@ -131,7 +143,7 @@ export async function setUserContext(params: {
   areaCount?: number
   floorCount?: number
 }): Promise<void> {
-  if (!isNative) {
+  if (!isNative || !crashlyticsEnabled) {
     console.log('[Crashlytics] User context:', params)
     return
   }

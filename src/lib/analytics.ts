@@ -1,20 +1,33 @@
 import { Capacitor } from '@capacitor/core'
 import { FirebaseAnalytics } from '@capacitor-firebase/analytics'
+import { isGmsAvailable } from './gms-checker'
 
 const isNative = Capacitor.isNativePlatform()
+
+// Track if Analytics is enabled (GMS available and initialized)
+let analyticsEnabled = false
 
 export async function initAnalytics(): Promise<void> {
   if (!isNative) return
 
+  // Check GMS availability before initializing Firebase
+  const gmsAvailable = await isGmsAvailable()
+  if (!gmsAvailable) {
+    console.log('[Analytics] Skipping init - GMS not available (Huawei/non-GMS device)')
+    return
+  }
+
   try {
     await FirebaseAnalytics.setEnabled({ enabled: true })
+    analyticsEnabled = true
+    console.log('[Analytics] Initialized successfully')
   } catch (error) {
     console.error('[Analytics] Failed to initialize:', error)
   }
 }
 
 export async function setAnalyticsUserId(userId: string): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.setUserId({ userId })
@@ -25,7 +38,7 @@ export async function setAnalyticsUserId(userId: string): Promise<void> {
 
 // Screen view tracking
 export async function logScreenView(screenName: string): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -45,7 +58,7 @@ export async function logConnectionAttempt(
   connectionType: 'local' | 'cloud',
   authMethod: 'oauth' | 'token'
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -66,7 +79,7 @@ export async function logConnectionSuccess(
   entityCount?: number,
   areaCount?: number
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -88,7 +101,7 @@ export async function logConnectionFailure(
   authMethod: 'oauth' | 'token',
   errorType?: string
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -106,7 +119,7 @@ export async function logConnectionFailure(
 
 // Edit events
 export async function logRoomEdit(): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -119,7 +132,7 @@ export async function logRoomEdit(): Promise<void> {
 }
 
 export async function logFloorEdit(): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -132,7 +145,7 @@ export async function logFloorEdit(): Promise<void> {
 }
 
 export async function logFloorCreate(): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -145,7 +158,7 @@ export async function logFloorCreate(): Promise<void> {
 }
 
 export async function logDeviceEdit(): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -158,7 +171,7 @@ export async function logDeviceEdit(): Promise<void> {
 }
 
 export async function logRoomReorder(): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -171,10 +184,8 @@ export async function logRoomReorder(): Promise<void> {
 }
 
 // Rate app events
-export async function logRateAppAction(
-  action: 'shown' | 'rated' | 'dismissed'
-): Promise<void> {
-  if (!isNative) return
+export async function logRateAppAction(action: 'shown' | 'rated' | 'dismissed'): Promise<void> {
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({
@@ -201,7 +212,7 @@ export async function logSettingChange(
     | 'room_order_sync_to_ha',
   value: string | number | boolean
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !analyticsEnabled) return
 
   try {
     await FirebaseAnalytics.logEvent({

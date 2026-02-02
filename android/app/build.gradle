@@ -66,6 +66,9 @@ dependencies {
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-perf'
+
+    // Google Play Services (for GMS availability check on Huawei/non-GMS devices)
+    implementation 'com.google.android.gms:play-services-base:18.5.0'
 }
 
 apply from: 'capacitor.build.gradle'

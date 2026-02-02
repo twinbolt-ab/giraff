@@ -13,8 +13,12 @@ import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
+        // Register GmsChecker plugin before Capacitor initializes
+        registerPlugin(GmsCheckerPlugin.class);
+
         super.onCreate(savedInstanceState);
 
         int darkColor = Color.parseColor("#0D0D0C");

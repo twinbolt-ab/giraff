@@ -391,7 +391,7 @@ export async function setEntityHiddenInStuga(
   state: HAWebSocketState,
   entityId: string,
   hidden: boolean,
-  alsoHideInHA: boolean = false
+  alsoHideInHA = false
 ): Promise<void> {
   const entity = state.entityRegistry.get(entityId)
   if (!entity) {

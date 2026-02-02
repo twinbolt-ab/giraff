@@ -1,7 +1,11 @@
 import { Capacitor } from '@capacitor/core'
 import { FirebasePerformance } from '@capacitor-firebase/performance'
+import { isGmsAvailable } from './gms-checker'
 
 const isNative = Capacitor.isNativePlatform()
+
+// Track if Performance is enabled (GMS available and initialized)
+let performanceEnabled = false
 
 export async function initPerformance(): Promise<void> {
   if (!isNative) {
@@ -9,8 +13,16 @@ export async function initPerformance(): Promise<void> {
     return
   }
 
+  // Check GMS availability before initializing Firebase
+  const gmsAvailable = await isGmsAvailable()
+  if (!gmsAvailable) {
+    console.log('[Performance] Skipping init - GMS not available (Huawei/non-GMS device)')
+    return
+  }
+
   try {
     await FirebasePerformance.setEnabled({ enabled: true })
+    performanceEnabled = true
     console.log('[Performance] Initialized successfully')
   } catch (error) {
     console.error('[Performance] Failed to initialize:', error)
@@ -19,7 +31,7 @@ export async function initPerformance(): Promise<void> {
 
 // Start a custom trace for measuring specific operations
 export async function startTrace(traceName: string): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !performanceEnabled) return
 
   try {
     await FirebasePerformance.startTrace({ traceName })
@@ -30,7 +42,7 @@ export async function startTrace(traceName: string): Promise<void> {
 
 // Stop a custom trace
 export async function stopTrace(traceName: string): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !performanceEnabled) return
 
   try {
     await FirebasePerformance.stopTrace({ traceName })
@@ -41,7 +53,7 @@ export async function stopTrace(traceName: string): Promise<void> {
 
 // Add a metric to an active trace
 export async function putMetric(traceName: string, metricName: string, num: number): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !performanceEnabled) return
 
   try {
     await FirebasePerformance.putMetric({ traceName, metricName, num })
@@ -56,7 +68,7 @@ export async function incrementMetric(
   metricName: string,
   incrementBy = 1
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !performanceEnabled) return
 
   try {
     await FirebasePerformance.incrementMetric({ traceName, metricName, incrementBy })
@@ -71,7 +83,7 @@ export async function putAttribute(
   attribute: string,
   value: string
 ): Promise<void> {
-  if (!isNative) return
+  if (!isNative || !performanceEnabled) return
 
   try {
     await FirebasePerformance.putAttribute({ traceName, attribute, value })
@@ -82,7 +94,7 @@ export async function putAttribute(
 
 // Helper for timing async operations
 export async function traceAsync<T>(traceName: string, fn: () => Promise<T>): Promise<T> {
-  if (!isNative) {
+  if (!isNative || !performanceEnabled) {
     return fn()
   }
 

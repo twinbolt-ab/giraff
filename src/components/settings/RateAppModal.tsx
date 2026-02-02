@@ -14,8 +14,7 @@ interface RateAppModalProps {
 }
 
 const APP_STORE_URL = 'https://apps.apple.com/app/stuga/id6738196034?action=write-review'
-const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=com.twinbolt.stuga&reviewId=0'
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.twinbolt.stuga&reviewId=0'
 
 export function RateAppModal({ isOpen, onClose, onDismissed }: RateAppModalProps) {
   const y = useMotionValue(0)
