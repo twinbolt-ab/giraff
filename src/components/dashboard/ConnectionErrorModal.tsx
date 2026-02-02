@@ -429,7 +429,12 @@ export function ConnectionErrorModal({
       </motion.div>
 
       {/* Troubleshooting Help Modal */}
-      <EditModal isOpen={showHelp} onClose={() => setShowHelp(false)} title="Troubleshooting Help" zIndex={110}>
+      <EditModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+        title="Troubleshooting Help"
+        zIndex={110}
+      >
         <TroubleshootingHelpContent errorType={errorType} diagnostic={diagnostic} />
       </EditModal>
     </>,
