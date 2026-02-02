@@ -73,7 +73,7 @@ export function RoomCard({
   // Room data
   const lights = room.devices.filter((d) => d.entity_id.startsWith('light.'))
   const switches = room.devices.filter((d) => d.entity_id.startsWith('switch.'))
-  const hasLights = lights.length > 0
+  const hasLights = lights.length > 0 || room.totalLights > 0 // Include cached light count
   const hasSwitches = switches.length > 0
   const hasControllableDevices = hasLights || hasSwitches
   const hasLightsOn = room.lightsOn > 0

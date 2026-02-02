@@ -1,8 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
 import * as ws from '../ha-websocket'
+import * as layoutCache from '../services/layout-cache'
 import { useDevMode } from './useDevMode'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
-import { DEFAULT_ORDER } from '../constants'
 
 interface UseFavoritesReturn {
   /** Whether any favorites exist (determines if tab should show) */
@@ -25,6 +25,16 @@ export function useFavorites(
 ): UseFavoritesReturn {
   const { activeMockScenario } = useDevMode()
   const [registryVersion, setRegistryVersion] = useState(0)
+  const [cachedFavorites, setCachedFavorites] = useState<layoutCache.CachedFavorites | null>(null)
+
+  // Load cached favorites on mount
+  useEffect(() => {
+    void layoutCache.loadLayoutCache().then((cached) => {
+      if (cached) {
+        setCachedFavorites(cached.favorites)
+      }
+    })
+  }, [])
 
   // Subscribe to registry updates
   useEffect(() => {
@@ -47,18 +57,8 @@ export function useFavorites(
       }
     }
 
-    // Check if favorites exist
+    // Try to get favorites from live data
     const favoritesExist = ws.hasFavorites()
-    if (!favoritesExist) {
-      return {
-        hasFavorites: false,
-        favoriteScenes: [],
-        favoriteRooms: [],
-        favoriteEntities: [],
-      }
-    }
-
-    // Get favorite IDs
     const { scenes: sceneIds, entities: entityIds } = ws.getAllFavoriteEntityIds()
     const areaIds = ws.getAllFavoriteAreaIds()
 
@@ -89,15 +89,84 @@ export function useFavorites(
       }
     }
 
+    // Check if we successfully resolved any live favorites
+    const hasLiveFavorites = scenes.length > 0 || favoriteRoomsList.length > 0 || entitiesList.length > 0
+
+    // If live data says favorites exist but we couldn't resolve any yet,
+    // keep showing cached favorites to avoid flash of empty state
+    if (favoritesExist && !hasLiveFavorites && cachedFavorites) {
+      const hasCachedFavorites =
+        cachedFavorites.scenes.length > 0 ||
+        cachedFavorites.rooms.length > 0 ||
+        cachedFavorites.entities.length > 0
+
+      if (hasCachedFavorites) {
+        // Convert cached rooms to RoomWithDevices with cached display state
+        const cachedRoomsList: RoomWithDevices[] = cachedFavorites.rooms.map((room) => ({
+          id: room.id,
+          name: room.name,
+          areaId: room.areaId,
+          floorId: room.floorId,
+          icon: room.icon,
+          order: room.order,
+          devices: [],
+          lightsOn: room.lightsOn ?? 0,
+          totalLights: room.totalLights ?? 0,
+          temperature: room.temperature,
+          humidity: room.humidity,
+        }))
+
+        return {
+          hasFavorites: true,
+          favoriteScenes: cachedFavorites.scenes,
+          favoriteRooms: cachedRoomsList,
+          favoriteEntities: cachedFavorites.entities,
+        }
+      }
+    }
+
+    // If no live favorites exist, also try cached favorites
+    if (!favoritesExist && cachedFavorites) {
+      const hasCachedFavorites =
+        cachedFavorites.scenes.length > 0 ||
+        cachedFavorites.rooms.length > 0 ||
+        cachedFavorites.entities.length > 0
+
+      if (hasCachedFavorites) {
+        const cachedRoomsList: RoomWithDevices[] = cachedFavorites.rooms.map((room) => ({
+          id: room.id,
+          name: room.name,
+          areaId: room.areaId,
+          floorId: room.floorId,
+          icon: room.icon,
+          order: room.order,
+          devices: [],
+          lightsOn: room.lightsOn ?? 0,
+          totalLights: room.totalLights ?? 0,
+          temperature: room.temperature,
+          humidity: room.humidity,
+        }))
+
+        return {
+          hasFavorites: true,
+          favoriteScenes: cachedFavorites.scenes,
+          favoriteRooms: cachedRoomsList,
+          favoriteEntities: cachedFavorites.entities,
+        }
+      }
+    }
+
+    // Return live favorites (or empty if none exist)
     return {
-      hasFavorites: true,
+      hasFavorites: hasLiveFavorites,
       favoriteScenes: scenes,
       favoriteRooms: favoriteRoomsList,
       favoriteEntities: entitiesList,
     }
     // registryVersion is used to trigger recalculation on registry changes
+    // cachedFavorites is used for optimistic rendering before live data arrives
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rooms, entities, activeMockScenario, registryVersion])
+  }, [rooms, entities, activeMockScenario, registryVersion, cachedFavorites])
 
   return {
     hasFavorites,

@@ -17,6 +17,7 @@ import { BulkEditRoomsModal, BulkEditDevicesModal } from './BulkEditModal'
 import { StructureHint } from './StructureHint'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { Loader } from '@/components/ui/Loader'
+import * as layoutCache from '@/lib/services/layout-cache'
 import { EditModeProvider, useEditMode } from '@/lib/contexts/EditModeContext'
 import { useHAConnection } from '@/lib/hooks/useHAConnection'
 import { useRooms } from '@/lib/hooks/useRooms'
@@ -43,14 +44,15 @@ import * as orderStorage from '@/lib/services/order-storage'
 
 // Inner component that uses the context
 function DashboardContent() {
-  const { rooms, floors, isConnected, hasReceivedData } = useRooms()
+  const { rooms, floors, isConnected, hasReceivedData, isShowingCachedData, hasLiveData } =
+    useRooms()
   const { entities, connectionError, retryConnection, clearConnectionError } = useHAConnection()
   const { isEntityVisible } = useEnabledDomains()
   const { setAreaOrder } = useRoomOrder()
   const { activeMockScenario } = useDevMode()
   const { reloadRoomOrderSyncSetting } = useSettings()
 
-  // Data is ready when we've received data or in demo mode
+  // Data is ready when we've received data (live or cached) or in demo mode
   const isDataReady = hasReceivedData || activeMockScenario !== 'none'
 
   // Get favorites
@@ -58,6 +60,19 @@ function DashboardContent() {
     rooms,
     entities
   )
+
+  // Save layout cache when we receive live data (only once per session)
+  const hasSavedCache = useRef(false)
+  useEffect(() => {
+    if (hasLiveData && rooms.length > 0 && !hasSavedCache.current) {
+      hasSavedCache.current = true
+      void layoutCache.saveLayoutCache(floors, rooms, {
+        scenes: favoriteScenes,
+        favoriteRooms,
+        entities: favoriteEntities,
+      })
+    }
+  }, [hasLiveData, rooms, floors, favoriteScenes, favoriteRooms, favoriteEntities])
 
   // Edit mode from context
   const {
@@ -491,11 +506,13 @@ function DashboardContent() {
 
   return (
     <div className="flex-1 flex flex-col bg-background pt-safe overflow-hidden relative">
-      {/* Loading overlay - fades out when data is ready */}
+      {/* Loading overlay - solid when no data, blurred when showing cached data */}
       <AnimatePresence>
-        {!isDataReady && (
+        {!hasLiveData && activeMockScenario === 'none' && (
           <motion.div
-            className="absolute inset-0 flex items-center justify-center z-50 bg-background"
+            className={`absolute inset-0 flex items-center justify-center z-50 ${
+              isShowingCachedData ? 'bg-background/60 backdrop-blur-sm' : 'bg-background'
+            }`}
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}

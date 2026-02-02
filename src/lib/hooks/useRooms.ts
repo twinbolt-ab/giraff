@@ -4,8 +4,9 @@ import { useDevMode } from './useDevMode'
 import * as ws from '../ha-websocket'
 import * as metadata from '../metadata'
 import * as orderStorage from '../services/order-storage'
+import * as layoutCache from '../services/layout-cache'
 import { generateMockData } from '../mock-data'
-import type { HAEntity, RoomWithDevices } from '@/types/ha'
+import type { HAEntity, HAFloor, RoomWithDevices } from '@/types/ha'
 import type { EntityOrderMap, DomainOrderMap } from '@/types/ordering'
 import { DEFAULT_ORDER } from '../constants'
 import { isEntityAuxiliary } from '../ha-websocket'
@@ -29,6 +30,24 @@ export function useRooms() {
   const { activeMockScenario } = useDevMode()
   const [registryVersion, setRegistryVersion] = useState(0)
   const [entityOrders, setEntityOrders] = useState<AllEntityOrders>(new Map())
+
+  // Cached layout for optimistic rendering
+  const [cachedLayout, setCachedLayout] = useState<{
+    floors: HAFloor[]
+    rooms: RoomWithDevices[]
+  } | null>(null)
+
+  // Load cached layout on mount for optimistic rendering
+  useEffect(() => {
+    void layoutCache.loadLayoutCache().then((cached) => {
+      if (cached) {
+        setCachedLayout({
+          floors: cached.floors,
+          rooms: layoutCache.cachedRoomsToOptimistic(cached.rooms),
+        })
+      }
+    })
+  }, [])
 
   // Subscribe to registry updates for order changes
   useEffect(() => {
@@ -233,11 +252,24 @@ export function useRooms() {
   const effectiveIsConnected = activeMockScenario !== 'none' ? true : isConnected
   const effectiveHasReceivedData = activeMockScenario !== 'none' ? true : hasReceivedData
 
+
+  // Use cached layout before live data arrives
+  const effectiveRooms = effectiveHasReceivedData ? rooms : (cachedLayout?.rooms ?? rooms)
+  const effectiveFloors = effectiveHasReceivedData ? floors : (cachedLayout?.floors ?? floors)
+
+  // Show as "data ready" if we have cached data, even before live data arrives
+  const hasDataToShow = effectiveHasReceivedData || cachedLayout !== null
+
+  // Track if we're showing cached (stale) data vs live data
+  const isShowingCachedData = !effectiveHasReceivedData && cachedLayout !== null
+
   return {
-    rooms,
-    floors,
+    rooms: effectiveRooms,
+    floors: effectiveFloors,
     isConnected: effectiveIsConnected,
-    hasReceivedData: effectiveHasReceivedData,
+    hasReceivedData: hasDataToShow,
+    isShowingCachedData,
+    hasLiveData: effectiveHasReceivedData,
     refreshEntityOrders,
   }
 }

@@ -64,6 +64,8 @@ export const STORAGE_KEYS = {
   ROOM_ORDER_MIGRATED: 'stuga-room-order-migrated',
   ROOM_ORDER_SYNC_TO_HA: 'stuga-room-order-sync-to-ha',
   RATE_APP_DISMISSED: 'stuga-rate-app-dismissed',
+  // Layout cache for optimistic loading
+  LAYOUT_CACHE: 'stuga-layout-cache',
 } as const
 
 /**
