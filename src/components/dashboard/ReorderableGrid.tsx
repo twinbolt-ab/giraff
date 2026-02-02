@@ -216,10 +216,10 @@ export function ReorderableGrid<T>({
               boxShadow: targetShadow,
             }}
             transition={{
-              x: isDragging ? { duration: 0 } : { type: 'spring', ...SPRING_CONFIG },
-              y: isDragging ? { duration: 0 } : { type: 'spring', ...SPRING_CONFIG },
-              scale: { duration: 0.15 },
-              boxShadow: { duration: 0.15 },
+              x: { duration: 0 },
+              y: { duration: 0 },
+              scale: { duration: 0.15, delay: isDragging ? 0.2 : 0 },
+              boxShadow: { duration: 0.15, delay: isDragging ? 0.2 : 0 },
             }}
             onTouchStart={handleTouchStart(index)}
             onMouseDown={handleMouseDown(index)}

@@ -214,11 +214,13 @@ input[type='range']::-moz-range-thumb {
 
 .wiggle {
   animation: wiggle 0.18s ease-in-out infinite;
+  animation-delay: 0.2s;
   transform-origin: center center;
 }
 
 .wiggle-alt {
   animation: wiggle-alt 0.16s ease-in-out infinite;
+  animation-delay: 0.2s;
   transform-origin: center center;
 }
 

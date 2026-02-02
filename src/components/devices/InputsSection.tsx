@@ -105,7 +105,10 @@ function InputNumberItem({
         onClick={() => {
           onToggleSelection(input.entity_id)
         }}
-        className="w-full px-2 py-2 rounded-lg bg-border/30 touch-feedback"
+        className={clsx(
+          'w-full px-2 py-2 rounded-lg bg-border/30 touch-feedback transition-all',
+          isSelected && 'ring-2 ring-inset ring-accent'
+        )}
       >
         <div className="flex items-center gap-2">
           <SelectionCheckbox isSelected={isSelected} />

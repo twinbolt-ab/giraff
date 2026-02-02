@@ -52,8 +52,9 @@ export function DeviceToggleButton({
         onClick={onToggleSelection}
         className={clsx(
           'w-full flex items-center gap-2 px-2 py-2 rounded-lg',
-          'transition-colors touch-feedback',
-          isOn ? 'bg-accent/20' : 'bg-border/30'
+          'transition-all touch-feedback',
+          isOn ? 'bg-accent/20' : 'bg-border/30',
+          isSelected && 'ring-2 ring-inset ring-accent'
         )}
       >
         <SelectionCheckbox isSelected={isSelected} />

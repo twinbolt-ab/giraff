@@ -150,6 +150,15 @@ export function useGridDrag<T>({
 
   const handleDragStart = useCallback(
     (index: number, clientX: number, clientY: number) => {
+      const itemKey = getKey(orderedItems[index])
+      const isItemSelected = selectedKeys?.has(itemKey)
+      const hasSelection = selectedKeys && selectedKeys.size > 0
+
+      // If there's a selection but this item isn't part of it, don't start drag
+      if (hasSelection && !isItemSelected) {
+        return
+      }
+
       haptic.medium()
       draggedIndexRef.current = index
       dragStartPosRef.current = { x: clientX, y: clientY }
@@ -158,8 +167,7 @@ export function useGridDrag<T>({
       setDragStartPos({ x: clientX, y: clientY })
       setDragOffset({ x: 0, y: 0 })
 
-      const itemKey = getKey(orderedItems[index])
-      const isPartOfMultiSelection = selectedKeys?.has(itemKey) && selectedKeys.size > 1
+      const isPartOfMultiSelection = isItemSelected && selectedKeys!.size > 1
 
       if (isPartOfMultiSelection) {
         const selectedIndices = orderedItems

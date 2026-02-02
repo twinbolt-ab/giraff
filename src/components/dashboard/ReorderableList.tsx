@@ -1,13 +1,13 @@
 /**
  * ReorderableList - Generic reorderable list component for vertical/flex-wrap layouts
  *
- * Supports entity reordering with long-press activation, wiggle animations, and spring physics.
- * Simplified version of ReorderableGrid for 1D lists.
+ * Uses absolute positioning (like ReorderableGrid) for smoother drag animations.
+ * Supports entity reordering with immediate activation, wiggle animations, and spring physics.
  */
 
-import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
+import { useListMeasurement } from '@/lib/hooks/useListMeasurement'
 import { useListDrag } from '@/lib/hooks/useListDrag'
 
 interface ReorderableListProps<T> {
@@ -16,6 +16,7 @@ interface ReorderableListProps<T> {
   onReorder: (items: T[]) => void
   getKey: (item: T) => string
   layout?: 'vertical' | 'flex-wrap'
+  gap?: number
   className?: string
   onDragEnd?: () => void
   /** Keys of selected items for multi-drag stacking */
@@ -24,21 +25,25 @@ interface ReorderableListProps<T> {
   onItemTap?: (key: string) => void
 }
 
-// Animation spring config
-const SPRING_CONFIG = { stiffness: 500, damping: 30, mass: 0.8 }
-
 export function ReorderableList<T>({
   items,
   renderItem,
   onReorder,
   getKey,
   layout = 'vertical',
+  gap = layout === 'flex-wrap' ? 8 : 12,
   className,
   onDragEnd,
   selectedKeys,
   onItemTap,
 }: ReorderableListProps<T>) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  // List measurement for absolute positioning
+  const { containerRef, measureRef, itemSize, isReady, containerHeight, getPositionFromIndex } =
+    useListMeasurement({
+      itemCount: items.length,
+      gap,
+      layout,
+    })
 
   const { orderedItems, draggedIndex, draggedIndices, dragOffset, handlePointerDown } = useListDrag(
     {
@@ -59,23 +64,63 @@ export function ReorderableList<T>({
     }
   )
 
+  // Multi-drag state
+  const isMultiDrag = draggedIndices.length > 1
+  const primaryDragPosition = draggedIndex !== null ? getPositionFromIndex(draggedIndex) : null
+
+  // Ghost placeholder positions for all dragged items
+  const ghostPositions =
+    draggedIndex !== null
+      ? draggedIndices.map((idx) => ({
+          index: idx,
+          position: getPositionFromIndex(idx),
+        }))
+      : []
+
   return (
     <div
       ref={containerRef}
-      className={clsx(
-        layout === 'flex-wrap' ? 'flex flex-wrap gap-2' : 'flex flex-col gap-3',
-        className
-      )}
+      className={clsx('relative', className)}
       style={{
-        // Disable touch scrolling when dragging to prevent Android from intercepting touch events
+        // Disable touch scrolling when dragging
         touchAction: draggedIndex !== null ? 'none' : 'auto',
+        height: containerHeight > 0 ? containerHeight : 'auto',
       }}
     >
+      {/* Ghost placeholders showing original positions during drag */}
+      {ghostPositions.map(({ index, position }) => (
+        <motion.div
+          key={`ghost-${index}`}
+          className="absolute rounded-lg border-2 border-dashed border-accent/40 bg-accent/5"
+          style={{
+            top: 0,
+            left: 0,
+            width: layout === 'flex-wrap' ? itemSize.width : '100%',
+            height: itemSize.height > 0 ? itemSize.height : 'auto',
+          }}
+          initial={{ opacity: 0 }}
+          animate={{
+            x: position.x,
+            y: position.y,
+            opacity: 0.6,
+          }}
+          transition={{
+            x: { duration: 0 },
+            y: { duration: 0 },
+            opacity: { duration: 0.15 },
+          }}
+        />
+      ))}
+
       {orderedItems.map((item, index) => {
-        const isMultiDrag = draggedIndices.length > 1
+        // Only render first item until ready (for measurement)
+        if (index > 0 && !isReady) return null
+
+        const key = getKey(item)
         const isPrimaryDrag = draggedIndex === index
         const isSecondaryDrag = isMultiDrag && draggedIndices.includes(index) && !isPrimaryDrag
         const isDragging = isPrimaryDrag || isSecondaryDrag
+        const position = getPositionFromIndex(index)
         const shouldWiggle = draggedIndex !== null && !isDragging
 
         // Calculate stacking for secondary dragged items
@@ -87,70 +132,63 @@ export function ReorderableList<T>({
         const stackZIndex = isSecondaryDrag ? 45 - stackPosition : 0
 
         // Calculate target position and styling
-        let targetX = 0
-        let targetY = 0
+        let targetX = position.x
+        let targetY = position.y
         let targetScale = 1
-        let targetShadow = '0 0 0 rgba(0, 0, 0, 0)'
+        let targetShadow = '0 0 0 rgba(0,0,0,0)'
 
         if (isPrimaryDrag) {
-          targetX = dragOffset.x
-          targetY = dragOffset.y
+          targetX = position.x + dragOffset.x
+          targetY = position.y + dragOffset.y
           targetScale = 1.05
-          targetShadow = '0 20px 40px rgba(0, 0, 0, 0.2)'
-        } else if (isSecondaryDrag) {
-          // Secondary items follow primary with stacking offset
-          targetX = dragOffset.x + stackOffset.x
-          targetY = dragOffset.y + stackOffset.y
+          targetShadow = '0 20px 40px rgba(0,0,0,0.2)'
+        } else if (isSecondaryDrag && primaryDragPosition) {
+          // Secondary items move to primary's position + stacking offset
+          targetX = primaryDragPosition.x + dragOffset.x + stackOffset.x
+          targetY = primaryDragPosition.y + dragOffset.y + stackOffset.y
           targetScale = stackScale
-          targetShadow = '0 10px 20px rgba(0, 0, 0, 0.15)'
+          targetShadow = '0 10px 20px rgba(0,0,0,0.15)'
         }
 
         return (
-          // Outer wrapper maintains position in flex flow for ghost placeholder
-          <div key={getKey(item)} className="relative">
-            {/* Ghost placeholder showing original position during drag */}
-            {isDragging && (
-              <motion.div
-                className="absolute inset-0 rounded-lg border-2 border-dashed border-accent/40 bg-accent/5"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
-                transition={{ duration: 0.15 }}
-              />
-            )}
-
-            <motion.div
-              initial={false}
-              animate={{
-                x: targetX,
-                y: targetY,
-                scale: targetScale,
-                boxShadow: targetShadow,
-              }}
-              transition={{
-                x: isDragging ? { duration: 0 } : { type: 'spring', ...SPRING_CONFIG },
-                y: isDragging ? { duration: 0 } : { type: 'spring', ...SPRING_CONFIG },
-                scale: { duration: 0.15 },
-                boxShadow: { duration: 0.15 },
-              }}
-              className={clsx('relative', isPrimaryDrag && 'z-50')}
-              style={{
-                cursor: draggedIndex === null ? 'grab' : isDragging ? 'grabbing' : 'grab',
-                // Prevent Android from capturing touch events for scrolling
-                touchAction: 'none',
-                zIndex: isPrimaryDrag ? 50 : isSecondaryDrag ? stackZIndex : undefined,
-              }}
-              onPointerDown={handlePointerDown(index)}
+          <motion.div
+            key={key}
+            ref={index === 0 ? measureRef : undefined}
+            data-list-item
+            className={clsx('absolute', isPrimaryDrag && 'z-50')}
+            style={{
+              top: 0,
+              left: 0,
+              width: layout === 'flex-wrap' ? 'auto' : '100%',
+              visibility: isReady ? 'visible' : 'hidden',
+              cursor: draggedIndex === null ? 'grab' : isDragging ? 'grabbing' : 'grab',
+              touchAction: 'none',
+              zIndex: isPrimaryDrag ? 50 : isSecondaryDrag ? stackZIndex : undefined,
+            }}
+            initial={false}
+            animate={{
+              x: targetX,
+              y: targetY,
+              scale: targetScale,
+              boxShadow: targetShadow,
+            }}
+            transition={{
+              x: { duration: 0 },
+              y: { duration: 0 },
+              scale: { duration: 0.15, delay: isDragging ? 0.2 : 0 },
+              boxShadow: { duration: 0.15, delay: isDragging ? 0.2 : 0 },
+            }}
+            onPointerDown={handlePointerDown(index)}
+          >
+            {/* Disable pointer events on children so drag events go to motion.div */}
+            {/* Wiggle animation on inner div to not conflict with framer-motion transforms */}
+            <div
+              style={{ pointerEvents: 'none' }}
+              className={clsx(shouldWiggle && (index % 2 === 0 ? 'wiggle' : 'wiggle-alt'))}
             >
-              {/* Disable pointer events on children so drag events go to motion.div */}
-              {/* Wiggle animation on inner div to not conflict with framer-motion transforms */}
-              <div
-                style={{ pointerEvents: 'none' }}
-                className={clsx(shouldWiggle && (index % 2 === 0 ? 'wiggle' : 'wiggle-alt'))}
-              >
-                {renderItem(item, index, isDragging, selectedKeys?.has(getKey(item)) ?? false)}
-              </div>
-            </motion.div>
-          </div>
+              {renderItem(item, index, isDragging, selectedKeys?.has(key) ?? false)}
+            </div>
+          </motion.div>
         )
       })}
     </div>

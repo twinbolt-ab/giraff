@@ -71,7 +71,10 @@ function ClimateItem({
         onClick={() => {
           onToggleSelection(climate.entity_id)
         }}
-        className="w-full px-3 py-3 rounded-xl bg-border/30 touch-feedback"
+        className={clsx(
+          'w-full px-3 py-3 rounded-xl bg-border/30 touch-feedback transition-all',
+          isSelected && 'ring-2 ring-inset ring-accent'
+        )}
       >
         <div className="flex items-center gap-2">
           <SelectionCheckbox isSelected={isSelected} />

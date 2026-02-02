@@ -46,14 +46,20 @@ function LightItem({
       <div
         data-entity-id={light.entity_id}
         className={clsx(
-          'flex items-center bg-card rounded-lg w-full',
+          'flex items-center bg-card rounded-lg w-full transition-all',
           compact ? 'gap-1 pl-1 pr-0.5' : 'gap-2 pl-2 pr-1',
           isDragging && 'opacity-90'
         )}
       >
         <SelectionCheckbox isSelected={isSelected} />
         <div className="flex-1 min-w-0">
-          <LightSlider light={light} disabled={true} compact={compact} entityMeta={entityMeta} />
+          <LightSlider
+            light={light}
+            disabled={true}
+            compact={compact}
+            entityMeta={entityMeta}
+            isSelected={isSelected}
+          />
         </div>
       </div>
     )

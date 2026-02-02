@@ -72,8 +72,9 @@ function SceneItem({
         className={clsx(
           'px-3 py-1.5 rounded-full text-sm font-medium',
           'bg-border/50 hover:bg-accent/20 hover:text-accent',
-          'transition-colors touch-feedback',
-          'flex items-center gap-1.5'
+          'transition-all touch-feedback',
+          'flex items-center gap-1.5',
+          isSelected && 'ring-2 ring-inset ring-accent'
         )}
       >
         <SelectionCheckbox isSelected={isSelected} />

@@ -74,7 +74,10 @@ function CoverItem({
         onClick={() => {
           onToggleSelection(cover.entity_id)
         }}
-        className="w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-border/30 touch-feedback"
+        className={clsx(
+          'w-full flex items-center gap-2 px-2 py-2 rounded-lg bg-border/30 touch-feedback transition-all',
+          isSelected && 'ring-2 ring-inset ring-accent'
+        )}
       >
         <SelectionCheckbox isSelected={isSelected} />
         <div

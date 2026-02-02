@@ -19,6 +19,7 @@ interface LightSliderProps {
   disabled?: boolean
   compact?: boolean
   entityMeta?: EntityMeta
+  isSelected?: boolean
 }
 
 export function LightSlider({
@@ -26,6 +27,7 @@ export function LightSlider({
   disabled = false,
   compact = false,
   entityMeta,
+  isSelected = false,
 }: LightSliderProps) {
   const { setLightBrightness, toggleLight, getLightBrightness } = useLightControl()
   const initialBrightness = getLightBrightness(light)
@@ -186,7 +188,11 @@ export function LightSlider({
   return (
     <div
       ref={cardRef}
-      className={clsx('relative rounded-lg overflow-hidden bg-card', !disabled && 'cursor-pointer')}
+      className={clsx(
+        'relative rounded-lg overflow-hidden bg-card',
+        !disabled && 'cursor-pointer',
+        isSelected && 'ring-2 ring-inset ring-accent'
+      )}
       onClick={handleCardClick}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

@@ -7,7 +7,7 @@
  * Uses PointerEvent API for consistent behavior across touch, mouse, and pen.
  */
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, RefObject } from 'react'
 import { haptic } from '@/lib/haptics'
 import { LONG_PRESS_DURATION } from '@/lib/constants'
 
@@ -16,12 +16,6 @@ const MOVE_THRESHOLD = 10
 interface Position {
   x: number
   y: number
-}
-
-interface ItemRect {
-  index: number
-  centerX: number
-  centerY: number
 }
 
 interface UseListDragOptions<T> {
@@ -38,8 +32,8 @@ interface UseListDragOptions<T> {
   onItemTap?: (index: number) => void
   /** Layout mode - affects how drop position is calculated */
   layout?: 'vertical' | 'flex-wrap'
-  /** Ref to the container element - required for flex-wrap layout */
-  containerRef?: React.RefObject<HTMLElement | null>
+  /** Ref to the container element */
+  containerRef?: RefObject<HTMLElement | null>
 }
 
 interface UseListDragReturn<T> {
@@ -47,6 +41,8 @@ interface UseListDragReturn<T> {
   draggedIndex: number | null
   draggedIndices: number[]
   dragOffset: Position
+  /** Offset from each item's position to the primary dragged item's position */
+  itemOffsetsToPrimary: Map<number, Position>
   handlePointerDown: (index: number) => (e: React.PointerEvent) => void
 }
 
@@ -59,14 +55,14 @@ export function useListDrag<T>({
   immediateMode = false,
   selectedKeys,
   onItemTap,
-  layout = 'vertical',
+  layout: _layout = 'vertical',
   containerRef,
 }: UseListDragOptions<T>): UseListDragReturn<T> {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [draggedIndices, setDraggedIndices] = useState<number[]>([])
   const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 })
-  const [dragStartPos, setDragStartPos] = useState<Position>({ x: 0, y: 0 })
   const [orderedItems, setOrderedItems] = useState<T[]>(items)
+  const [itemOffsetsToPrimary, setItemOffsetsToPrimary] = useState<Map<number, Position>>(new Map())
 
   // Long-press state
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -84,22 +80,34 @@ export function useListDrag<T>({
   const orderedItemsRef = useRef<T[]>(items)
   const selectedKeysRef = useRef<Set<string> | undefined>(selectedKeys)
 
-  // Track cumulative position shift from reordering - keeps item under finger
-  const reorderShiftRef = useRef<Position>({ x: 0, y: 0 })
+  // Track initial grid position for visual offset calculation
+  const initialGridPosRef = useRef<Position>({ x: 0, y: 0 })
 
-  // Cache item positions for flex-wrap layout
-  const itemRectsRef = useRef<ItemRect[]>([])
+  // Cache item positions measured from DOM
+  const itemRectsRef = useRef<
+    { index: number; x: number; y: number; width: number; height: number }[]
+  >([])
 
   // Track if drag actually started (movement beyond threshold)
   const hasDraggedRef = useRef(false)
   const tapIndexRef = useRef<number | null>(null)
 
-  // Keep refs in sync with state
-  draggedIndexRef.current = draggedIndex
-  draggedIndicesRef.current = draggedIndices
-  dragStartPosRef.current = dragStartPos
-  orderedItemsRef.current = orderedItems
-  selectedKeysRef.current = selectedKeys
+  // Sync refs with state changes using effects
+  useEffect(() => {
+    draggedIndexRef.current = draggedIndex
+  }, [draggedIndex])
+
+  useEffect(() => {
+    draggedIndicesRef.current = draggedIndices
+  }, [draggedIndices])
+
+  useEffect(() => {
+    orderedItemsRef.current = orderedItems
+  }, [orderedItems])
+
+  useEffect(() => {
+    selectedKeysRef.current = selectedKeys
+  }, [selectedKeys])
 
   // Track previous items for change detection
   const [prevItems, setPrevItems] = useState(items)
@@ -129,37 +137,47 @@ export function useListDrag<T>({
     setPendingDragIndex(null)
   }, [])
 
-  // Measure positions of all items in the container (for flex-wrap layout)
+  // Measure positions of all items in the container
   const measureItemPositions = useCallback(() => {
     if (!containerRef?.current) return
 
     const container = containerRef.current
     const children = Array.from(container.children) as HTMLElement[]
+    const containerRect = container.getBoundingClientRect()
 
-    itemRectsRef.current = children.map((child, index) => {
-      const rect = child.getBoundingClientRect()
-      return {
-        index,
-        centerX: rect.left + rect.width / 2,
-        centerY: rect.top + rect.height / 2,
-      }
-    })
+    itemRectsRef.current = children
+      .filter((child) => child.hasAttribute('data-list-item'))
+      .map((child, index) => {
+        const rect = child.getBoundingClientRect()
+        return {
+          index,
+          x: rect.left - containerRect.left,
+          y: rect.top - containerRect.top,
+          width: rect.width,
+          height: rect.height,
+        }
+      })
   }, [containerRef])
 
-  // Find the insertion index based on pointer position for flex-wrap layout
-  // Returns the index where the dragged item should be inserted
+  // Find the insertion index based on pointer position
   const findInsertionIndex = useCallback(
     (clientX: number, clientY: number, draggedIdx: number): number => {
       const rects = itemRectsRef.current
-      if (rects.length === 0) return 0
+      if (rects.length === 0 || !containerRef?.current) return draggedIdx
 
-      // Find which item the pointer is closest to
-      let closestIdx = 0
+      const containerRect = containerRef.current.getBoundingClientRect()
+      const x = clientX - containerRect.left
+      const y = clientY - containerRect.top
+
+      // Find closest item
+      let closestIdx = draggedIdx
       let closestDistance = Infinity
 
       for (const rect of rects) {
-        const dx = clientX - rect.centerX
-        const dy = clientY - rect.centerY
+        const centerX = rect.x + rect.width / 2
+        const centerY = rect.y + rect.height / 2
+        const dx = x - centerX
+        const dy = y - centerY
         const distance = Math.sqrt(dx * dx + dy * dy)
 
         if (distance < closestDistance) {
@@ -168,28 +186,16 @@ export function useListDrag<T>({
         }
       }
 
-      // If we're on the dragged item itself, no change
-      if (closestIdx === draggedIdx) {
-        return draggedIdx
-      }
-
-      // Determine if we should insert before or after the closest item
-      const closestRect = rects.find((r) => r.index === closestIdx)
-      if (!closestRect) return draggedIdx
-
-      // If pointer is to the left of center, insert before; otherwise after
-      const insertBefore = clientX < closestRect.centerX
-
-      if (closestIdx < draggedIdx) {
-        // Moving backward
-        return insertBefore ? closestIdx : closestIdx + 1
-      } else {
-        // Moving forward - account for the removal of dragged item
-        return insertBefore ? closestIdx - 1 : closestIdx
-      }
+      return closestIdx
     },
-    []
+    [containerRef]
   )
+
+  // Get position for an item from cached measurements
+  const getItemPosition = useCallback((index: number): Position => {
+    const rect = itemRectsRef.current.find((r) => r.index === index)
+    return rect ? { x: rect.x, y: rect.y } : { x: 0, y: 0 }
+  }, [])
 
   const startDrag = useCallback(
     (
@@ -204,14 +210,36 @@ export function useListDrag<T>({
       const currentItems = orderedItemsRef.current
       const currentSelectedKeys = selectedKeysRef.current
 
-      // Detect multi-selection
+      // Check if this item is selected
       const itemKey = getKey(currentItems[index])
-      const isPartOfMultiSelection =
-        currentSelectedKeys?.has(itemKey) && currentSelectedKeys.size > 1
+      const isItemSelected = currentSelectedKeys?.has(itemKey)
+      const hasSelection = currentSelectedKeys && currentSelectedKeys.size > 0
+
+      // If there's a selection but this item isn't part of it, don't start drag
+      // but still allow tap to toggle selection
+      if (hasSelection && !isItemSelected) {
+        hasDraggedRef.current = false
+        tapIndexRef.current = index
+        draggedIndexRef.current = null
+        setPendingDragIndex(index)
+
+        if (pointerId !== undefined && element) {
+          pointerIdRef.current = pointerId
+          targetElementRef.current = element
+          try {
+            element.setPointerCapture(pointerId)
+          } catch {
+            // Pointer capture may fail if pointer was already released
+          }
+        }
+        return
+      }
+
+      // Detect multi-selection
+      const isPartOfMultiSelection = isItemSelected && currentSelectedKeys!.size > 1
 
       let indices: number[]
       if (isPartOfMultiSelection) {
-        // Collect all selected indices, sorted
         indices = currentItems
           .map((item, i) => ({ key: getKey(item), index: i }))
           .filter(({ key }) => currentSelectedKeys!.has(key))
@@ -221,22 +249,35 @@ export function useListDrag<T>({
         indices = [index]
       }
 
-      // Measure item positions before starting drag (for flex-wrap)
-      if (layout === 'flex-wrap') {
-        measureItemPositions()
+      // Measure item positions before starting drag
+      measureItemPositions()
+
+      // Calculate offsets from each dragged item to the primary item
+      const offsets = new Map<number, Position>()
+      const primaryPos = getItemPosition(index)
+      if (indices.length > 1) {
+        for (const idx of indices) {
+          if (idx === index) {
+            offsets.set(idx, { x: 0, y: 0 })
+          } else {
+            const itemPos = getItemPosition(idx)
+            offsets.set(idx, {
+              x: primaryPos.x - itemPos.x,
+              y: primaryPos.y - itemPos.y,
+            })
+          }
+        }
       }
 
-      // Update refs immediately so handleMove sees the new values
-      // before React re-renders (pointermove can fire before render)
+      // Store drag info in refs
       draggedIndexRef.current = index
       draggedIndicesRef.current = indices
       dragStartPosRef.current = { x: clientX, y: clientY }
-      reorderShiftRef.current = { x: 0, y: 0 }
+      initialGridPosRef.current = primaryPos
       hasDraggedRef.current = false
       tapIndexRef.current = index
 
-      // Capture pointer for gesture ownership - ensures all subsequent events
-      // go to this element, preventing other handlers from interfering
+      // Capture pointer for gesture ownership
       if (pointerId !== undefined && element) {
         pointerIdRef.current = pointerId
         targetElementRef.current = element
@@ -247,14 +288,14 @@ export function useListDrag<T>({
         }
       }
 
+      // Set drag state
       setDraggedIndex(index)
       setDraggedIndices(indices)
-      setDragStartPos({ x: clientX, y: clientY })
+      setItemOffsetsToPrimary(offsets)
       setDragOffset({ x: 0, y: 0 })
       setPendingDragIndex(null)
-      haptic.medium()
     },
-    [disabled, getKey, layout, measureItemPositions]
+    [disabled, getKey, measureItemPositions, getItemPosition]
   )
 
   const handleMove = useCallback(
@@ -274,154 +315,100 @@ export function useListDrag<T>({
         return
       }
 
-      // If dragging, update offset and reorder
-      const currentDragStartPos = dragStartPosRef.current
-      const currentOrderedItems = orderedItemsRef.current
-
-      // Calculate touch delta from original drag start (never changes during drag)
+      // Calculate touch delta from original drag start
       const touchDelta = {
-        x: clientX - currentDragStartPos.x,
-        y: clientY - currentDragStartPos.y,
+        x: clientX - dragStartPosRef.current.x,
+        y: clientY - dragStartPosRef.current.y,
       }
-
-      // Visual offset = touch movement + accumulated reorder shift
-      // This keeps the item under the finger even when it reorders
-      const visualOffset = {
-        x: touchDelta.x + reorderShiftRef.current.x,
-        y: touchDelta.y + reorderShiftRef.current.y,
-      }
-      setDragOffset(visualOffset)
 
       // Track if user has moved enough to consider this a drag (not a tap)
       const totalMovement = Math.sqrt(touchDelta.x ** 2 + touchDelta.y ** 2)
       if (totalMovement > MOVE_THRESHOLD) {
-        hasDraggedRef.current = true
+        if (!hasDraggedRef.current) {
+          hasDraggedRef.current = true
+          haptic.medium()
+        }
       }
 
+      // Only update visual offset if drag has actually started
+      if (!hasDraggedRef.current) {
+        return
+      }
+
+      const currentOrderedItems = orderedItemsRef.current
       const isMultiDrag = currentDraggedIndices.length > 1
 
-      // For flex-wrap layout, use position-based detection
-      if (layout === 'flex-wrap' && itemRectsRef.current.length > 0) {
-        // For now, only support single-item drag in flex-wrap
-        // Multi-drag in flex-wrap is complex and rarely needed for scenes
-        if (!isMultiDrag) {
-          const newIndex = findInsertionIndex(clientX, clientY, currentDraggedIndex)
+      // Find new target index
+      const newTargetIndex = findInsertionIndex(clientX, clientY, currentDraggedIndex)
 
-          if (newIndex !== currentDraggedIndex) {
-            // Get current position before reorder
-            const oldRect = itemRectsRef.current.find((r) => r.index === currentDraggedIndex)
-            const targetRect = itemRectsRef.current.find((r) => r.index === newIndex)
+      if (isMultiDrag) {
+        // Multi-drag: move entire block together
+        const primaryPositionInSelection = currentDraggedIndices.indexOf(currentDraggedIndex)
+        const blockSize = currentDraggedIndices.length
 
-            const newOrdered = [...currentOrderedItems]
-            const [removed] = newOrdered.splice(currentDraggedIndex, 1)
-            newOrdered.splice(newIndex, 0, removed)
+        // Calculate where the block should start
+        const blockStartIndex = Math.max(
+          0,
+          Math.min(
+            currentOrderedItems.length - blockSize,
+            newTargetIndex - primaryPositionInSelection
+          )
+        )
 
-            setOrderedItems(newOrdered)
-            setDraggedIndex(newIndex)
-            setDraggedIndices([newIndex])
-            draggedIndexRef.current = newIndex
-            draggedIndicesRef.current = [newIndex]
-            orderedItemsRef.current = newOrdered
+        const currentBlockStart = Math.min(...currentDraggedIndices)
+        if (blockStartIndex !== currentBlockStart) {
+          // Extract dragged items in their selection order
+          const draggedItems = currentDraggedIndices.map((i) => currentOrderedItems[i])
+          const newOrdered = currentOrderedItems.filter(
+            (_, i) => !currentDraggedIndices.includes(i)
+          )
+          newOrdered.splice(blockStartIndex, 0, ...draggedItems)
 
-            // Compensate for position change to keep item under finger
-            if (oldRect && targetRect) {
-              const dx = targetRect.centerX - oldRect.centerX
-              const dy = targetRect.centerY - oldRect.centerY
-              reorderShiftRef.current = {
-                x: reorderShiftRef.current.x - dx,
-                y: reorderShiftRef.current.y - dy,
-              }
-            }
+          // Update indices to reflect new positions
+          const newIndices = draggedItems.map((_, i) => blockStartIndex + i)
+          const newPrimaryIndex = newIndices[primaryPositionInSelection]
 
-            // Re-measure after reorder on next frame
-            requestAnimationFrame(() => measureItemPositions())
-          }
+          setOrderedItems(newOrdered)
+          setDraggedIndex(newPrimaryIndex)
+          setDraggedIndices(newIndices)
+          draggedIndexRef.current = newPrimaryIndex
+          draggedIndicesRef.current = newIndices
+          orderedItemsRef.current = newOrdered
+
+          // Re-measure after reorder
+          requestAnimationFrame(() => measureItemPositions())
         }
-      } else {
-        // Vertical layout - use Y-axis based detection
-        const ITEM_HEIGHT_ESTIMATE = 60
+      } else if (newTargetIndex !== currentDraggedIndex) {
+        // Single item drag
+        const newOrdered = [...currentOrderedItems]
+        const [removed] = newOrdered.splice(currentDraggedIndex, 1)
+        newOrdered.splice(newTargetIndex, 0, removed)
 
-        if (isMultiDrag) {
-          // Multi-drag: move entire block together
-          const primaryPositionInSelection = currentDraggedIndices.indexOf(currentDraggedIndex)
-          const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
-          const targetPrimaryIndex = Math.max(
-            0,
-            Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
-          )
+        setOrderedItems(newOrdered)
+        setDraggedIndex(newTargetIndex)
+        setDraggedIndices([newTargetIndex])
+        draggedIndexRef.current = newTargetIndex
+        draggedIndicesRef.current = [newTargetIndex]
+        orderedItemsRef.current = newOrdered
 
-          // Calculate where the block should start
-          const blockSize = currentDraggedIndices.length
-          const blockStartIndex = Math.max(
-            0,
-            Math.min(
-              currentOrderedItems.length - blockSize,
-              targetPrimaryIndex - primaryPositionInSelection
-            )
-          )
-
-          // Check if current block start differs from where we want it
-          const currentBlockStart = Math.min(...currentDraggedIndices)
-          if (blockStartIndex !== currentBlockStart) {
-            // Extract dragged items in their selection order
-            const draggedItems = currentDraggedIndices.map((i) => currentOrderedItems[i])
-
-            // Remove dragged items from array
-            const newOrdered = currentOrderedItems.filter(
-              (_, i) => !currentDraggedIndices.includes(i)
-            )
-
-            // Insert block at new position
-            newOrdered.splice(blockStartIndex, 0, ...draggedItems)
-
-            // Update indices to reflect new positions
-            const newIndices = draggedItems.map((_, i) => blockStartIndex + i)
-            const newPrimaryIndex = newIndices[primaryPositionInSelection]
-
-            // Adjust shift to compensate
-            const indexDiff = newPrimaryIndex - currentDraggedIndex
-            reorderShiftRef.current = {
-              x: reorderShiftRef.current.x,
-              y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
-            }
-
-            setOrderedItems(newOrdered)
-            setDraggedIndex(newPrimaryIndex)
-            setDraggedIndices(newIndices)
-            draggedIndexRef.current = newPrimaryIndex
-            draggedIndicesRef.current = newIndices
-            orderedItemsRef.current = newOrdered
-          }
-        } else {
-          // Single item drag
-          const indexDelta = Math.round(visualOffset.y / ITEM_HEIGHT_ESTIMATE)
-          const newIndex = Math.max(
-            0,
-            Math.min(currentOrderedItems.length - 1, currentDraggedIndex + indexDelta)
-          )
-
-          if (newIndex !== currentDraggedIndex) {
-            // Adjust shift to compensate for the reorder
-            const indexDiff = newIndex - currentDraggedIndex
-            reorderShiftRef.current = {
-              x: reorderShiftRef.current.x,
-              y: reorderShiftRef.current.y - indexDiff * ITEM_HEIGHT_ESTIMATE,
-            }
-
-            const newOrdered = [...currentOrderedItems]
-            const [removed] = newOrdered.splice(currentDraggedIndex, 1)
-            newOrdered.splice(newIndex, 0, removed)
-            setOrderedItems(newOrdered)
-            setDraggedIndex(newIndex)
-            setDraggedIndices([newIndex])
-            draggedIndexRef.current = newIndex
-            draggedIndicesRef.current = [newIndex]
-            orderedItemsRef.current = newOrdered
-          }
-        }
+        // Re-measure after reorder
+        requestAnimationFrame(() => measureItemPositions())
       }
+
+      // Calculate visual position from initial grid position + touch delta
+      const visualPos = {
+        x: initialGridPosRef.current.x + touchDelta.x,
+        y: initialGridPosRef.current.y + touchDelta.y,
+      }
+
+      // Compute dragOffset so that: currentGridPos + dragOffset = visualPos
+      const currentGridPos = getItemPosition(draggedIndexRef.current!)
+      setDragOffset({
+        x: visualPos.x - currentGridPos.x,
+        y: visualPos.y - currentGridPos.y,
+      })
     },
-    [cancelLongPress, layout, findInsertionIndex, measureItemPositions]
+    [cancelLongPress, findInsertionIndex, measureItemPositions, getItemPosition]
   )
 
   const handleEnd = useCallback(() => {
@@ -439,39 +426,39 @@ export function useListDrag<T>({
     }
 
     // Check if this was a tap (no significant movement)
-    if (
-      draggedIndexRef.current !== null &&
-      !hasDraggedRef.current &&
-      tapIndexRef.current !== null
-    ) {
-      // This was a tap, not a drag - call onItemTap
+    if (!hasDraggedRef.current && tapIndexRef.current !== null) {
       onItemTap?.(tapIndexRef.current)
+      draggedIndexRef.current = null
+      draggedIndicesRef.current = []
       setDraggedIndex(null)
       setDraggedIndices([])
       setDragOffset({ x: 0, y: 0 })
+      setItemOffsetsToPrimary(new Map())
+      setPendingDragIndex(null)
       tapIndexRef.current = null
       return
     }
 
     if (draggedIndexRef.current !== null) {
-      // Commit reorder
       onReorder(orderedItemsRef.current)
+      draggedIndexRef.current = null
+      draggedIndicesRef.current = []
       setDraggedIndex(null)
       setDraggedIndices([])
       setDragOffset({ x: 0, y: 0 })
-      // Exit reorder mode after drag ends
+      setItemOffsetsToPrimary(new Map())
+      setPendingDragIndex(null)
       onDragEnd?.()
     }
 
     tapIndexRef.current = null
   }, [onReorder, onDragEnd, cancelLongPress, onItemTap])
 
-  // Unified pointer handler - works for touch, mouse, and pen
+  // Unified pointer handler
   const handlePointerDown = useCallback(
     (index: number) => (e: React.PointerEvent) => {
       if (disabled) return
 
-      // Stop propagation to prevent child components (like LightSlider) from receiving this event
       e.stopPropagation()
 
       const clientX = e.clientX
@@ -479,14 +466,12 @@ export function useListDrag<T>({
       const pointerId = e.pointerId
       const element = e.currentTarget as HTMLElement
 
-      // Store pointer info for later capture
       pointerIdRef.current = pointerId
       targetElementRef.current = element
 
       setPendingDragIndex(index)
       pendingDragPosRef.current = { x: clientX, y: clientY }
 
-      // In immediate mode, start drag right away; otherwise use long-press timer
       if (immediateMode) {
         startDrag(index, clientX, clientY, pointerId, element)
       } else {
@@ -498,22 +483,17 @@ export function useListDrag<T>({
     [disabled, immediateMode, startDrag]
   )
 
-  // Document event listeners - attached when drag or pending drag is active
-  // Using refs for state values means handlers always see current values
+  // Document event listeners
   useEffect(() => {
     if (draggedIndex === null && pendingDragIndex === null) return
 
     const onPointerMove = (e: PointerEvent) => {
-      // Only handle events from our tracked pointer
       if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return
-
       handleMove(e.clientX, e.clientY)
     }
 
     const onPointerUp = (e: PointerEvent) => {
-      // Only handle events from our tracked pointer
       if (pointerIdRef.current !== null && e.pointerId !== pointerIdRef.current) return
-
       handleEnd()
     }
 
@@ -533,6 +513,7 @@ export function useListDrag<T>({
     draggedIndex,
     draggedIndices,
     dragOffset,
+    itemOffsetsToPrimary,
     handlePointerDown,
   }
 }
