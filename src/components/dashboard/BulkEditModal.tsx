@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { EditModal } from '@/components/ui/EditModal'
+import { ModalActions } from '@/components/ui/ModalActions'
 import { FormField } from '@/components/ui/FormField'
 import { ComboBox } from '@/components/ui/ComboBox'
 import { IconPickerField } from '@/components/ui/IconPickerField'
@@ -97,20 +98,14 @@ export function BulkEditRoomsModal({
           />
         </FormField>
 
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
-          >
-            {t.edit.cancel}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? t.edit.saving : t.edit.save}
-          </button>
+        <div className="pt-4">
+          <ModalActions
+            onCancel={onClose}
+            onConfirm={handleSave}
+            cancelLabel={t.edit.cancel}
+            confirmLabel={isSaving ? t.edit.saving : t.edit.save}
+            isLoading={isSaving}
+          />
         </div>
       </div>
     </EditModal>
@@ -252,20 +247,14 @@ export function BulkEditDevicesModal({
           </div>
         </FormField>
 
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
-          >
-            {t.edit.cancel}
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-          >
-            {isSaving ? t.edit.saving : t.edit.save}
-          </button>
+        <div className="pt-4">
+          <ModalActions
+            onCancel={onClose}
+            onConfirm={handleSave}
+            cancelLabel={t.edit.cancel}
+            confirmLabel={isSaving ? t.edit.saving : t.edit.save}
+            isLoading={isSaving}
+          />
         </div>
       </div>
     </EditModal>

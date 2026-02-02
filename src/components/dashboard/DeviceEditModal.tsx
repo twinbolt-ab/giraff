@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Trash2 } from 'lucide-react'
 import { EditModal } from '@/components/ui/EditModal'
+import { ModalActions } from '@/components/ui/ModalActions'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { ComboBox } from '@/components/ui/ComboBox'
@@ -173,20 +174,14 @@ export function DeviceEditModal({ device, rooms, onClose, onDeviceHidden }: Devi
             </FormField>
           )}
 
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
-            >
-              {t.edit.cancel}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-            >
-              {isSaving ? t.edit.saving : t.edit.save}
-            </button>
+          <div className="pt-4">
+            <ModalActions
+              onCancel={onClose}
+              onConfirm={handleSave}
+              cancelLabel={t.edit.cancel}
+              confirmLabel={isSaving ? t.edit.saving : t.edit.save}
+              isLoading={isSaving}
+            />
           </div>
 
           {/* Delete button for scenes */}

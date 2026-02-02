@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { EditModal } from '@/components/ui/EditModal'
+import { ModalActions } from '@/components/ui/ModalActions'
 import { FormField } from '@/components/ui/FormField'
 import { TextInput } from '@/components/ui/TextInput'
 import { IconPickerField } from '@/components/ui/IconPickerField'
@@ -74,20 +75,14 @@ export function FloorCreateModal({ isOpen, floors, onClose, onCreate }: FloorCre
           <IconPickerField value={icon} onChange={setIcon} />
         </FormField>
 
-        <div className="flex gap-3 pt-4">
-          <button
-            onClick={handleClose}
-            className="flex-1 py-3 px-4 rounded-xl border border-border text-foreground font-medium hover:bg-border/30 transition-colors"
-          >
-            {t.edit.cancel}
-          </button>
-          <button
-            onClick={handleCreate}
-            disabled={isCreating}
-            className="flex-1 py-3 px-4 rounded-xl bg-accent text-white font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-          >
-            {isCreating ? t.edit.saving : t.edit.createFloor}
-          </button>
+        <div className="pt-4">
+          <ModalActions
+            onCancel={handleClose}
+            onConfirm={handleCreate}
+            cancelLabel={t.edit.cancel}
+            confirmLabel={isCreating ? t.edit.saving : t.edit.createFloor}
+            isLoading={isCreating}
+          />
         </div>
       </div>
     </EditModal>
