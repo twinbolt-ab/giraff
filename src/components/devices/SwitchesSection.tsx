@@ -73,7 +73,6 @@ export function SwitchesSection({
               onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(sw.entity_id)}
               fallbackIcon={<Power className="w-5 h-5" />}
               entityMeta={entityMeta?.get(sw.entity_id)}
-              isReordering
               isReorderSelected={isReorderSelected}
             />
           )}

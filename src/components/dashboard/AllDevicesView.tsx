@@ -98,8 +98,10 @@ export function AllDevicesView() {
       const target = e.target as HTMLElement
       // Check if the click is on an entity item (has data-entity-id attribute)
       const entityElement = target.closest('[data-entity-id]')
-      if (!entityElement) {
-        // Clicked outside any entity - exit edit mode
+      // Check if the click is on the edit mode header/floating bar
+      const editModeHeader = target.closest('[data-edit-mode-header]')
+      if (!entityElement && !editModeHeader) {
+        // Clicked outside any entity and outside the edit header - exit edit mode
         exitEditMode()
       }
     }

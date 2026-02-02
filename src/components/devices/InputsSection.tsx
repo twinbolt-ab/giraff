@@ -43,7 +43,6 @@ function InputNumberItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: {
   input: HAEntity
@@ -53,7 +52,6 @@ function InputNumberItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }) {
   const entityValue = parseFloat(input.state) || 0
@@ -79,7 +77,7 @@ function InputNumberItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(input.entity_id),
   })
 
@@ -221,12 +219,7 @@ export function InputsSection({
     void onReorderEntities?.(reorderedInputs)
   }
 
-  const renderInput = (
-    input: HAEntity,
-    editMode: boolean,
-    reordering = false,
-    isReorderSelected = false
-  ) => {
+  const renderInput = (input: HAEntity, editMode: boolean, isReorderSelected = false) => {
     if (input.entity_id.startsWith('input_boolean.')) {
       return (
         <DeviceToggleButton
@@ -243,7 +236,6 @@ export function InputsSection({
           onEnterEditModeWithSelection={() => onEnterEditModeWithSelection?.(input.entity_id)}
           fallbackIcon={<ToggleLeft className="w-5 h-5" />}
           entityMeta={entityMeta?.get(input.entity_id)}
-          isReordering={reordering}
           isReorderSelected={isReorderSelected}
         />
       )
@@ -258,7 +250,6 @@ export function InputsSection({
           onToggleSelection={onToggleSelection}
           onEnterEditModeWithSelection={onEnterEditModeWithSelection}
           entityMeta={entityMeta?.get(input.entity_id)}
-          isReordering={reordering}
           isReorderSelected={isReorderSelected}
         />
       )
@@ -278,7 +269,7 @@ export function InputsSection({
           selectedKeys={selectedIds}
           onItemTap={onToggleSelection}
           renderItem={(input, _index, _isDragging, isReorderSelected) =>
-            renderInput(input, true, true, isReorderSelected)
+            renderInput(input, true, isReorderSelected)
           }
         />
       ) : (

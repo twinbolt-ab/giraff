@@ -41,7 +41,6 @@ function ClimateItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: {
   climate: HAEntity
@@ -51,7 +50,6 @@ function ClimateItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }) {
   const currentTemp = climate.attributes.current_temperature as number | undefined
@@ -62,7 +60,7 @@ function ClimateItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(climate.entity_id),
   })
 
@@ -237,7 +235,6 @@ export function ClimateSection({
               onToggleSelection={onToggleSelection}
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(climate.entity_id)}
-              isReordering
               isReorderSelected={isReorderSelected}
             />
           )}

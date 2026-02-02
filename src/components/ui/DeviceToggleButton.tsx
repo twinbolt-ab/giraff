@@ -21,7 +21,6 @@ interface DeviceToggleButtonProps {
   onEnterEditModeWithSelection?: () => void
   fallbackIcon: React.ReactNode
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }
 
@@ -34,7 +33,6 @@ export function DeviceToggleButton({
   onEnterEditModeWithSelection,
   fallbackIcon,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: DeviceToggleButtonProps) {
   const isOn = entity.state === 'on'
@@ -42,7 +40,7 @@ export function DeviceToggleButton({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(),
   })
 

@@ -40,7 +40,6 @@ function FanItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: {
   fan: HAEntity
@@ -50,7 +49,6 @@ function FanItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }) {
   const isOn = fan.state === 'on'
@@ -59,7 +57,7 @@ function FanItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(fan.entity_id),
   })
 
@@ -189,7 +187,6 @@ export function FansSection({
               onToggleSelection={onToggleSelection}
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(fan.entity_id)}
-              isReordering
               isReorderSelected={isReorderSelected}
             />
           )}

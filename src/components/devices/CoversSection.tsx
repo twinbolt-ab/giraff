@@ -44,7 +44,6 @@ function CoverItem({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: {
   cover: HAEntity
@@ -56,7 +55,6 @@ function CoverItem({
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }) {
   const isOpen = cover.state === 'open'
@@ -65,7 +63,7 @@ function CoverItem({
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(cover.entity_id),
   })
 
@@ -246,7 +244,6 @@ export function CoversSection({
               onToggleSelection={onToggleSelection}
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               entityMeta={entityMeta?.get(cover.entity_id)}
-              isReordering
               isReorderSelected={isReorderSelected}
             />
           )}

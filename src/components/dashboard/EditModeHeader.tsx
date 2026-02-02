@@ -60,6 +60,7 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.15 }}
+        data-edit-mode-header
       >
         {/* Floating add button above the text card */}
         <motion.button
@@ -119,6 +120,7 @@ export function EditModeHeader({ onEditClick, onDone, onAddFloor }: EditModeHead
       exit={{ y: 60, opacity: 0 }}
       transition={{ type: 'spring', damping: 25, stiffness: 400 }}
       className="fixed left-4 right-4 z-20 floating-bar rounded-2xl shadow-lg glass"
+      data-edit-mode-header
     >
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">

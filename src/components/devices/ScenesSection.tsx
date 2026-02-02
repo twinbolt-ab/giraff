@@ -42,7 +42,6 @@ function SceneItem({
   onEnterEditModeWithSelection,
   displayName,
   entityMeta,
-  isReordering = false,
   isReorderSelected = false,
 }: {
   scene: HAEntity
@@ -53,14 +52,13 @@ function SceneItem({
   onEnterEditModeWithSelection?: (deviceId: string) => void
   displayName: (scene: HAEntity) => string
   entityMeta?: EntityMeta
-  isReordering?: boolean
   isReorderSelected?: boolean
 }) {
   const sceneIcon = getEntityIcon(scene.entity_id)
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(scene.entity_id),
   })
 
@@ -180,7 +178,6 @@ export function ScenesSection({
               onEnterEditModeWithSelection={onEnterEditModeWithSelection}
               displayName={displayName}
               entityMeta={entityMeta?.get(scene.entity_id)}
-              isReordering
               isReorderSelected={isReorderSelected}
             />
           )}

@@ -25,7 +25,6 @@ interface SensorItemProps {
   isSelected: boolean
   onToggleSelection: (id: string) => void
   onEnterEditModeWithSelection?: (deviceId: string) => void
-  isReordering?: boolean
   isReorderSelected?: boolean
 }
 
@@ -37,14 +36,13 @@ function SensorItem({
   isSelected,
   onToggleSelection,
   onEnterEditModeWithSelection,
-  isReordering = false,
   isReorderSelected = false,
 }: SensorItemProps) {
   const customIcon = getEntityIcon(sensor.entity_id)
 
   const longPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isReordering,
+    disabled: isInEditMode,
     onLongPress: () => onEnterEditModeWithSelection?.(sensor.entity_id),
   })
 
@@ -134,12 +132,7 @@ export function SensorsDisplay({
     void onReorderEntities?.(reorderedSensors)
   }
 
-  const renderSensor = (
-    sensor: HAEntity,
-    editMode: boolean,
-    reordering = false,
-    isReorderSelected = false
-  ) => {
+  const renderSensor = (sensor: HAEntity, editMode: boolean, isReorderSelected = false) => {
     const isTemperature = sensor.attributes.device_class === 'temperature'
     return (
       <SensorItem
@@ -157,7 +150,6 @@ export function SensorsDisplay({
         isSelected={isSelected(sensor.entity_id)}
         onToggleSelection={onToggleSelection}
         onEnterEditModeWithSelection={onEnterEditModeWithSelection}
-        isReordering={reordering}
         isReorderSelected={isReorderSelected}
       />
     )
@@ -176,7 +168,7 @@ export function SensorsDisplay({
           selectedKeys={selectedIds}
           onItemTap={onToggleSelection}
           renderItem={(sensor, _index, _isDragging, isReorderSelected) =>
-            renderSensor(sensor, true, true, isReorderSelected)
+            renderSensor(sensor, true, isReorderSelected)
           }
         />
       ) : (
