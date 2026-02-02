@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.3.27] - 2026-02-02
+
+This update brings a much-requested feature: you can now reorder devices, scenes, and sensors within your rooms! We've also added a news section to settings and made several quality-of-life improvements.
+
+**New Features**
+- Drag and drop to reorder devices, scenes, and sensors in any room
+- Choose to keep your room and device order local or sync it to Home Assistant via labels (Settings → Advanced)
+- The first temperature sensor will be the one that shows in the room card
+- Select multiple items and move them together
+- News section in settings to stay up to date with Stuga
+
+**Improvements**
+- Clearer indication of where hidden devices are synced
+- Simplified room order settings
+- Better visual feedback when selecting multiple devices
+
+
 ## [0.3.26] - 2026-01-30
 
 This release brings a refreshed settings experience and several quality-of-life improvements.
