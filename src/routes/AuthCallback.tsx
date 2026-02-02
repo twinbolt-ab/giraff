@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, AlertCircle, Check } from 'lucide-react'
+import { Loader2, AlertCircle } from 'lucide-react'
 import {
   getPendingOAuth,
   clearPendingOAuth,
@@ -10,7 +10,7 @@ import {
 import { t } from '@/lib/i18n'
 import { logger } from '@/lib/logger'
 
-type Status = 'processing' | 'success' | 'error'
+type Status = 'processing' | 'error'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
@@ -70,12 +70,8 @@ export default function AuthCallback() {
         // Clear pending state
         await clearPendingOAuth()
 
-        setStatus('success')
-
-        // Navigate to home after short delay
-        setTimeout(() => {
-          void navigate('/', { replace: true })
-        }, 1500)
+        // Navigate immediately - let the dashboard handle its own loading state
+        void navigate('/', { replace: true })
       } catch (err) {
         logger.error('OAuth', 'Token exchange failed:', err)
         setStatus('error')
@@ -96,18 +92,6 @@ export default function AuthCallback() {
             <h2 className="text-xl font-semibold text-foreground">
               {t.setup.oauth?.completing || 'Completing authentication...'}
             </h2>
-          </div>
-        )}
-
-        {status === 'success' && (
-          <div className="space-y-4">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-              <Check className="w-8 h-8 text-green-500" />
-            </div>
-            <h2 className="text-xl font-semibold text-foreground">{t.setup.complete.title}</h2>
-            <p className="text-muted">
-              {t.setup.oauth?.redirecting || 'Redirecting to dashboard...'}
-            </p>
           </div>
         )}
 
