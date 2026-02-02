@@ -192,6 +192,8 @@ function DashboardContent() {
   const {
     editingRoom,
     editingDevice,
+    bulkEditRooms,
+    bulkEditDevices,
     showBulkEditRooms,
     showBulkEditDevices,
     openRoomEdit,
@@ -399,9 +401,9 @@ function DashboardContent() {
       }
     } else {
       if (isDeviceOrAllDevices) {
-        openBulkDevices()
+        openBulkDevices(selectedDevicesForEdit)
       } else {
-        openBulkRooms()
+        openBulkRooms(selectedRoomsForEdit)
       }
     }
   }, [
@@ -544,7 +546,7 @@ function DashboardContent() {
 
       <BulkEditRoomsModal
         isOpen={showBulkEditRooms}
-        rooms={selectedRoomsForEdit}
+        rooms={bulkEditRooms}
         floors={floors}
         onClose={closeBulkRooms}
         onComplete={() => {}} // Keep selection after save
@@ -553,7 +555,7 @@ function DashboardContent() {
 
       <BulkEditDevicesModal
         isOpen={showBulkEditDevices}
-        devices={selectedDevicesForEdit}
+        devices={bulkEditDevices}
         rooms={rooms}
         onClose={closeBulkDevices}
         onComplete={() => {}} // Keep selection after save

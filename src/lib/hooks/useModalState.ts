@@ -6,6 +6,10 @@ interface UseModalStateReturn {
   editingRoom: RoomWithDevices | null
   /** Device being edited (single edit modal) */
   editingDevice: HAEntity | null
+  /** Rooms for bulk edit (captured at open time) */
+  bulkEditRooms: RoomWithDevices[]
+  /** Devices for bulk edit (captured at open time) */
+  bulkEditDevices: HAEntity[]
   /** Whether bulk room edit modal is shown */
   showBulkEditRooms: boolean
   /** Whether bulk device edit modal is shown */
@@ -14,10 +18,10 @@ interface UseModalStateReturn {
   openRoomEdit: (room: RoomWithDevices) => void
   /** Open device edit modal */
   openDeviceEdit: (device: HAEntity) => void
-  /** Open bulk room edit modal */
-  openBulkRooms: () => void
-  /** Open bulk device edit modal */
-  openBulkDevices: () => void
+  /** Open bulk room edit modal with the rooms to edit */
+  openBulkRooms: (rooms: RoomWithDevices[]) => void
+  /** Open bulk device edit modal with the devices to edit */
+  openBulkDevices: (devices: HAEntity[]) => void
   /** Close room edit modal */
   closeRoomEdit: () => void
   /** Close device edit modal */
@@ -31,6 +35,8 @@ interface UseModalStateReturn {
 export function useModalState(): UseModalStateReturn {
   const [editingRoom, setEditingRoom] = useState<RoomWithDevices | null>(null)
   const [editingDevice, setEditingDevice] = useState<HAEntity | null>(null)
+  const [bulkEditRooms, setBulkEditRooms] = useState<RoomWithDevices[]>([])
+  const [bulkEditDevices, setBulkEditDevices] = useState<HAEntity[]>([])
   const [showBulkEditRooms, setShowBulkEditRooms] = useState(false)
   const [showBulkEditDevices, setShowBulkEditDevices] = useState(false)
 
@@ -42,11 +48,13 @@ export function useModalState(): UseModalStateReturn {
     setEditingDevice(device)
   }, [])
 
-  const openBulkRooms = useCallback(() => {
+  const openBulkRooms = useCallback((rooms: RoomWithDevices[]) => {
+    setBulkEditRooms(rooms)
     setShowBulkEditRooms(true)
   }, [])
 
-  const openBulkDevices = useCallback(() => {
+  const openBulkDevices = useCallback((devices: HAEntity[]) => {
+    setBulkEditDevices(devices)
     setShowBulkEditDevices(true)
   }, [])
 
@@ -60,15 +68,19 @@ export function useModalState(): UseModalStateReturn {
 
   const closeBulkRooms = useCallback(() => {
     setShowBulkEditRooms(false)
+    setBulkEditRooms([])
   }, [])
 
   const closeBulkDevices = useCallback(() => {
     setShowBulkEditDevices(false)
+    setBulkEditDevices([])
   }, [])
 
   return {
     editingRoom,
     editingDevice,
+    bulkEditRooms,
+    bulkEditDevices,
     showBulkEditRooms,
     showBulkEditDevices,
     openRoomEdit,

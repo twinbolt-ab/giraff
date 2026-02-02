@@ -123,7 +123,7 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
             initial={{ opacity: 0, pointerEvents: 'none' as const }}
             animate={{ opacity: 1, pointerEvents: 'auto' as const }}
             exit={{ opacity: 0, pointerEvents: 'none' as const }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[120]"
             onClick={onClose}
           />
 
@@ -141,7 +141,7 @@ export function IconPicker({ isOpen, value, onChange, onClose }: IconPickerProps
             dragElastic={{ top: 0.1, bottom: 0.8 }}
             onDragEnd={handleDragEnd}
             style={{ y, bottom: keyboardOffset }}
-            className="fixed left-0 right-0 z-[70] bg-card rounded-t-2xl shadow-warm-lg max-h-[85vh] flex flex-col transition-[bottom] duration-200"
+            className="fixed left-0 right-0 z-[130] bg-card rounded-t-2xl shadow-warm-lg max-h-[85vh] flex flex-col transition-[bottom] duration-200"
           >
             {/* Handle bar - drag area */}
             <div

@@ -264,6 +264,60 @@ describe('BulkEditDevicesModal', () => {
     })
   })
 
+  describe('Icon Assignment', () => {
+    it('should bulk change icons for multiple lights', async () => {
+      const lights = [
+        createMockLight({ entity_id: 'light.living_room' }),
+        createMockLight({ entity_id: 'light.bedroom' }),
+      ]
+
+      renderWithProviders(
+        <BulkEditDevicesModal
+          isOpen={true}
+          devices={lights}
+          rooms={rooms}
+          onClose={mockOnClose}
+          onComplete={mockOnComplete}
+        />
+      )
+
+      // Click the icon picker field to open it
+      const iconButton = screen.getByRole('button', { name: /select an icon/i })
+      await act(async () => {
+        fireEvent.click(iconButton)
+      })
+
+      // Find and click an icon (e.g., lightbulb)
+      // Note: The IconPicker might render in a portal, so we need to search the whole document
+      const lightbulbIcon = await screen.findByTitle('Lightbulb')
+      await act(async () => {
+        fireEvent.click(lightbulbIcon)
+      })
+
+      // The icon picker should close and the preview should update
+      // Now click save
+      const saveButton = screen.getByRole('button', { name: /save/i })
+      await act(async () => {
+        fireEvent.click(saveButton)
+      })
+
+      await waitFor(() => {
+        expect(mockUpdateEntity).toHaveBeenCalledTimes(2)
+        expect(mockUpdateEntity).toHaveBeenCalledWith(
+          'light.living_room',
+          expect.objectContaining({ icon: 'mdi:lightbulb' })
+        )
+        expect(mockUpdateEntity).toHaveBeenCalledWith(
+          'light.bedroom',
+          expect.objectContaining({ icon: 'mdi:lightbulb' })
+        )
+      })
+
+      expect(mockOnComplete).toHaveBeenCalled()
+      expect(mockOnClose).toHaveBeenCalled()
+    })
+  })
+
   describe('Room Assignment', () => {
     it('should bulk move lights to different room', async () => {
       const lights = [
