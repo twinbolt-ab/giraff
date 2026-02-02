@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.28] - 2026-02-02
+
+This update brings the all-new **Favorites view** – a dedicated tab where you can pin your most-used devices and scenes for quick access. We're also rolling out a few improvements from earlier today that you might have missed.
+
+**New Features**
+- Favorites tab for instant access to your most important controls
+- Drag and drop to reorder devices, scenes, and sensors in any room
+- Select multiple items and move them together
+- Choose to keep your room and device order local or sync it to Home Assistant (Settings → Advanced)
+- The first temperature sensor now shows on the room card
+- News section in settings to stay up to date with Stuga
+- Quick links to give feedback and join discussions (Settings menu)
+
+**Improvements**
+- Faster dashboard loading with cached layouts
+- Smoother login flow with instant redirect after connecting
+- Clearer indication of where hidden devices are synced
+- Simplified room order settings
+- Better visual feedback when selecting multiple devices
+
+**Bug Fixes**
+- Fixed crash on Huawei and other non-Google Play Services Android devices
+
+
 ## [0.3.27] - 2026-02-02
 
 This update brings a much-requested feature: you can now reorder devices, scenes, and sensors within your rooms! We've also added a news section to settings and made several quality-of-life improvements.

@@ -1,10 +1,46 @@
 {
   "releases": [
     {
+      "version": "0.3.28",
+      "date": "2026-02-02",
+      "summary": "This update brings the all-new Favorites view – a dedicated tab where you can pin your most-used devices and scenes for quick access. We're also rolling out a few improvements from earlier today that you might have missed.",
+      "seoSummary": "Pin your favorite Home Assistant devices and scenes to a dedicated Favorites tab for instant smart home control. Drag and drop to organize lights, sensors, and switches exactly how you want them.",
+      "sections": [
+        {
+          "title": "New Features",
+          "items": [
+            "Favorites tab for instant access to your most important controls",
+            "Drag and drop to reorder devices, scenes, and sensors in any room",
+            "Select multiple items and move them together",
+            "Choose to keep your room and device order local or sync it to Home Assistant (Settings → Advanced)",
+            "The first temperature sensor now shows on the room card",
+            "News section in settings to stay up to date with Stuga",
+            "Quick links to give feedback and join discussions (Settings menu)"
+          ]
+        },
+        {
+          "title": "Improvements",
+          "items": [
+            "Faster dashboard loading with cached layouts",
+            "Smoother login flow with instant redirect after connecting",
+            "Clearer indication of where hidden devices are synced",
+            "Simplified room order settings",
+            "Better visual feedback when selecting multiple devices"
+          ]
+        },
+        {
+          "title": "Bug Fixes",
+          "items": [
+            "Fixed crash on Huawei and other non-Google Play Services Android devices"
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.3.27",
       "date": "2026-02-02",
       "summary": "This update brings a much-requested feature: you can now reorder devices, scenes, and sensors within your rooms! We've also added a news section to settings and made several quality-of-life improvements.",
-      "seoSummary": "Customize your Home Assistant dashboard by dragging and dropping to reorder devices, scenes, and sensors. Organize your smart home exactly how you want with touch-friendly controls.",
+      "seoSummary": "Customize your Home Assistant dashboard by reordering devices, scenes, and temperature sensors within each room. Drag and drop to organize your smart home controls your way.",
       "sections": [
         {
           "title": "New Features",
@@ -30,7 +66,7 @@
       "version": "0.3.26",
       "date": "2026-01-30",
       "summary": "This release brings a refreshed settings experience and several quality-of-life improvements.",
-      "seoSummary": "Refreshed settings menu for the Home Assistant mobile dashboard with improved touch-based room reordering and cleaner navigation.",
+      "seoSummary": "Redesigned settings menu for easier Home Assistant dashboard navigation with improved touch-based room reordering and cleaner mobile layouts.",
       "sections": [
         {
           "title": "Improvements",
@@ -55,7 +91,7 @@
       "version": "0.3.25",
       "date": "2026-01-30",
       "summary": "This release brings a refreshed settings experience and several quality-of-life improvements.",
-      "seoSummary": "Enhanced Home Assistant dashboard settings with full-screen navigation and improved touch controls for organizing smart home rooms.",
+      "seoSummary": "Refreshed settings experience for your Home Assistant mobile dashboard with improved touch navigation and room organization.",
       "sections": [
         {
           "title": "Improvements",
@@ -108,7 +144,7 @@
       "version": "0.3.22",
       "date": "2026-01-28",
       "summary": "This release brings temperature display improvements and better support for Android sideloading.",
-      "seoSummary": "Display temperature sensors in Celsius or Fahrenheit based on your Home Assistant settings. Android users can now sideload the smart home dashboard app directly.",
+      "seoSummary": "Temperature sensors now display in Celsius or Fahrenheit based on your Home Assistant settings. Android users can sideload the APK directly or use Obtainium.",
       "sections": [
         {
           "title": "Improvements",
@@ -129,7 +165,7 @@
       "version": "0.3.21",
       "date": "2026-01-28",
       "summary": "This release brings temperature display improvements and better support for Android sideloading.",
-      "seoSummary": "View temperature sensors in your preferred unit on the Home Assistant dashboard. Now available for Android sideloading via Obtainium.",
+      "seoSummary": "Display temperature sensors in your preferred unit from Home Assistant with new Android sideloading support for smart home enthusiasts.",
       "sections": [
         {
           "title": "Improvements",
@@ -144,7 +180,7 @@
       "version": "0.3.20",
       "date": "2026-01-26",
       "summary": "Control which smart home devices appear in your Home Assistant dashboard with new device visibility options.",
-      "seoSummary": "Manage which smart home devices appear in your Home Assistant dashboard with flexible visibility controls. Hide devices locally or sync settings back to Home Assistant.",
+      "seoSummary": "Control which smart home devices appear in your Home Assistant dashboard with new visibility options. Hide devices in Stuga only or sync hidden status back to Home Assistant.",
       "sections": [
         {
           "title": "New Features",
@@ -164,7 +200,7 @@
       "version": "0.3.19",
       "date": "2026-01-25",
       "summary": "Improved Home Assistant connection setup with smarter URL detection for both local and remote access.",
-      "seoSummary": "Easier Home Assistant connection setup with automatic URL detection for both local and cloud access. The mobile app now suggests working connection options.",
+      "seoSummary": "Smarter Home Assistant connection setup with automatic URL detection for both local and remote access. Connect to your smart home dashboard faster.",
       "sections": [
         {
           "title": "Improvements",
@@ -186,7 +222,7 @@
       "version": "0.3.18",
       "date": "2026-01-25",
       "summary": "Stability improvements and bug fixes for the Home Assistant dashboard app on Android devices.",
-      "seoSummary": "Stability improvements for the Home Assistant dashboard on Android, including fixes for Huawei devices and smoother touch controls.",
+      "seoSummary": "Stability improvements for the Home Assistant dashboard on Android with connection diagnostics and fixes for Huawei devices.",
       "sections": [
         {
           "title": "Improvements",
@@ -211,7 +247,7 @@
       "version": "0.3.17",
       "date": "2026-01-23",
       "summary": "Display temperature and humidity sensors in your Home Assistant room cards with new customization options.",
-      "seoSummary": "View temperature and humidity sensors directly in your Home Assistant room cards. Customize which lights and switches are included in room controls.",
+      "seoSummary": "Display temperature and humidity sensors directly on Home Assistant room cards. Customize which lights and switches are included in room toggles.",
       "sections": [
         {
           "title": "Improvements",
@@ -235,7 +271,7 @@
       "version": "0.3.16",
       "date": "2026-01-23",
       "summary": "Bug fixes for the Home Assistant mobile dashboard.",
-      "seoSummary": "Bug fixes for the Home Assistant mobile dashboard improving video display on phones.",
+      "seoSummary": "Bug fixes for the Home Assistant mobile dashboard improving scroll behavior on phones.",
       "sections": [
         {
           "title": "Bug Fixes",
@@ -249,7 +285,7 @@
       "version": "0.3.15",
       "date": "2026-01-22",
       "summary": "Android app improvements for the Home Assistant dashboard with better compatibility and app store presence.",
-      "seoSummary": "Android improvements for the Home Assistant dashboard app with better device compatibility and updated app store listings.",
+      "seoSummary": "Android app improvements for the Home Assistant dashboard with better device compatibility and enhanced app store presence on Google Play.",
       "sections": [
         {
           "title": "Improvements",
@@ -274,7 +310,7 @@
       "version": "0.3.6",
       "date": "2026-01-22",
       "summary": "Organize your smart home by floors with improved navigation and editing in the Home Assistant dashboard.",
-      "seoSummary": "Organize your Home Assistant smart home by floors with improved touch navigation. Drag and drop room cards and swipe between floors on iOS and Android.",
+      "seoSummary": "Organize your smart home by floors with improved navigation in the Home Assistant dashboard. Touch-friendly drag and drop for reordering rooms on iOS and Android.",
       "sections": [
         {
           "title": "Improvements",
@@ -303,7 +339,7 @@
       "version": "0.3.5",
       "date": "2026-01-21",
       "summary": "Simplified Home Assistant login with easier authentication method selection.",
-      "seoSummary": "Simplified login flow for connecting to your Home Assistant server with easier authentication method selection.",
+      "seoSummary": "Simplified Home Assistant login flow with easier authentication method selection for faster smart home dashboard setup.",
       "sections": [
         {
           "title": "Improvements",
@@ -323,7 +359,7 @@
       "version": "0.3.4",
       "date": "2026-01-21",
       "summary": "Drag and drop room organization for your Home Assistant dashboard with multi-select and cross-floor support.",
-      "seoSummary": "Drag and drop to organize rooms in your Home Assistant dashboard. Select multiple rooms and move them between floors with touch-friendly controls.",
+      "seoSummary": "Drag and drop room organization for your Home Assistant dashboard with multi-select and cross-floor support. Manage your smart home layout with touch-friendly controls.",
       "sections": [
         {
           "title": "Improvements",

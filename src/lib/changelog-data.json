@@ -1,6 +1,31 @@
 {
-  "generatedAt": "2026-02-02T12:38:57.039Z",
+  "generatedAt": "2026-02-02T19:58:48.746Z",
   "entries": [
+    {
+      "version": "0.3.28",
+      "date": "2026-02-02",
+      "summary": "This update brings the all-new",
+      "improvements": [
+        "Faster dashboard loading with cached layouts",
+        "Smoother login flow with instant redirect after connecting",
+        "Clearer indication of where hidden devices are synced",
+        "Simplified room order settings",
+        "Better visual feedback when selecting multiple devices"
+      ],
+      "bugFixes": [
+        "Fixed crash on Huawei and other non-Google Play Services Android devices"
+      ],
+      "newFeatures": [
+        "Favorites tab for instant access to your most important controls",
+        "Drag and drop to reorder devices, scenes, and sensors in any room",
+        "Select multiple items and move them together",
+        "Choose to keep your room and device order local or sync it to Home Assistant (Settings → Advanced)",
+        "The first temperature sensor now shows on the room card",
+        "News section in settings to stay up to date with Stuga",
+        "Quick links to give feedback and join discussions (Settings menu)"
+      ],
+      "technical": []
+    },
     {
       "version": "0.3.27",
       "date": "2026-02-02",
