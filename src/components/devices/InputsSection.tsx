@@ -13,6 +13,7 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { useReorder } from '@/lib/contexts/ReorderContext'
+import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 
@@ -211,6 +212,10 @@ export function InputsSection({
   const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('input')
 
+  // Check if any edit mode is active (to disable reorder)
+  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
+  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
+
   // Combine and sort all inputs by order
   const sortedInputs = useMemo(() => {
     const allInputs = [...inputBooleans, ...inputNumbers]
@@ -220,7 +225,7 @@ export function InputsSection({
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isEntityReordering || sortedInputs.length < 2,
+    disabled: isAnyEditModeActive || isEntityReordering || sortedInputs.length < 2,
     onLongPress: () => enterReorder('input'),
   })
 

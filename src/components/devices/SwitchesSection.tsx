@@ -7,6 +7,7 @@ import { DeviceToggleButton } from '@/components/ui/DeviceToggleButton'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { useReorder } from '@/lib/contexts/ReorderContext'
+import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { t } from '@/lib/i18n'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -38,10 +39,14 @@ export function SwitchesSection({
   const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('switch')
 
+  // Check if any edit mode is active (to disable reorder)
+  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
+  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isEntityReordering || switches.length < 2,
+    disabled: isAnyEditModeActive || isEntityReordering || switches.length < 2,
     onLongPress: () => enterReorder('switch'),
   })
 

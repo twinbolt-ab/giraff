@@ -11,6 +11,7 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { useReorder } from '@/lib/contexts/ReorderContext'
+import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import { formatTemperature } from '@/lib/temperature'
 
@@ -122,6 +123,10 @@ export function SensorsDisplay({
   const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('sensor')
 
+  // Check if any edit mode is active (to disable reorder)
+  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
+  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
+
   // Combine and sort all sensors by order
   const sortedSensors = useMemo(() => {
     const allSensors = [...temperatureSensors, ...humiditySensors]
@@ -131,7 +136,7 @@ export function SensorsDisplay({
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isEntityReordering || sortedSensors.length < 2,
+    disabled: isAnyEditModeActive || isEntityReordering || sortedSensors.length < 2,
     onLongPress: () => enterReorder('sensor'),
   })
 

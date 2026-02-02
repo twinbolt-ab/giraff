@@ -12,6 +12,7 @@ import { useLongPress } from '@/lib/hooks/useLongPress'
 import { sortEntitiesByOrder } from '@/lib/utils/entity-sort'
 import { ReorderableList } from '@/components/dashboard/ReorderableList'
 import { useReorder } from '@/lib/contexts/ReorderContext'
+import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { t } from '@/lib/i18n'
 import { formatTemperatureCompact } from '@/lib/temperature'
 import type { EntityMeta } from '@/lib/hooks/useAllEntities'
@@ -206,10 +207,14 @@ export function ClimateSection({
   const { isSectionReordering, enterReorder, selectedKeys, toggleSelection } = useReorder()
   const isEntityReordering = isSectionReordering('climate')
 
+  // Check if any edit mode is active (to disable reorder)
+  const { isDeviceEditMode, isAllDevicesEditMode } = useEditMode()
+  const isAnyEditModeActive = isDeviceEditMode || isAllDevicesEditMode
+
   // Long-press to enter reorder mode for this section
   const sectionLongPress = useLongPress({
     duration: 500,
-    disabled: isInEditMode || isEntityReordering || climates.length < 2,
+    disabled: isAnyEditModeActive || isEntityReordering || climates.length < 2,
     onLongPress: () => enterReorder('climate'),
   })
 
