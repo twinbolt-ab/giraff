@@ -78,15 +78,15 @@
     },
     "storage": {
       "title": "Data Storage",
-      "subtitle": "Choose where Stuga stores your customizations like room order",
+      "subtitle": "Choose where Stuga stores your customizations like room and device order",
       "haLabels": "Sync with Home Assistant",
-      "haLabelsHint": "Room order and preferences sync across all your devices. Stuga will add labels prefixed with stuga- to your areas.",
+      "haLabelsHint": "Room and device order sync across all your devices. Stuga will add labels prefixed with stuga- to your areas and entities.",
       "localStorage": "Store on this device only",
-      "localStorageHint": "Keeps your Home Assistant clean — no stuga- labels will be added to your areas"
+      "localStorageHint": "Keeps your Home Assistant clean — no stuga- labels will be added"
     },
     "syncToHA": {
-      "title": "Sync room order to Home Assistant",
-      "description": "Room order is stored locally by default. Enable to sync across devices (adds stuga- labels to HA).",
+      "title": "Sync order to Home Assistant",
+      "description": "Order is stored locally by default. Enable to sync across devices (adds stuga- labels to HA).",
       "enabled": "On",
       "disabled": "Off",
       "enabling": "Migrating..."
@@ -223,10 +223,10 @@
       "title": "Advanced",
       "description": "Sync and debug info",
       "roomOrderSync": {
-        "title": "Sync room order across devices",
-        "description": "Store room order in Home Assistant. Without this, order is saved locally on this device only.",
-        "disableTitle": "Stop syncing room order?",
-        "disableMessage": "This will remove room order labels from Home Assistant. Your room order will be kept locally on this device.",
+        "title": "Sync order across devices",
+        "description": "Store room and device order in Home Assistant. Without this, order is saved locally on this device only.",
+        "disableTitle": "Stop syncing order?",
+        "disableMessage": "This will remove order labels from Home Assistant. Your room and device order will be kept locally on this device.",
         "disableConfirm": "Stop syncing"
       },
       "debugId": {
