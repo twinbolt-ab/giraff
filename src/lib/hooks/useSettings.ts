@@ -1,6 +1,6 @@
-import { useEffect, useCallback, useSyncExternalStore, useState } from 'react'
+import { useEffect, useCallback, useSyncExternalStore } from 'react'
 import { logSettingChange } from '../analytics'
-import * as orderStorage from '../services/order-storage'
+import { useSettingsContext } from '../contexts/SettingsContext'
 
 const SETTINGS_KEY = 'stuga-settings'
 
@@ -120,37 +120,8 @@ export function useSettings() {
     void logSettingChange('also_hide_in_ha', value)
   }, [])
 
-  // Room Order HA Sync setting (stored separately in order-storage service)
-  const [roomOrderSyncToHA, setRoomOrderSyncToHAState] = useState(false)
-
-  // Load room order HA sync setting on mount
-  useEffect(() => {
-    let mounted = true
-
-    async function loadHASync() {
-      const enabled = await orderStorage.isRoomOrderHASyncEnabled()
-      if (mounted) {
-        setRoomOrderSyncToHAState(enabled)
-      }
-    }
-
-    void loadHASync()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  const setRoomOrderSyncToHA = useCallback(async (value: boolean) => {
-    await orderStorage.setRoomOrderHASync(value)
-    setRoomOrderSyncToHAState(value)
-    void logSettingChange('room_order_sync_to_ha', value)
-  }, [])
-
-  const reloadRoomOrderSyncSetting = useCallback(async () => {
-    const enabled = await orderStorage.isRoomOrderHASyncEnabled()
-    setRoomOrderSyncToHAState(enabled)
-  }, [])
+  // Get async settings from context
+  const { customOrderEnabled, setCustomOrderEnabled } = useSettingsContext()
 
   return {
     groupByFloors: settings.groupByFloors,
@@ -163,9 +134,8 @@ export function useSettings() {
     setGridColumns,
     alsoHideInHA: settings.alsoHideInHA,
     setAlsoHideInHA,
-    roomOrderSyncToHA,
-    setRoomOrderSyncToHA,
-    reloadRoomOrderSyncSetting,
+    customOrderEnabled,
+    setCustomOrderEnabled,
     isLoaded: initialized,
   }
 }

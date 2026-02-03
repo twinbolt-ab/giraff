@@ -9,6 +9,7 @@ import { motion } from 'framer-motion'
 import { clsx } from 'clsx'
 import { useListMeasurement } from '@/lib/hooks/useListMeasurement'
 import { useListDrag } from '@/lib/hooks/useListDrag'
+import { useSettings } from '@/lib/hooks/useSettings'
 
 interface ReorderableListProps<T> {
   items: T[]
@@ -37,6 +38,10 @@ export function ReorderableList<T>({
   selectedKeys,
   onItemTap,
 }: ReorderableListProps<T>) {
+  // Get custom order setting - reordering is disabled when custom order is OFF
+  const { customOrderEnabled } = useSettings()
+  const reorderingDisabled = !customOrderEnabled
+
   // List measurement for absolute positioning
   const { containerRef, measureRef, itemSize, isReady, containerHeight, getPositionFromIndex } =
     useListMeasurement({
@@ -51,7 +56,7 @@ export function ReorderableList<T>({
       getKey,
       onReorder,
       onDragEnd,
-      immediateMode: true, // Drag starts immediately since we're already in reorder mode
+      immediateMode: !reorderingDisabled, // Only enable drag if reordering is allowed
       selectedKeys,
       onItemTap: onItemTap
         ? (index: number) => {
@@ -61,6 +66,7 @@ export function ReorderableList<T>({
         : undefined,
       layout,
       containerRef,
+      reorderingDisabled,
     }
   )
 

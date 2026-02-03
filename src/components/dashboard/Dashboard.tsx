@@ -50,7 +50,7 @@ function DashboardContent() {
   const { isEntityVisible } = useEnabledDomains()
   const { setAreaOrder } = useRoomOrder()
   const { activeMockScenario } = useDevMode()
-  const { reloadRoomOrderSyncSetting } = useSettings()
+  const { customOrderEnabled } = useSettings()
 
   // Data is ready when we've received data (live or cached) or in demo mode
   const isDataReady = hasReceivedData || activeMockScenario !== 'none'
@@ -117,14 +117,9 @@ function DashboardContent() {
   // Migrate room order from HA labels to localStorage on first connection
   useEffect(() => {
     if (isConnected && hasReceivedData) {
-      void orderStorage.migrateRoomOrderFromHA().then((syncEnabled) => {
-        // If migration found HA labels and enabled sync, reload the setting
-        if (syncEnabled) {
-          void reloadRoomOrderSyncSetting()
-        }
-      })
+      void orderStorage.migrateRoomOrderFromHA()
     }
-  }, [isConnected, hasReceivedData, reloadRoomOrderSyncSetting])
+  }, [isConnected, hasReceivedData])
 
   // Expanded room state (kept separate as it's used for toggling)
   const [expandedRoomId, setExpandedRoomId] = useState<string | null>(null)
@@ -565,6 +560,7 @@ function DashboardContent() {
                 orderedRooms={orderedRooms}
                 onReorder={reorderRooms}
                 onClickOutside={handleExitEditMode}
+                reorderingDisabled={!customOrderEnabled}
                 selectedIds={selectedIds}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './providers/ThemeProvider'
 import { ToastProvider } from './providers/ToastProvider'
+import { SettingsProvider } from './lib/contexts/SettingsContext'
 import { ErrorBoundary } from './components/ui/ErrorBoundary'
 import { useDeepLinks } from './lib/hooks/useDeepLinks'
 import { logScreenView } from './lib/analytics'
@@ -42,17 +43,19 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <ToastProvider>
-          <main className="h-full bg-background flex flex-col overflow-hidden">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/setup" element={<Setup />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/drag-test" element={<DragTest />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        </ToastProvider>
+        <SettingsProvider>
+          <ToastProvider>
+            <main className="h-full bg-background flex flex-col overflow-hidden">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/setup" element={<Setup />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/drag-test" element={<DragTest />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </main>
+          </ToastProvider>
+        </SettingsProvider>
       </ThemeProvider>
     </ErrorBoundary>
   )

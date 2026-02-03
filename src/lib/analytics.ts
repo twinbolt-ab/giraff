@@ -209,7 +209,8 @@ export async function logSettingChange(
     | 'grid_columns'
     | 'also_hide_in_ha'
     | 'domain_config'
-    | 'room_order_sync_to_ha',
+    | 'room_order_sync_to_ha'
+    | 'custom_order_enabled',
   value: string | number | boolean
 ): Promise<void> {
   if (!isNative || !analyticsEnabled) return

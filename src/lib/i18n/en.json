@@ -222,12 +222,15 @@
     "advanced": {
       "title": "Advanced",
       "description": "Sync and debug info",
-      "roomOrderSync": {
-        "title": "Sync order across devices",
-        "description": "Store room and device order in Home Assistant. Without this, order is saved locally on this device only.",
-        "disableTitle": "Stop syncing order?",
-        "disableMessage": "This will remove order labels from Home Assistant. Your room and device order will be kept locally on this device.",
-        "disableConfirm": "Stop syncing"
+      "customOrder": {
+        "title": "Custom room & device order",
+        "description": "Reorder rooms and devices by dragging",
+        "enableTitle": "Enable custom order?",
+        "enableMessage": "Room and device order will be saved as labels in Home Assistant, prefixed with stuga-. This allows your order to sync across devices.",
+        "enableButton": "Enable",
+        "disableTitle": "Disable custom order?",
+        "disableMessage": "This will permanently delete all saved room and device order from Home Assistant. This cannot be undone.",
+        "disableButton": "Disable"
       },
       "debugId": {
         "title": "Debug ID",

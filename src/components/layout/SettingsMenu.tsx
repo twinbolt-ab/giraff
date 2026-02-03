@@ -20,7 +20,6 @@ import {
   Hash,
   EyeOff,
   GripVertical,
-  RefreshCw,
   Sparkles,
   Star,
   MessageSquare,
@@ -31,7 +30,10 @@ import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
 import { EditModeInfoModal } from '@/components/settings/EditModeInfoModal'
 import { AlsoHideInHADialog } from '@/components/settings/AlsoHideInHADialog'
-import { RoomOrderSyncDisableDialog } from '@/components/settings/RoomOrderSyncDisableDialog'
+import {
+  EnableCustomOrderDialog,
+  DisableCustomOrderDialog,
+} from '@/components/settings/CustomOrderDialogs'
 import { NewsModal } from '@/components/settings/NewsModal'
 import { RateAppModal } from '@/components/settings/RateAppModal'
 import { Capacitor } from '@capacitor/core'
@@ -81,8 +83,8 @@ export function SettingsMenu({
     setGridColumns,
     alsoHideInHA,
     setAlsoHideInHA,
-    roomOrderSyncToHA,
-    setRoomOrderSyncToHA,
+    customOrderEnabled,
+    setCustomOrderEnabled,
   } = useSettings()
 
   const menuState = useSettingsMenuState()
@@ -162,19 +164,6 @@ export function SettingsMenu({
     void logSettingChange('theme', newTheme)
   }
 
-  const handleRoomOrderSyncToggle = () => {
-    if (roomOrderSyncToHA) {
-      menuState.openModal('roomOrderSyncDisable')
-    } else {
-      void setRoomOrderSyncToHA(true)
-    }
-  }
-
-  const handleRoomOrderSyncDisabled = () => {
-    void setRoomOrderSyncToHA(false)
-    menuState.closeModal('roomOrderSyncDisable')
-  }
-
   const handleAlsoHideInHAToggle = () => {
     menuState.openAlsoHideInHADialog(alsoHideInHA ? 'disable' : 'enable')
   }
@@ -182,6 +171,26 @@ export function SettingsMenu({
   const handleAlsoHideInHAConfirmed = () => {
     setAlsoHideInHA(menuState.alsoHideInHAVariant === 'enable')
     menuState.closeAlsoHideInHADialog()
+  }
+
+  const handleCustomOrderToggle = () => {
+    if (customOrderEnabled) {
+      // Show confirmation dialog before disabling (will delete order data)
+      menuState.openModal('disableCustomOrder')
+    } else {
+      // Show confirmation dialog before enabling (explains stuga- labels)
+      menuState.openModal('enableCustomOrder')
+    }
+  }
+
+  const handleCustomOrderEnabled = () => {
+    void setCustomOrderEnabled(true)
+    menuState.closeModal('enableCustomOrder')
+  }
+
+  const handleCustomOrderDisabled = () => {
+    void setCustomOrderEnabled(false)
+    menuState.closeModal('disableCustomOrder')
   }
 
   return (
@@ -265,18 +274,18 @@ export function SettingsMenu({
                 isOpen={menuState.advancedOpen}
                 onToggle={menuState.toggleAdvanced}
               >
-                {/* Room Order Sync Toggle */}
+                {/* Custom Order Toggle */}
                 <SubMenuItem
-                  icon={<RefreshCw className="w-4 h-4 text-foreground" />}
+                  icon={<GripVertical className="w-4 h-4 text-foreground" />}
                   title={
-                    t.settings.advanced?.roomOrderSync?.title || 'Sync room order across devices'
+                    t.settings.advanced?.customOrder?.title || 'Custom room & device order'
                   }
                   description={
-                    t.settings.advanced?.roomOrderSync?.description ||
-                    'Store room order in Home Assistant. Without this, order is saved locally on this device only.'
+                    t.settings.advanced?.customOrder?.description ||
+                    'Reorder rooms and devices by dragging'
                   }
-                  onClick={handleRoomOrderSyncToggle}
-                  rightElement={<ToggleSwitch checked={roomOrderSyncToHA} />}
+                  onClick={handleCustomOrderToggle}
+                  rightElement={<ToggleSwitch checked={customOrderEnabled} />}
                 />
 
                 {/* Also Hide in HA Toggle */}
@@ -469,10 +478,16 @@ export function SettingsMenu({
             onConfirm={handleEditConfirm}
           />
 
-          <RoomOrderSyncDisableDialog
-            isOpen={menuState.isModalOpen('roomOrderSyncDisable')}
-            onClose={() => menuState.closeModal('roomOrderSyncDisable')}
-            onDisabled={handleRoomOrderSyncDisabled}
+          <EnableCustomOrderDialog
+            isOpen={menuState.isModalOpen('enableCustomOrder')}
+            onClose={() => menuState.closeModal('enableCustomOrder')}
+            onConfirm={handleCustomOrderEnabled}
+          />
+
+          <DisableCustomOrderDialog
+            isOpen={menuState.isModalOpen('disableCustomOrder')}
+            onClose={() => menuState.closeModal('disableCustomOrder')}
+            onConfirm={handleCustomOrderDisabled}
           />
 
           {menuState.alsoHideInHAVariant && (

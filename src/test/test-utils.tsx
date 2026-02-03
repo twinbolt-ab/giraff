@@ -1,10 +1,15 @@
 import { render, RenderOptions } from '@testing-library/react'
 import { ToastProvider } from '@/providers/ToastProvider'
+import { SettingsProvider } from '@/lib/contexts/SettingsContext'
 import type { HAEntity, RoomWithDevices, HAFloor } from '@/types/ha'
 
 // Wrapper with required providers
 function AllProviders({ children }: { children: React.ReactNode }) {
-  return <ToastProvider>{children}</ToastProvider>
+  return (
+    <SettingsProvider>
+      <ToastProvider>{children}</ToastProvider>
+    </SettingsProvider>
+  )
 }
 
 export function renderWithProviders(

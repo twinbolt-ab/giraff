@@ -34,6 +34,8 @@ interface UseListDragOptions<T> {
   layout?: 'vertical' | 'flex-wrap'
   /** Ref to the container element */
   containerRef?: RefObject<HTMLElement | null>
+  /** When true, disables drag-to-reorder (items are static) */
+  reorderingDisabled?: boolean
 }
 
 interface UseListDragReturn<T> {
@@ -57,7 +59,10 @@ export function useListDrag<T>({
   onItemTap,
   layout: _layout = 'vertical',
   containerRef,
+  reorderingDisabled = false,
 }: UseListDragOptions<T>): UseListDragReturn<T> {
+  // Combine disabled states
+  const isDisabled = disabled || reorderingDisabled
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [draggedIndices, setDraggedIndices] = useState<number[]>([])
   const [dragOffset, setDragOffset] = useState<Position>({ x: 0, y: 0 })
@@ -205,7 +210,7 @@ export function useListDrag<T>({
       pointerId?: number,
       element?: HTMLElement
     ) => {
-      if (disabled) return
+      if (isDisabled) return
 
       const currentItems = orderedItemsRef.current
       const currentSelectedKeys = selectedKeysRef.current
@@ -295,7 +300,7 @@ export function useListDrag<T>({
       setDragOffset({ x: 0, y: 0 })
       setPendingDragIndex(null)
     },
-    [disabled, getKey, measureItemPositions, getItemPosition]
+    [isDisabled, getKey, measureItemPositions, getItemPosition]
   )
 
   const handleMove = useCallback(
@@ -457,7 +462,7 @@ export function useListDrag<T>({
   // Unified pointer handler
   const handlePointerDown = useCallback(
     (index: number) => (e: React.PointerEvent) => {
-      if (disabled) return
+      if (isDisabled) return
 
       e.stopPropagation()
 
@@ -480,7 +485,7 @@ export function useListDrag<T>({
         }, LONG_PRESS_DURATION)
       }
     },
-    [disabled, immediateMode, startDrag]
+    [isDisabled, immediateMode, startDrag]
   )
 
   // Document event listeners

@@ -194,11 +194,13 @@ export async function syncRoomOrderToHA(): Promise<void> {
 
 /**
  * Check if HA sync is enabled for room ordering
+ * Defaults to true - only false if explicitly disabled
  */
 export async function isRoomOrderHASyncEnabled(): Promise<boolean> {
   const storage = getStorage()
-  const enabled = await storage.getItem(STORAGE_KEYS.ROOM_ORDER_SYNC_TO_HA)
-  return enabled === 'true'
+  const value = await storage.getItem(STORAGE_KEYS.ROOM_ORDER_SYNC_TO_HA)
+  // Default to true, only false if explicitly set to 'false'
+  return value !== 'false'
 }
 
 /**

@@ -5,7 +5,8 @@ type ModalKey =
   | 'domainConfig'
   | 'developerMenu'
   | 'editModeInfo'
-  | 'roomOrderSyncDisable'
+  | 'enableCustomOrder'
+  | 'disableCustomOrder'
   | 'news'
   | 'rateApp'
 
