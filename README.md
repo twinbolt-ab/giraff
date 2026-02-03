@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Home%20Assistant-2024.1+-41BDF5?logo=home-assistant&logoColor=white" alt="Home Assistant">
   <img src="https://img.shields.io/badge/iOS-17+-000000?logo=apple&logoColor=white" alt="iOS">
-  <img src="https://img.shields.io/badge/Android-14+-3DDC84?logo=android&logoColor=white" alt="Android">
+  <img src="https://img.shields.io/badge/Android-10+-3DDC84?logo=android&logoColor=white" alt="Android">
   <img src="https://img.shields.io/badge/license-PolyForm%20NC-blue" alt="License">
 </p>
 
