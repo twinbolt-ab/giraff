@@ -70,9 +70,11 @@ export function useGridDrag<T>({
 
   // Sync items when they change externally
   if (prevItems !== items) {
+    console.log('[useGridDrag] Items prop changed, draggedIndex:', draggedIndex)
     setPrevItems(items)
     const isExternalDrag = externalDragKey !== null && externalDragKey !== undefined
     if (draggedIndex === null) {
+      console.log('[useGridDrag] Syncing orderedItems to new items')
       setOrderedItems(items)
     } else if (isExternalDrag) {
       setOrderedItems(items)

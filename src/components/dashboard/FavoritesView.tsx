@@ -3,9 +3,10 @@ import { Star, Sparkles } from 'lucide-react'
 import { clsx } from 'clsx'
 import { motion } from 'framer-motion'
 import type { HAEntity, RoomWithDevices } from '@/types/ha'
+import type { EntityMeta } from '@/lib/hooks/useAllEntities'
 import { ReorderableGrid } from './ReorderableGrid'
 import { ReorderableList } from './ReorderableList'
-import { RoomCard, MemoizedRoomCard } from './RoomCard'
+import { RoomCard } from './RoomCard'
 import { ROOM_EXPAND_DURATION } from '@/lib/constants'
 import {
   LightsSection,
@@ -18,6 +19,8 @@ import {
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { SelectionCheckbox } from '@/components/ui/SelectionCheckbox'
 import { MdiIcon } from '@/components/ui/MdiIcon'
+import { EditModeContainer } from '@/components/ui/EditModeContainer'
+import { DomainSection } from '@/components/ui/DomainSection'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { useLongPress } from '@/lib/hooks/useLongPress'
 import { useEditMode, type FavoriteItemType } from '@/lib/contexts/EditModeContext'
@@ -34,10 +37,68 @@ interface FavoritesViewProps {
   onEnterEditModeWithSelection?: (roomId: string) => void
   onReorderScenes?: (scenes: HAEntity[]) => void
   onReorderRooms?: (rooms: RoomWithDevices[]) => void
+  onReorderEntities?: (entities: HAEntity[]) => void
 }
 
 function getEntityDisplayName(entity: HAEntity): string {
   return entity.attributes.friendly_name || entity.entity_id.split('.')[1]
+}
+
+// Entity item for reorderable list in edit mode
+function FavoriteEntityItem({
+  entity,
+  isSelected,
+  onToggleSelection,
+}: {
+  entity: HAEntity
+  isSelected: boolean
+  onToggleSelection: (id: string, itemType: FavoriteItemType) => void
+}) {
+  const entityIcon = getEntityIcon(entity.entity_id)
+  const displayName = entity.attributes.friendly_name || entity.entity_id.split('.')[1]
+  const domain = entity.entity_id.split('.')[0]
+
+  // Get domain-specific icon if no custom icon
+  const getDomainIcon = () => {
+    switch (domain) {
+      case 'light':
+        return 'mdi:lightbulb'
+      case 'switch':
+        return 'mdi:toggle-switch'
+      case 'climate':
+        return 'mdi:thermostat'
+      case 'cover':
+        return 'mdi:window-shutter'
+      case 'fan':
+        return 'mdi:fan'
+      case 'input_boolean':
+        return 'mdi:toggle-switch-outline'
+      case 'input_number':
+        return 'mdi:numeric'
+      default:
+        return 'mdi:devices'
+    }
+  }
+
+  const icon = entityIcon || getDomainIcon()
+
+  return (
+    <button
+      data-entity-id={entity.entity_id}
+      onClick={() => onToggleSelection(entity.entity_id, 'entity')}
+      className={clsx(
+        'w-full px-3 py-2 rounded-lg text-sm font-medium',
+        'bg-border/50 hover:bg-accent/20 hover:text-accent',
+        'transition-all touch-feedback',
+        'flex items-center gap-2',
+        isSelected && 'ring-2 ring-inset ring-accent'
+      )}
+    >
+      <SelectionCheckbox isSelected={isSelected} />
+      <MdiIcon icon={icon} className="w-4 h-4 flex-shrink-0" />
+      <span className="truncate">{displayName}</span>
+    </button>
+  )
 }
 
 // Scene item for favorites view
@@ -221,8 +282,7 @@ function FavoriteRoomsNormalGrid({
         const isExpanded = room.id === expandedRoomId
         // Cards to the left of an expanded card in the same row need placeholders
         const rowStart = expandedIndex - expandedColumn
-        const needsPlaceholder =
-          expandedColumn > 0 && index >= rowStart && index < expandedIndex
+        const needsPlaceholder = expandedColumn > 0 && index >= rowStart && index < expandedIndex
 
         // Use pixel width when measured, calc() fallback before measurement
         const targetWidth = containerWidth
@@ -279,12 +339,14 @@ export function FavoritesView({
   onToggleExpand,
   onReorderScenes,
   onReorderRooms,
+  onReorderEntities,
 }: FavoritesViewProps) {
   const handlers = useDeviceHandlers()
   const {
     isFavoritesEditMode,
     selectedFavoriteItemType,
     selectedIds,
+    selectedDomain,
     isSelected,
     enterFavoritesEdit,
     toggleFavoritesSelection,
@@ -301,7 +363,27 @@ export function FavoritesView({
     const covers = favoriteEntities.filter((e) => e.entity_id.startsWith('cover.'))
     const fans = favoriteEntities.filter((e) => e.entity_id.startsWith('fan.'))
 
+    console.log(
+      '[FavoritesView] entityGroups.lights:',
+      lights.map((e) => e.entity_id)
+    )
+
     return { lights, switches, inputBooleans, inputNumbers, climates, covers, fans }
+  }, [favoriteEntities])
+
+  // Build entityMeta map with room names for favorites view
+  const entityMeta = useMemo(() => {
+    const meta = new Map<string, EntityMeta>()
+    for (const entity of favoriteEntities) {
+      const area = entity.attributes.area
+      meta.set(entity.entity_id, {
+        isHiddenInStuga: false,
+        isHiddenInHA: false,
+        hasRoom: !!area,
+        roomName: typeof area === 'string' ? area : undefined,
+      })
+    }
+    return meta
   }, [favoriteEntities])
 
   const hasScenes = favoriteScenes.length > 0
@@ -313,6 +395,11 @@ export function FavoritesView({
   const isScenesEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'scene'
   const isRoomsEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'room'
   const isEntitiesEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'entity'
+
+  // Debug logging for edit mode state
+  if (isEntitiesEditMode) {
+    console.log('[FavoritesView] In entities edit mode, selectedDomain:', selectedDomain)
+  }
 
   // Handlers for entering edit mode with initial selection
   const handleEnterEditModeWithSelection = useCallback(
@@ -328,23 +415,6 @@ export function FavoritesView({
       toggleFavoritesSelection(id, itemType)
     },
     [toggleFavoritesSelection]
-  )
-
-  // Handle background click to exit edit mode
-  const handleBackgroundClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isFavoritesEditMode) return
-      const target = e.target as HTMLElement
-      // Check for items inside cards, entities, or reorderable list items
-      const isInsideInteractive =
-        target.closest('.card') ||
-        target.closest('[data-entity-id]') ||
-        target.closest('[data-reorderable-item]')
-      if (!isInsideInteractive) {
-        exitEditMode()
-      }
-    },
-    [isFavoritesEditMode, exitEditMode]
   )
 
   // Handler for reordering scenes
@@ -363,6 +433,18 @@ export function FavoritesView({
     [onReorderRooms]
   )
 
+  // Handler for reordering entities
+  const handleReorderEntities = useCallback(
+    (entities: HAEntity[]) => {
+      console.log(
+        '[FavoritesView] handleReorderEntities called with:',
+        entities.map((e) => e.entity_id)
+      )
+      onReorderEntities?.(entities)
+    },
+    [onReorderEntities]
+  )
+
   if (isEmpty) {
     return (
       <div className="px-4 pt-4">
@@ -375,14 +457,7 @@ export function FavoritesView({
   }
 
   return (
-    <div
-      className="px-4 pt-4 pb-4"
-      onClick={handleBackgroundClick}
-      onPointerDown={(e) => e.stopPropagation()}
-      onPointerMove={(e) => e.stopPropagation()}
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchMove={(e) => e.stopPropagation()}
-    >
+    <div className="px-4 pt-4 pb-4">
       {/* Scenes Section (Section A) */}
       {hasScenes && (
         <div className="mb-6">
@@ -465,134 +540,235 @@ export function FavoritesView({
         </div>
       )}
 
-      {/* Entities Section (Section C) - grouped by domain */}
+      {/* Entities Section (Section C) - grouped by domain, each group reorderable in edit mode */}
       {hasEntities && (
-        <div className="space-y-4">
-          {entityGroups.lights.length > 0 && (
-            <LightsSection
-              lights={entityGroups.lights}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.switches.length > 0 && (
-            <SwitchesSection
-              switches={entityGroups.switches}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onToggle={handlers.handleSwitchToggle}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.inputBooleans.length > 0 && (
-            <InputsSection
-              inputBooleans={entityGroups.inputBooleans}
-              inputNumbers={entityGroups.inputNumbers}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onBooleanToggle={handlers.handleInputBooleanToggle}
-              onNumberChange={handlers.handleInputNumberChange}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.inputNumbers.length > 0 && entityGroups.inputBooleans.length === 0 && (
-            <InputsSection
-              inputBooleans={[]}
-              inputNumbers={entityGroups.inputNumbers}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onBooleanToggle={handlers.handleInputBooleanToggle}
-              onNumberChange={handlers.handleInputNumberChange}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.climates.length > 0 && (
-            <ClimateSection
-              climates={entityGroups.climates}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onToggle={handlers.handleClimateToggle}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.covers.length > 0 && (
-            <CoversSection
-              covers={entityGroups.covers}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onOpen={handlers.handleCoverOpen}
-              onClose={handlers.handleCoverClose}
-              onStop={handlers.handleCoverStop}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-          {entityGroups.fans.length > 0 && (
-            <FansSection
-              fans={entityGroups.fans}
-              isInEditMode={isEntitiesEditMode}
-              isSelected={(id) => isEntitiesEditMode && isSelected(id)}
-              onToggle={handlers.handleFanToggle}
-              onToggleSelection={(id) => {
-                if (isEntitiesEditMode) {
-                  handleToggleSelection(id, 'entity')
-                } else {
-                  handleEnterEditModeWithSelection(id, 'entity')
-                }
-              }}
-              onEnterEditModeWithSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
-              selectedIds={isEntitiesEditMode ? selectedIds : undefined}
-            />
-          )}
-        </div>
+        <EditModeContainer isInEditMode={isEntitiesEditMode} onExitEditMode={exitEditMode}>
+          <div className="space-y-4">
+            {entityGroups.lights.length > 0 && (
+              <DomainSection domain="light" selectedDomain={selectedDomain}>
+                {isEntitiesEditMode && selectedDomain === 'light' ? (
+                  <div>
+                    <SectionHeader>{t.devices.lights}</SectionHeader>
+                    <ReorderableList
+                      items={entityGroups.lights}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <LightsSection
+                    lights={entityGroups.lights}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+            {entityGroups.switches.length > 0 && (
+              <DomainSection domain="switch" selectedDomain={selectedDomain}>
+                {isEntitiesEditMode && selectedDomain === 'switch' ? (
+                  <div>
+                    <SectionHeader>{t.devices.switches}</SectionHeader>
+                    <ReorderableList
+                      items={entityGroups.switches}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <SwitchesSection
+                    switches={entityGroups.switches}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onToggle={handlers.handleSwitchToggle}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+            {(entityGroups.inputBooleans.length > 0 || entityGroups.inputNumbers.length > 0) && (
+              <DomainSection
+                domain={['input_boolean', 'input_number']}
+                selectedDomain={selectedDomain}
+              >
+                {isEntitiesEditMode &&
+                (selectedDomain === 'input_boolean' || selectedDomain === 'input_number') ? (
+                  <div>
+                    <SectionHeader>{t.devices.inputs}</SectionHeader>
+                    <ReorderableList
+                      items={[...entityGroups.inputBooleans, ...entityGroups.inputNumbers]}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <InputsSection
+                    inputBooleans={entityGroups.inputBooleans}
+                    inputNumbers={entityGroups.inputNumbers}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onBooleanToggle={handlers.handleInputBooleanToggle}
+                    onNumberChange={handlers.handleInputNumberChange}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+            {entityGroups.climates.length > 0 && (
+              <DomainSection domain="climate" selectedDomain={selectedDomain}>
+                {isEntitiesEditMode && selectedDomain === 'climate' ? (
+                  <div>
+                    <SectionHeader>{t.domains.climate}</SectionHeader>
+                    <ReorderableList
+                      items={entityGroups.climates}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <ClimateSection
+                    climates={entityGroups.climates}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onToggle={handlers.handleClimateToggle}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+            {entityGroups.covers.length > 0 && (
+              <DomainSection domain="cover" selectedDomain={selectedDomain}>
+                {isEntitiesEditMode && selectedDomain === 'cover' ? (
+                  <div>
+                    <SectionHeader>{t.domains.cover}</SectionHeader>
+                    <ReorderableList
+                      items={entityGroups.covers}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <CoversSection
+                    covers={entityGroups.covers}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onOpen={handlers.handleCoverOpen}
+                    onClose={handlers.handleCoverClose}
+                    onStop={handlers.handleCoverStop}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+            {entityGroups.fans.length > 0 && (
+              <DomainSection domain="fan" selectedDomain={selectedDomain}>
+                {isEntitiesEditMode && selectedDomain === 'fan' ? (
+                  <div>
+                    <SectionHeader>{t.domains.fan}</SectionHeader>
+                    <ReorderableList
+                      items={entityGroups.fans}
+                      getKey={(entity) => entity.entity_id}
+                      onReorder={handleReorderEntities}
+                      layout="vertical"
+                      selectedKeys={selectedIds}
+                      onItemTap={(key) => handleToggleSelection(key, 'entity')}
+                      renderItem={(entity) => (
+                        <FavoriteEntityItem
+                          entity={entity}
+                          isSelected={isSelected(entity.entity_id)}
+                          onToggleSelection={handleToggleSelection}
+                        />
+                      )}
+                    />
+                  </div>
+                ) : (
+                  <FansSection
+                    fans={entityGroups.fans}
+                    isInEditMode={false}
+                    isSelected={() => false}
+                    onToggle={handlers.handleFanToggle}
+                    onToggleSelection={(id) => handleEnterEditModeWithSelection(id, 'entity')}
+                    onEnterEditModeWithSelection={(id) =>
+                      handleEnterEditModeWithSelection(id, 'entity')
+                    }
+                    entityMeta={entityMeta}
+                  />
+                )}
+              </DomainSection>
+            )}
+          </div>
+        </EditModeContainer>
       )}
     </div>
   )

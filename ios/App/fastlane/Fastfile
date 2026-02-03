@@ -12,6 +12,17 @@ platform :ios do
     )
   end
 
+  desc "Upload dSYMs to Firebase Crashlytics"
+  lane :upload_dsyms do
+    download_dsyms(
+      app_identifier: "se.twinbolt.stuga"
+    )
+    upload_symbols_to_crashlytics(
+      gsp_path: "../App/GoogleService-Info.plist"
+    )
+    clean_build_artifacts
+  end
+
   desc "Upload to TestFlight"
   lane :beta do
     build

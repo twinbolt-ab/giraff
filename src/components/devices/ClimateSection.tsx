@@ -103,6 +103,9 @@ function ClimateItem({
               />
             )}
           </div>
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+          )}
         </div>
       </button>
     )
@@ -176,18 +179,23 @@ function ClimateItem({
           </div>
         </div>
 
-        {/* Power toggle */}
-        <button
-          onClick={() => {
-            onToggle(climate)
-          }}
-          className={clsx(
-            'p-2 rounded-lg transition-colors touch-feedback',
-            isOff ? 'bg-border/50 text-muted' : 'bg-accent text-white'
+        {/* Room name and power toggle */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
           )}
-        >
-          <Power className="w-4 h-4" />
-        </button>
+          <button
+            onClick={() => {
+              onToggle(climate)
+            }}
+            className={clsx(
+              'p-2 rounded-lg transition-colors touch-feedback',
+              isOff ? 'bg-border/50 text-muted' : 'bg-accent text-white'
+            )}
+          >
+            <Power className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   )

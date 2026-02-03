@@ -64,6 +64,7 @@ export type EditMode =
       type: 'edit-favorites'
       selectedIds: Set<string>
       selectedItemType: FavoriteItemType | null
+      selectedDomain: EntityDomain | null
       initialSelection?: string
     }
 
@@ -144,10 +145,16 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
       const selectedIds = action.initialSelection
         ? new Set([action.initialSelection])
         : new Set<string>()
+      // Derive domain if itemType is 'entity'
+      const selectedDomain =
+        action.itemType === 'entity' && action.initialSelection
+          ? getEntityDomain(action.initialSelection)
+          : null
       return {
         type: 'edit-favorites',
         selectedIds,
         selectedItemType: action.itemType,
+        selectedDomain,
         initialSelection: action.initialSelection,
       }
     }
@@ -202,6 +209,14 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
           return { type: 'normal' }
         }
 
+        // For entity type, also check domain match
+        if (action.itemType === 'entity') {
+          const entityDomain = getEntityDomain(action.id)
+          if (state.selectedDomain && entityDomain !== state.selectedDomain) {
+            return { type: 'normal' }
+          }
+        }
+
         const newSelectedIds = new Set(state.selectedIds)
         if (newSelectedIds.has(action.id)) {
           newSelectedIds.delete(action.id)
@@ -215,7 +230,17 @@ export function editModeReducer(state: EditMode, action: EditModeAction): EditMo
 
         // Update the selected item type if this is the first selection
         const newSelectedItemType = state.selectedItemType || action.itemType
-        return { ...state, selectedIds: newSelectedIds, selectedItemType: newSelectedItemType }
+        // Update the selected domain if this is an entity and first selection
+        const newSelectedDomain =
+          action.itemType === 'entity'
+            ? state.selectedDomain || getEntityDomain(action.id)
+            : state.selectedDomain
+        return {
+          ...state,
+          selectedIds: newSelectedIds,
+          selectedItemType: newSelectedItemType,
+          selectedDomain: newSelectedDomain,
+        }
       }
       return state
 
@@ -349,6 +374,9 @@ export function EditModeProvider({ children }: EditModeProviderProps) {
 
   const selectedDomain = useMemo(() => {
     if (mode.type === 'edit-devices' || mode.type === 'edit-all-devices') {
+      return mode.selectedDomain
+    }
+    if (mode.type === 'edit-favorites') {
       return mode.selectedDomain
     }
     return null

@@ -34,8 +34,8 @@ import {
   updateArea,
   removeEntityFromFavorites,
   removeAreaFromFavorites,
-  updateEntityFavoriteOrder,
-  updateAreaFavoriteOrder,
+  updateEntityFavoriteOrderBatch,
+  updateAreaFavoriteOrderBatch,
 } from '@/lib/ha-websocket'
 import { ORDER_GAP, FAVORITES_FLOOR_ID } from '@/lib/constants'
 import { t } from '@/lib/i18n'
@@ -388,18 +388,34 @@ function DashboardContent() {
 
   // Handler for reordering favorite scenes
   const handleReorderFavoriteScenes = useCallback(async (scenes: HAEntity[]) => {
-    await Promise.all(
-      scenes.map((scene, idx) => updateEntityFavoriteOrder(scene.entity_id, (idx + 1) * ORDER_GAP))
-    )
+    const updates = scenes.map((scene, idx) => ({
+      entityId: scene.entity_id,
+      order: (idx + 1) * ORDER_GAP,
+    }))
+    console.log('[Favorites] Reordering scenes:', updates)
+    await updateEntityFavoriteOrderBatch(updates)
+    console.log('[Favorites] Scenes reorder complete')
   }, [])
 
   // Handler for reordering favorite rooms
   const handleReorderFavoriteRooms = useCallback(async (rooms: RoomWithDevices[]) => {
-    await Promise.all(
-      rooms
-        .filter((room) => room.areaId)
-        .map((room, idx) => updateAreaFavoriteOrder(room.areaId!, (idx + 1) * ORDER_GAP))
-    )
+    const updates = rooms
+      .filter((room) => room.areaId)
+      .map((room, idx) => ({ areaId: room.areaId!, order: (idx + 1) * ORDER_GAP }))
+    console.log('[Favorites] Reordering rooms:', updates)
+    await updateAreaFavoriteOrderBatch(updates)
+    console.log('[Favorites] Rooms reorder complete')
+  }, [])
+
+  // Handler for reordering favorite entities
+  const handleReorderFavoriteEntities = useCallback(async (entities: HAEntity[]) => {
+    const updates = entities.map((entity, idx) => ({
+      entityId: entity.entity_id,
+      order: (idx + 1) * ORDER_GAP,
+    }))
+    console.log('[Favorites] Reordering entities:', updates)
+    await updateEntityFavoriteOrderBatch(updates)
+    console.log('[Favorites] Entities reorder complete')
   }, [])
 
   // Handle clicks on empty area (gaps between cards)
@@ -593,6 +609,7 @@ function DashboardContent() {
                         onToggleExpand={handleToggleExpand}
                         onReorderScenes={handleReorderFavoriteScenes}
                         onReorderRooms={handleReorderFavoriteRooms}
+                        onReorderEntities={handleReorderFavoriteEntities}
                       />
                     )
                   }

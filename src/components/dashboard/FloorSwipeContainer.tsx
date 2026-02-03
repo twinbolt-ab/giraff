@@ -177,7 +177,11 @@ export function FloorSwipeContainer({
 
       const target = e.target as HTMLElement
       // Don't start drag if touching cards, buttons, or any interactive elements
-      if (target.closest('.card, button, input, nav, [role="button"], a, [data-no-swipe]')) {
+      if (
+        target.closest(
+          '.card, button, input, nav, [role="button"], a, [data-no-swipe], [data-reorderable-item]'
+        )
+      ) {
         return
       }
 

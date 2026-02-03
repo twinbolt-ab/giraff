@@ -105,6 +105,9 @@ function CoverItem({
             />
           )}
         </div>
+        {entityMeta?.roomName && (
+          <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+        )}
       </button>
     )
   }
@@ -156,8 +159,13 @@ function CoverItem({
         )}
       </div>
 
-      {/* State */}
-      <span className="text-xs text-muted capitalize flex-shrink-0">{cover.state}</span>
+      {/* Room name and state */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {entityMeta?.roomName && (
+          <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+        )}
+        <span className="text-xs text-muted capitalize w-10 text-right">{cover.state}</span>
+      </div>
 
       {/* Control buttons */}
       <div className="flex items-center gap-1">

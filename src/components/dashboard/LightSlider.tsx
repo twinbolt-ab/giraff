@@ -264,11 +264,16 @@ export function LightSlider({
               />
             )}
           </div>
-          {!compact && (
-            <span className="text-xs text-muted flex-shrink-0">
-              {isOn ? `${displayBrightness}%` : 'Off'}
-            </span>
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {entityMeta?.roomName && (
+              <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+            )}
+            {!compact && (
+              <span className="text-xs text-muted w-8 text-right">
+                {isOn ? `${displayBrightness}%` : 'Off'}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

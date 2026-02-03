@@ -132,6 +132,9 @@ function InputNumberItem({
               />
             )}
           </div>
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+          )}
         </div>
       </button>
     )
@@ -172,10 +175,15 @@ function InputNumberItem({
                 />
               )}
             </div>
-            <span className="text-xs text-muted tabular-nums flex-shrink-0">
-              {localValue}
-              {unit}
-            </span>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {entityMeta?.roomName && (
+                <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+              )}
+              <span className="text-xs text-muted tabular-nums w-12 text-right">
+                {localValue}
+                {unit}
+              </span>
+            </div>
           </div>
           <input
             type="range"

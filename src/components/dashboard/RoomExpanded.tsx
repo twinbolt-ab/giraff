@@ -1,14 +1,14 @@
 import { useMemo, useCallback, useRef, useState, useLayoutEffect, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { clsx } from 'clsx'
 import type { RoomWithDevices, HAEntity } from '@/types/ha'
 import { useEditMode } from '@/lib/contexts/EditModeContext'
 import { useEnabledDomains } from '@/lib/hooks/useEnabledDomains'
 import { useDeviceHandlers } from '@/lib/hooks/useDeviceHandlers'
 import { useEntityOrder } from '@/lib/hooks/useEntityOrder'
-import { useExitEditModeOnClickOutside } from '@/lib/hooks/useExitEditModeOnClickOutside'
 import { t } from '@/lib/i18n'
 import { ROOM_EXPAND_DURATION } from '@/lib/constants'
+import { EditModeContainer } from '@/components/ui/EditModeContainer'
+import { DomainSection } from '@/components/ui/DomainSection'
 
 import {
   ScenesSection,
@@ -39,7 +39,6 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
   const { enabledDomains } = useEnabledDomains()
   const handlers = useDeviceHandlers()
   const contentRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
   const [measuredHeight, setMeasuredHeight] = useState(0)
 
   // Get edit mode state from context
@@ -167,18 +166,6 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
     covers.length > 0 ||
     fans.length > 0
 
-  // Exit edit mode when clicking outside entity items or the edit header
-  useExitEditModeOnClickOutside({
-    isActive: isInEditMode,
-    onExit: exitEditMode,
-    excludeSelectors: [
-      '[data-entity-id]',
-      '[data-edit-mode-header]',
-      '[data-edit-modal]',
-      '[data-edit-backdrop]',
-    ],
-  })
-
   // Measure content height whenever it might change
   useLayoutEffect(() => {
     const element = contentRef.current
@@ -266,27 +253,8 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
           }
         }}
       >
-        <div ref={containerRef} className="relative">
-          {/* Backdrop overlay when in edit mode - click to exit */}
-          {isInEditMode && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="absolute inset-0 bg-card/60 backdrop-blur-[2px] z-10 cursor-pointer"
-              onClick={exitEditMode}
-              data-edit-backdrop
-            />
-          )}
-
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'scene' && 'opacity-50',
-              selectedDomain === 'scene' && 'z-20'
-            )}
-          >
+        <EditModeContainer isInEditMode={isInEditMode} onExitEditMode={exitEditMode}>
+          <DomainSection domain="scene" selectedDomain={selectedDomain}>
             <ScenesSection
               scenes={scenes}
               isInEditMode={isInEditMode && selectedDomain === 'scene'}
@@ -299,15 +267,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('scene', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'light' && 'opacity-50',
-              selectedDomain === 'light' && 'z-20'
-            )}
-          >
+          <DomainSection domain="light" selectedDomain={selectedDomain}>
             <LightsSection
               lights={lights}
               isInEditMode={isInEditMode && selectedDomain === 'light'}
@@ -318,15 +280,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('light', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'switch' && 'opacity-50',
-              selectedDomain === 'switch' && 'z-20'
-            )}
-          >
+          <DomainSection domain="switch" selectedDomain={selectedDomain}>
             <SwitchesSection
               switches={switches}
               isInEditMode={isInEditMode && selectedDomain === 'switch'}
@@ -338,18 +294,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('switch', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null &&
-                selectedDomain !== 'input_boolean' &&
-                selectedDomain !== 'input_number' &&
-                'opacity-50',
-              (selectedDomain === 'input_boolean' || selectedDomain === 'input_number') && 'z-20'
-            )}
-          >
+          <DomainSection domain={['input_boolean', 'input_number']} selectedDomain={selectedDomain}>
             <InputsSection
               inputBooleans={inputBooleans}
               inputNumbers={inputNumbers}
@@ -366,15 +313,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('input_boolean', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'climate' && 'opacity-50',
-              selectedDomain === 'climate' && 'z-20'
-            )}
-          >
+          <DomainSection domain="climate" selectedDomain={selectedDomain}>
             <ClimateSection
               climates={climates}
               isInEditMode={isInEditMode && selectedDomain === 'climate'}
@@ -386,15 +327,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('climate', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'cover' && 'opacity-50',
-              selectedDomain === 'cover' && 'z-20'
-            )}
-          >
+          <DomainSection domain="cover" selectedDomain={selectedDomain}>
             <CoversSection
               covers={covers}
               isInEditMode={isInEditMode && selectedDomain === 'cover'}
@@ -408,15 +343,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('cover', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'fan' && 'opacity-50',
-              selectedDomain === 'fan' && 'z-20'
-            )}
-          >
+          <DomainSection domain="fan" selectedDomain={selectedDomain}>
             <FansSection
               fans={fans}
               isInEditMode={isInEditMode && selectedDomain === 'fan'}
@@ -428,15 +357,9 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('fan', entities)}
               selectedIds={selectedIds}
             />
-          </div>
+          </DomainSection>
 
-          <div
-            className={clsx(
-              'transition-opacity duration-200 relative',
-              selectedDomain !== null && selectedDomain !== 'sensor' && 'opacity-50',
-              selectedDomain === 'sensor' && 'z-20'
-            )}
-          >
+          <DomainSection domain="sensor" selectedDomain={selectedDomain}>
             <SensorsDisplay
               temperatureSensors={temperatureSensors}
               humiditySensors={humiditySensors}
@@ -448,8 +371,8 @@ function RoomExpandedContent({ room, allRooms: _allRooms, isExpanded }: RoomExpa
               onReorderEntities={(entities) => updateDomainOrder('sensor', entities)}
               selectedIds={selectedIds}
             />
-          </div>
-        </div>
+          </DomainSection>
+        </EditModeContainer>
 
         {/* Empty state */}
         {!hasDevices && <p className="text-sm text-muted py-2">{t.rooms.noDevices}</p>}

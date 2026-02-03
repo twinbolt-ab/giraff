@@ -86,8 +86,13 @@ export function DeviceToggleButton({
             />
           )}
         </div>
-        {/* State indicator on right */}
-        <span className="text-xs text-muted flex-shrink-0">{isOn ? 'On' : 'Off'}</span>
+        {/* Room name and state indicator on right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+          )}
+          <span className="text-xs text-muted w-6 text-right">{isOn ? 'On' : 'Off'}</span>
+        </div>
       </button>
     )
   }
@@ -142,8 +147,13 @@ export function DeviceToggleButton({
             />
           )}
         </div>
-        {/* State indicator on right */}
-        <span className="text-xs text-muted flex-shrink-0">{isOn ? 'On' : 'Off'}</span>
+        {/* Room name and state indicator on right */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+          )}
+          <span className="text-xs text-muted w-6 text-right">{isOn ? 'On' : 'Off'}</span>
+        </div>
       </button>
     </div>
   )

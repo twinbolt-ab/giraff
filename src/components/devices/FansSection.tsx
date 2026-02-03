@@ -130,13 +130,18 @@ function FanItem({
           )}
         </div>
 
-        {/* Speed indicator */}
-        {isOn && percentage !== undefined && (
-          <span className="text-xs text-accent font-medium flex-shrink-0">{percentage}%</span>
-        )}
-
-        {/* State indicator */}
-        <span className="text-xs text-muted flex-shrink-0">{isOn ? 'On' : 'Off'}</span>
+        {/* Room name and state indicators */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {entityMeta?.roomName && (
+            <span className="text-sm text-muted truncate w-20 text-right">{entityMeta.roomName}</span>
+          )}
+          {/* Speed indicator */}
+          {isOn && percentage !== undefined && (
+            <span className="text-xs text-accent font-medium w-8 text-right">{percentage}%</span>
+          )}
+          {/* State indicator */}
+          <span className="text-xs text-muted w-6 text-right">{isOn ? 'On' : 'Off'}</span>
+        </div>
       </button>
     </div>
   )

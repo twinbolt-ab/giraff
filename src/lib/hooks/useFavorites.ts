@@ -90,7 +90,8 @@ export function useFavorites(
     }
 
     // Check if we successfully resolved any live favorites
-    const hasLiveFavorites = scenes.length > 0 || favoriteRoomsList.length > 0 || entitiesList.length > 0
+    const hasLiveFavorites =
+      scenes.length > 0 || favoriteRoomsList.length > 0 || entitiesList.length > 0
 
     // If live data says favorites exist but we couldn't resolve any yet,
     // keep showing cached favorites to avoid flash of empty state
@@ -157,6 +158,15 @@ export function useFavorites(
     }
 
     // Return live favorites (or empty if none exist)
+    console.log('[useFavorites] Registry version:', registryVersion)
+    console.log(
+      '[useFavorites] Returning rooms:',
+      favoriteRoomsList.map((r) => r.areaId)
+    )
+    console.log(
+      '[useFavorites] Returning entities (in order):',
+      entitiesList.map((e) => e.entity_id)
+    )
     return {
       hasFavorites: hasLiveFavorites,
       favoriteScenes: scenes,

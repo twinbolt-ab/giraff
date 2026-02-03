@@ -456,12 +456,13 @@ export async function removeAreaFromFavorites(
 }
 
 /**
- * Update the order of a favorited entity.
+ * Update the order of a favorited entity (internal, optionally skip notification).
  */
-export async function updateEntityFavoriteOrder(
+async function updateEntityFavoriteOrderInternal(
   state: HAWebSocketState,
   entityId: string,
-  newOrder: number
+  newOrder: number,
+  skipNotify: boolean
 ): Promise<void> {
   const entity = state.entityRegistry.get(entityId)
   if (!entity) return
@@ -482,7 +483,9 @@ export async function updateEntityFavoriteOrder(
     registerCallback(state, msgId, (success) => {
       if (success) {
         entity.labels = newLabels
-        notifyRegistryHandlers(state)
+        if (!skipNotify) {
+          notifyRegistryHandlers(state)
+        }
         resolve()
       } else {
         reject(new Error('Failed to update entity favorite order'))
@@ -498,12 +501,44 @@ export async function updateEntityFavoriteOrder(
 }
 
 /**
- * Update the order of a favorited area.
+ * Update the order of a favorited entity.
  */
-export async function updateAreaFavoriteOrder(
+export async function updateEntityFavoriteOrder(
+  state: HAWebSocketState,
+  entityId: string,
+  newOrder: number
+): Promise<void> {
+  return updateEntityFavoriteOrderInternal(state, entityId, newOrder, false)
+}
+
+/**
+ * Batch update favorite entity orders. Only notifies once after all updates complete.
+ */
+export async function updateEntityFavoriteOrderBatch(
+  state: HAWebSocketState,
+  updates: Array<{ entityId: string; order: number }>
+): Promise<void> {
+  console.log('[FavoritesBatch] Starting batch update for entities:', updates)
+  await Promise.all(
+    updates.map(({ entityId, order }) =>
+      updateEntityFavoriteOrderInternal(state, entityId, order, true)
+    )
+  )
+  // Log the current state after updates
+  const currentOrder = getAllFavoriteEntityIds(state)
+  console.log('[FavoritesBatch] After updates, entity order from state:', currentOrder)
+  notifyRegistryHandlers(state)
+  console.log('[FavoritesBatch] Notified registry handlers')
+}
+
+/**
+ * Update the order of a favorited area (internal, optionally skip notification).
+ */
+async function updateAreaFavoriteOrderInternal(
   state: HAWebSocketState,
   areaId: string,
-  newOrder: number
+  newOrder: number,
+  skipNotify: boolean
 ): Promise<void> {
   const area = state.areaRegistry.get(areaId)
   if (!area) return
@@ -522,7 +557,9 @@ export async function updateAreaFavoriteOrder(
     registerCallback(state, msgId, (success) => {
       if (success) {
         area.labels = newLabels
-        notifyRegistryHandlers(state)
+        if (!skipNotify) {
+          notifyRegistryHandlers(state)
+        }
         resolve()
       } else {
         reject(new Error('Failed to update area favorite order'))
@@ -535,4 +572,33 @@ export async function updateAreaFavoriteOrder(
       labels: newLabels,
     })
   })
+}
+
+/**
+ * Update the order of a favorited area.
+ */
+export async function updateAreaFavoriteOrder(
+  state: HAWebSocketState,
+  areaId: string,
+  newOrder: number
+): Promise<void> {
+  return updateAreaFavoriteOrderInternal(state, areaId, newOrder, false)
+}
+
+/**
+ * Batch update favorite area orders. Only notifies once after all updates complete.
+ */
+export async function updateAreaFavoriteOrderBatch(
+  state: HAWebSocketState,
+  updates: Array<{ areaId: string; order: number }>
+): Promise<void> {
+  console.log('[FavoritesBatch] Starting batch update for areas:', updates)
+  await Promise.all(
+    updates.map(({ areaId, order }) => updateAreaFavoriteOrderInternal(state, areaId, order, true))
+  )
+  // Log the current state after updates
+  const currentOrder = getAllFavoriteAreaIds(state)
+  console.log('[FavoritesBatch] After updates, area order from state:', currentOrder)
+  notifyRegistryHandlers(state)
+  console.log('[FavoritesBatch] Notified registry handlers')
 }
