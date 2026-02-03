@@ -214,13 +214,16 @@ export function InputsSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: InputsSectionProps) {
-  // Combine and sort all inputs by order
+  // Combine and sort all inputs by order only if entityOrder is provided
   const sortedInputs = useMemo(() => {
     const allInputs = [...inputBooleans, ...inputNumbers]
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return allInputs
+    }
     return sortEntitiesByOrder(allInputs, entityOrder)
   }, [inputBooleans, inputNumbers, entityOrder])
 

@@ -363,11 +363,6 @@ export function FavoritesView({
     const covers = favoriteEntities.filter((e) => e.entity_id.startsWith('cover.'))
     const fans = favoriteEntities.filter((e) => e.entity_id.startsWith('fan.'))
 
-    console.log(
-      '[FavoritesView] entityGroups.lights:',
-      lights.map((e) => e.entity_id)
-    )
-
     return { lights, switches, inputBooleans, inputNumbers, climates, covers, fans }
   }, [favoriteEntities])
 
@@ -395,11 +390,6 @@ export function FavoritesView({
   const isScenesEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'scene'
   const isRoomsEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'room'
   const isEntitiesEditMode = isFavoritesEditMode && selectedFavoriteItemType === 'entity'
-
-  // Debug logging for edit mode state
-  if (isEntitiesEditMode) {
-    console.log('[FavoritesView] In entities edit mode, selectedDomain:', selectedDomain)
-  }
 
   // Handlers for entering edit mode with initial selection
   const handleEnterEditModeWithSelection = useCallback(

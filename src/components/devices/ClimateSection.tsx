@@ -209,12 +209,15 @@ export function ClimateSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: ClimateSectionProps) {
-  // Sort climates by order
+  // Sort climates by order only if entityOrder is provided
   const sortedClimates = useMemo(() => {
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return climates
+    }
     return sortEntitiesByOrder(climates, entityOrder)
   }, [climates, entityOrder])
 

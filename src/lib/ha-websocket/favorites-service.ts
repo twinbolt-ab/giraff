@@ -518,17 +518,12 @@ export async function updateEntityFavoriteOrderBatch(
   state: HAWebSocketState,
   updates: Array<{ entityId: string; order: number }>
 ): Promise<void> {
-  console.log('[FavoritesBatch] Starting batch update for entities:', updates)
   await Promise.all(
     updates.map(({ entityId, order }) =>
       updateEntityFavoriteOrderInternal(state, entityId, order, true)
     )
   )
-  // Log the current state after updates
-  const currentOrder = getAllFavoriteEntityIds(state)
-  console.log('[FavoritesBatch] After updates, entity order from state:', currentOrder)
   notifyRegistryHandlers(state)
-  console.log('[FavoritesBatch] Notified registry handlers')
 }
 
 /**
@@ -592,13 +587,8 @@ export async function updateAreaFavoriteOrderBatch(
   state: HAWebSocketState,
   updates: Array<{ areaId: string; order: number }>
 ): Promise<void> {
-  console.log('[FavoritesBatch] Starting batch update for areas:', updates)
   await Promise.all(
     updates.map(({ areaId, order }) => updateAreaFavoriteOrderInternal(state, areaId, order, true))
   )
-  // Log the current state after updates
-  const currentOrder = getAllFavoriteAreaIds(state)
-  console.log('[FavoritesBatch] After updates, area order from state:', currentOrder)
   notifyRegistryHandlers(state)
-  console.log('[FavoritesBatch] Notified registry handlers')
 }

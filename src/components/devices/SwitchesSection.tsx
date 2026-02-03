@@ -31,12 +31,15 @@ export function SwitchesSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: SwitchesSectionProps) {
-  // Sort switches by order
+  // Sort switches by order only if entityOrder is provided
   const sortedSwitches = useMemo(() => {
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return switches
+    }
     return sortEntitiesByOrder(switches, entityOrder)
   }, [switches, entityOrder])
 

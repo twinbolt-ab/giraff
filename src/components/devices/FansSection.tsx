@@ -155,12 +155,15 @@ export function FansSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: FansSectionProps) {
-  // Sort fans by order
+  // Sort fans by order only if entityOrder is provided
   const sortedFans = useMemo(() => {
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return fans
+    }
     return sortEntitiesByOrder(fans, entityOrder)
   }, [fans, entityOrder])
 

@@ -392,9 +392,7 @@ function DashboardContent() {
       entityId: scene.entity_id,
       order: (idx + 1) * ORDER_GAP,
     }))
-    console.log('[Favorites] Reordering scenes:', updates)
     await updateEntityFavoriteOrderBatch(updates)
-    console.log('[Favorites] Scenes reorder complete')
   }, [])
 
   // Handler for reordering favorite rooms
@@ -402,21 +400,61 @@ function DashboardContent() {
     const updates = rooms
       .filter((room) => room.areaId)
       .map((room, idx) => ({ areaId: room.areaId!, order: (idx + 1) * ORDER_GAP }))
-    console.log('[Favorites] Reordering rooms:', updates)
     await updateAreaFavoriteOrderBatch(updates)
-    console.log('[Favorites] Rooms reorder complete')
   }, [])
 
   // Handler for reordering favorite entities
-  const handleReorderFavoriteEntities = useCallback(async (entities: HAEntity[]) => {
-    const updates = entities.map((entity, idx) => ({
-      entityId: entity.entity_id,
-      order: (idx + 1) * ORDER_GAP,
-    }))
-    console.log('[Favorites] Reordering entities:', updates)
-    await updateEntityFavoriteOrderBatch(updates)
-    console.log('[Favorites] Entities reorder complete')
-  }, [])
+  // When a domain group (e.g., lights) is reordered, we need to merge the new order
+  // back into the full entity list to avoid order collisions with other domains
+  const handleReorderFavoriteEntities = useCallback(
+    async (reorderedDomainEntities: HAEntity[]) => {
+      if (reorderedDomainEntities.length === 0) return
+
+      // Get the domain prefix from the first entity (e.g., "light." from "light.kitchen")
+      const domainPrefix = reorderedDomainEntities[0].entity_id.split('.')[0] + '.'
+
+      // Build a Set of entity IDs that were reordered for fast lookup
+      const reorderedIds = new Set(reorderedDomainEntities.map((e) => e.entity_id))
+
+      // Create new list: keep non-reordered entities in place, replace reordered domain with new order
+      // Strategy: iterate through current favoriteEntities, when we hit the first entity of the
+      // reordered domain, insert all reordered entities there, skip other entities from that domain
+      const newEntityOrder: HAEntity[] = []
+      let insertedReordered = false
+
+      for (const entity of favoriteEntities) {
+        if (reorderedIds.has(entity.entity_id)) {
+          // This entity is part of the reordered group
+          if (!insertedReordered) {
+            // Insert all reordered entities at the position of the first one
+            newEntityOrder.push(...reorderedDomainEntities)
+            insertedReordered = true
+          }
+          // Skip this entity (it's already included in reorderedDomainEntities)
+        } else if (entity.entity_id.startsWith(domainPrefix)) {
+          // Same domain but not in reordered list - this shouldn't happen normally,
+          // but skip it to avoid duplicates
+        } else {
+          // Different domain - keep in place
+          newEntityOrder.push(entity)
+        }
+      }
+
+      // If we never inserted (edge case), append them
+      if (!insertedReordered) {
+        newEntityOrder.push(...reorderedDomainEntities)
+      }
+
+      // Now assign sequential orders to the full list
+      const updates = newEntityOrder.map((entity, idx) => ({
+        entityId: entity.entity_id,
+        order: (idx + 1) * ORDER_GAP,
+      }))
+
+      await updateEntityFavoriteOrderBatch(updates)
+    },
+    [favoriteEntities]
+  )
 
   // Handle clicks on empty area (gaps between cards)
   const handleBackgroundClick = useCallback(

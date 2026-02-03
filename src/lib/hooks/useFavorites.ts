@@ -158,15 +158,6 @@ export function useFavorites(
     }
 
     // Return live favorites (or empty if none exist)
-    console.log('[useFavorites] Registry version:', registryVersion)
-    console.log(
-      '[useFavorites] Returning rooms:',
-      favoriteRoomsList.map((r) => r.areaId)
-    )
-    console.log(
-      '[useFavorites] Returning entities (in order):',
-      entitiesList.map((e) => e.entity_id)
-    )
     return {
       hasFavorites: hasLiveFavorites,
       favoriteScenes: scenes,

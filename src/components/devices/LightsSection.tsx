@@ -111,12 +111,16 @@ export function LightsSection({
   compact = false,
   singleColumn = false,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: LightsSectionProps) {
-  // Sort lights by order
+  // Sort lights by order only if entityOrder is provided
+  // When used in FavoritesView, lights are already in favorite order
   const sortedLights = useMemo(() => {
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return lights
+    }
     return sortEntitiesByOrder(lights, entityOrder)
   }, [lights, entityOrder])
 

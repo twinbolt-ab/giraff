@@ -216,12 +216,15 @@ export function CoversSection({
   onToggleSelection,
   onEnterEditModeWithSelection,
   entityMeta,
-  entityOrder = {},
+  entityOrder,
   onReorderEntities,
   selectedIds,
 }: CoversSectionProps) {
-  // Sort covers by order
+  // Sort covers by order only if entityOrder is provided
   const sortedCovers = useMemo(() => {
+    if (!entityOrder || Object.keys(entityOrder).length === 0) {
+      return covers
+    }
     return sortEntitiesByOrder(covers, entityOrder)
   }, [covers, entityOrder])
 
