@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.29] - 2026-02-03
+
+This release brings a smoother experience when organizing your favorites.
+
+**Improvements**
+- Added a loading indicator when toggling custom order on or off
+- Simplified settings with a single "Custom room & device order" option
+
+**Bug Fixes**
+- Fixed an issue where items would jump around when reordering favorites
+- Improved visual consistency in favorites edit mode
+
+
 ## [0.3.28] - 2026-02-02
 
 This update brings the all-new **Favorites view** – a dedicated tab where you can pin your most-used devices and scenes for quick access. We're also rolling out a few improvements from earlier today that you might have missed.

@@ -1,6 +1,21 @@
 {
-  "generatedAt": "2026-02-02T19:58:48.746Z",
+  "generatedAt": "2026-02-03T16:19:46.916Z",
   "entries": [
+    {
+      "version": "0.3.29",
+      "date": "2026-02-03",
+      "summary": "This release brings a smoother experience when organizing your favorites.",
+      "improvements": [
+        "Added a loading indicator when toggling custom order on or off",
+        "Simplified settings with a single \"Custom room & device order\" option"
+      ],
+      "bugFixes": [
+        "Fixed an issue where items would jump around when reordering favorites",
+        "Improved visual consistency in favorites edit mode"
+      ],
+      "newFeatures": [],
+      "technical": []
+    },
     {
       "version": "0.3.28",
       "date": "2026-02-02",
