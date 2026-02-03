@@ -16,6 +16,7 @@ export function EnableCustomOrderDialog({
   isOpen,
   onClose,
   onConfirm,
+  isLoading,
 }: CustomOrderDialogProps) {
   return (
     <ConfirmDialog
@@ -29,6 +30,7 @@ export function EnableCustomOrderDialog({
       }
       confirmLabel={t.settings.advanced?.customOrder?.enableButton || 'Enable'}
       cancelLabel={t.common.cancel}
+      isLoading={isLoading}
     />
   )
 }

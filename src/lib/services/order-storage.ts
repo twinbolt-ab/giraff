@@ -176,8 +176,9 @@ export async function migrateRoomOrderFromHA(): Promise<boolean> {
 /**
  * Sync current room order from localStorage to HA labels
  * Used when user enables "Sync to Home Assistant" setting
+ * Returns the number of rooms synced
  */
-export async function syncRoomOrderToHA(): Promise<void> {
+export async function syncRoomOrderToHA(): Promise<number> {
   const state = getState()
   if (!state) {
     throw new Error('Cannot sync to HA: WebSocket not connected')
@@ -190,6 +191,7 @@ export async function syncRoomOrderToHA(): Promise<void> {
 
   await Promise.all(promises)
   console.log(`Synced room order for ${promises.length} rooms to HA labels`)
+  return promises.length
 }
 
 /**
@@ -205,15 +207,19 @@ export async function isRoomOrderHASyncEnabled(): Promise<boolean> {
 
 /**
  * Enable or disable HA sync for ordering (both rooms and entities)
+ * Returns { rooms, devices } counts when enabling
  */
-export async function setRoomOrderHASync(enabled: boolean): Promise<void> {
+export async function setRoomOrderHASync(
+  enabled: boolean
+): Promise<{ rooms: number; devices: number } | void> {
   const storage = getStorage()
   await storage.setItem(STORAGE_KEYS.ROOM_ORDER_SYNC_TO_HA, enabled ? 'true' : 'false')
 
   // If enabling, sync current localStorage order to HA (both rooms and entities)
   if (enabled) {
-    await syncRoomOrderToHA()
-    await syncEntityOrderToHA()
+    const rooms = await syncRoomOrderToHA()
+    const devices = await syncEntityOrderToHA()
+    return { rooms, devices }
   }
 }
 
@@ -420,8 +426,9 @@ export async function migrateEntityOrderFromHA(): Promise<void> {
 /**
  * Sync all entity orders from localStorage to HA labels
  * Used when user enables "Sync to Home Assistant" setting
+ * Returns the number of entities synced
  */
-export async function syncEntityOrderToHA(): Promise<void> {
+export async function syncEntityOrderToHA(): Promise<number> {
   const state = getState()
   if (!state) {
     throw new Error('Cannot sync to HA: WebSocket not connected')
@@ -456,4 +463,5 @@ export async function syncEntityOrderToHA(): Promise<void> {
   if (totalSynced > 0) {
     console.log(`Synced entity order for ${totalSynced} entities to HA labels`)
   }
+  return totalSynced
 }

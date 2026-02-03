@@ -94,6 +94,7 @@ export function SettingsMenu({
 
   const [debugId, setDebugId] = useState<string | null>(null)
   const [rateAppDismissed, setRateAppDismissed] = useState(true) // Start hidden until checked
+  const [customOrderLoading, setCustomOrderLoading] = useState(false)
   const isNative = Capacitor.isNativePlatform()
 
   // Load debug ID when advanced section opens
@@ -183,14 +184,24 @@ export function SettingsMenu({
     }
   }
 
-  const handleCustomOrderEnabled = () => {
-    void setCustomOrderEnabled(true)
-    menuState.closeModal('enableCustomOrder')
+  const handleCustomOrderEnabled = async () => {
+    setCustomOrderLoading(true)
+    try {
+      await setCustomOrderEnabled(true)
+      menuState.closeModal('enableCustomOrder')
+    } finally {
+      setCustomOrderLoading(false)
+    }
   }
 
-  const handleCustomOrderDisabled = () => {
-    void setCustomOrderEnabled(false)
-    menuState.closeModal('disableCustomOrder')
+  const handleCustomOrderDisabled = async () => {
+    setCustomOrderLoading(true)
+    try {
+      await setCustomOrderEnabled(false)
+      menuState.closeModal('disableCustomOrder')
+    } finally {
+      setCustomOrderLoading(false)
+    }
   }
 
   return (
@@ -480,14 +491,16 @@ export function SettingsMenu({
 
           <EnableCustomOrderDialog
             isOpen={menuState.isModalOpen('enableCustomOrder')}
-            onClose={() => menuState.closeModal('enableCustomOrder')}
+            onClose={() => !customOrderLoading && menuState.closeModal('enableCustomOrder')}
             onConfirm={handleCustomOrderEnabled}
+            isLoading={customOrderLoading}
           />
 
           <DisableCustomOrderDialog
             isOpen={menuState.isModalOpen('disableCustomOrder')}
-            onClose={() => menuState.closeModal('disableCustomOrder')}
+            onClose={() => !customOrderLoading && menuState.closeModal('disableCustomOrder')}
             onConfirm={handleCustomOrderDisabled}
+            isLoading={customOrderLoading}
           />
 
           {menuState.alsoHideInHAVariant && (
