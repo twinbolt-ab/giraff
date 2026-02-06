@@ -76,10 +76,8 @@ jobs:
             stuga-*.aab
           retention-days: 1
 
-  # Build iOS (disabled until Developer enrollment approved)
   build-ios:
     runs-on: macos-latest
-    if: false  # TODO: Enable when iOS secrets are configured
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -161,7 +159,7 @@ jobs:
 
   # Create GitHub release only after builds succeed
   github-release:
-    needs: [build-android]  # Add build-ios when enabled
+    needs: [build-android, build-ios]
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag_info.outputs.tag }}
@@ -319,7 +317,6 @@ jobs:
   publish-ios:
     needs: [build-ios, github-release]
     runs-on: macos-latest
-    if: false  # TODO: Enable when iOS secrets are configured
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -342,6 +339,11 @@ jobs:
           mkdir -p ~/private_keys
           echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
 
+      - name: Copy IPA to fastlane build dir
+        run: |
+          mkdir -p ios/App/build
+          cp artifacts/*.ipa ios/App/build/Stuga.ipa
+
       - name: Upload to App Store
         working-directory: ios/App
         env:
@@ -349,4 +351,5 @@ jobs:
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
         run: |
+          bundle install
           bundle exec fastlane upload

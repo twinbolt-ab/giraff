@@ -51,6 +51,16 @@ platform :ios do
     )
   end
 
+  desc "Upload pre-built IPA to App Store"
+  lane :upload do
+    upload_to_app_store(
+      ipa: "./build/Stuga.ipa",
+      skip_screenshots: true,
+      skip_metadata: false,
+      force: true
+    )
+  end
+
   desc "Upload metadata only (no build)"
   lane :metadata do
     upload_to_app_store(
