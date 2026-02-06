@@ -148,7 +148,7 @@ function FavoriteRoomCard({
     return (
       <div
         onClick={() => onToggleSelection(room.areaId!, 'room')}
-        className={clsx('cursor-pointer', isSelected && 'ring-2 ring-accent rounded-2xl')}
+        className={clsx('cursor-pointer', isSelected && 'ring-2 ring-accent rounded-card')}
       >
         <RoomCard room={room} isExpanded={false} onToggleExpand={() => {}} />
       </div>
@@ -472,7 +472,7 @@ export function FavoritesView({
       {/* Entities Section (Section C) - grouped by domain, each group reorderable in edit mode */}
       {hasEntities && (
         <EditModeContainer isInEditMode={isEntitiesEditMode} onExitEditMode={exitEditMode}>
-          <div className="space-y-4">
+          <div className="space-y-4" data-no-swipe>
             {entityGroups.lights.length > 0 && (
               <DomainSection domain="light" selectedDomain={selectedDomain}>
                 <LightsSection
