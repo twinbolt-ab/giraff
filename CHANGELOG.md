@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.30] - 2026-02-06
+
+This update fixes a couple of annoying bugs to make things smoother.
+
+**Bug Fixes**
+- Fixed swiping between floors on the Favorites tab
+- Fixed the selection ring not showing correctly on room cards
+
+
 ## [0.3.29] - 2026-02-03
 
 This release brings a smoother experience when organizing your favorites.
