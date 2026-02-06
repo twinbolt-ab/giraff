@@ -4,9 +4,19 @@ platform :ios do
   desc "Build release IPA"
   lane :build do
     build_app(
-      workspace: "App.xcworkspace",
+      project: "App.xcodeproj",
       scheme: "App",
-      export_method: "app-store",
+      clean: true,
+      export_method: "app-store-connect",
+      xcargs: "DEVELOPMENT_TEAM=YG929B6RG3 CODE_SIGN_STYLE=Automatic",
+      export_options: {
+        signingStyle: "manual",
+        teamID: "YG929B6RG3",
+        signingCertificate: "Apple Distribution",
+        provisioningProfiles: {
+          "com.twinbolt.stuga" => "Stuga App Store"
+        }
+      },
       output_directory: "./build",
       output_name: "Stuga.ipa"
     )
@@ -15,7 +25,7 @@ platform :ios do
   desc "Upload dSYMs to Firebase Crashlytics"
   lane :upload_dsyms do
     download_dsyms(
-      app_identifier: "se.twinbolt.stuga"
+      app_identifier: "com.twinbolt.stuga"
     )
     upload_symbols_to_crashlytics(
       gsp_path: "../App/GoogleService-Info.plist"
