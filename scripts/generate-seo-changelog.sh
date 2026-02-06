@@ -76,8 +76,15 @@ Generate the JSON now:"
 # Generate with Claude
 RAW_OUTPUT=$(claude -p "$SEO_PROMPT")
 
-# Strip markdown code fences if present
-JSON_OUTPUT=$(echo "$RAW_OUTPUT" | sed '/^```/d')
+# Extract JSON object from output (strips code fences, preamble text, etc.)
+JSON_OUTPUT=$(echo "$RAW_OUTPUT" | python3 -c "
+import sys
+text = sys.stdin.read()
+start = text.find('{')
+end = text.rfind('}')
+if start >= 0 and end >= 0:
+    print(text[start:end+1])
+")
 
 # Validate JSON and write
 if echo "$JSON_OUTPUT" | python3 -m json.tool > /dev/null 2>&1; then
