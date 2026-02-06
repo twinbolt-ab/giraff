@@ -21,7 +21,8 @@ const {
 } = Astro.props;
 const siteUrl = "https://stuga.app";
 const ogImage = `${siteUrl}/og-image.png`;
-const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const pathname = Astro.url.pathname.replace(/(.+)\/$/, '$1');
+const canonicalUrl = new URL(pathname, siteUrl).href;
 
 const schemaGraph: any[] = [
   {
