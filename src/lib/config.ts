@@ -200,11 +200,17 @@ export function getEnabledDomainsSync(): ConfigurableDomain[] {
 
 /**
  * Save enabled domains to storage
+ * Writes to localStorage synchronously so getEnabledDomainsSync() reads the latest value,
+ * and also persists to the async storage adapter (Capacitor Preferences on native).
  */
 export async function setEnabledDomains(domains: ConfigurableDomain[]): Promise<void> {
   if (typeof window === 'undefined') return
+  const value = JSON.stringify(domains)
+  // Write to localStorage immediately so synchronous reads see the update
+  localStorage.setItem(STORAGE_KEYS.ENABLED_DOMAINS, value)
+  // Also persist to async storage (matches on web, Capacitor Preferences on native)
   const storage = getStorage()
-  await storage.setItem(STORAGE_KEYS.ENABLED_DOMAINS, JSON.stringify(domains))
+  await storage.setItem(STORAGE_KEYS.ENABLED_DOMAINS, value)
 }
 
 /**
