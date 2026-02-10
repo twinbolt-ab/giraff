@@ -1,6 +1,19 @@
 {
-  "generatedAt": "2026-02-06T08:52:31.521Z",
+  "generatedAt": "2026-02-10T11:53:36.711Z",
   "entries": [
+    {
+      "version": "0.3.31",
+      "date": "2026-02-10",
+      "summary": "This release squashes a handful of bugs and tidies things up.",
+      "improvements": [],
+      "bugFixes": [
+        "Fixed device settings (like device type) not saving properly when navigating between screens",
+        "Fixed external links not opening correctly on iOS and Android",
+        "Removed an empty \"Other\" tab that could appear when your home has no floors set up"
+      ],
+      "newFeatures": [],
+      "technical": []
+    },
     {
       "version": "0.3.30",
       "date": "2026-02-06",

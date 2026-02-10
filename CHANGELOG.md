@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.31] - 2026-02-10
+
+This release squashes a handful of bugs and tidies things up.
+
+**Bug Fixes**
+- Fixed device settings (like device type) not saving properly when navigating between screens
+- Fixed external links not opening correctly on iOS and Android
+- Removed an empty "Other" tab that could appear when your home has no floors set up
+
+
 ## [0.3.30] - 2026-02-06
 
 This update fixes a couple of annoying bugs to make things smoother.
