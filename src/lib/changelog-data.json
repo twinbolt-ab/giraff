@@ -1,6 +1,19 @@
 {
-  "generatedAt": "2026-02-10T12:23:23.253Z",
+  "generatedAt": "2026-02-10T13:14:09.418Z",
   "entries": [
+    {
+      "version": "0.3.33",
+      "date": "2026-02-10",
+      "summary": "This release fixes several bugs and improves the overall experience.",
+      "improvements": [],
+      "bugFixes": [
+        "Fixed device type settings not saving properly when navigating between screens",
+        "Fixed external links not opening correctly on iOS and Android",
+        "Removed an empty \"Other\" tab that could appear when no floors are set up"
+      ],
+      "newFeatures": [],
+      "technical": []
+    },
     {
       "version": "0.3.32",
       "date": "2026-02-10",
