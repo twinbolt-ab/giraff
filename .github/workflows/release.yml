@@ -216,10 +216,15 @@ jobs:
           $COMPARE_URL
           EOF
 
-          gh release create "$TAG" \
-            --title "$TAG" \
-            --notes-file /tmp/release_body.md \
-            artifacts/*
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release $TAG already exists, updating it"
+            gh release upload "$TAG" artifacts/* --clobber
+          else
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes-file /tmp/release_body.md \
+              artifacts/*
+          fi
 
       - name: Post to Discussions
         env:
@@ -257,6 +262,25 @@ jobs:
 
           if [[ -z "$CATEGORY_ID" || "$CATEGORY_ID" == "null" ]]; then
             echo "Warning: Announcements category not found, skipping discussion"
+            exit 0
+          fi
+
+          # Check if discussion already exists
+          EXISTING=$(gh api graphql -f query='
+            query($owner: String!, $name: String!, $query: String!) {
+              repository(owner: $owner, name: $name) {
+                discussions(first: 1, filterBy: {createdBy: "github-actions[bot]"}, orderBy: {field: CREATED_AT, direction: DESC}) {
+                  nodes { title }
+                }
+              }
+              search(query: $query, type: DISCUSSION, first: 1) {
+                nodes { ... on Discussion { title } }
+              }
+            }
+          ' -f owner="${{ github.repository_owner }}" -f name="${{ github.event.repository.name }}" -f query="repo:${{ github.repository }} \"$TAG released\"" 2>/dev/null | jq -r '.data.search.nodes[0].title // ""')
+
+          if [[ "$EXISTING" == "$TAG released" ]]; then
+            echo "Discussion for $TAG already exists, skipping"
             exit 0
           fi
 
