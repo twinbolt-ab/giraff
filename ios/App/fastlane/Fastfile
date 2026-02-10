@@ -7,7 +7,7 @@ platform :ios do
       project: "App.xcodeproj",
       scheme: "App",
       clean: true,
-      export_method: "app-store-connect",
+      export_method: "app-store",
       xcargs: "DEVELOPMENT_TEAM=YG929B6RG3 CODE_SIGN_STYLE=Automatic",
       export_options: {
         signingStyle: "manual",
