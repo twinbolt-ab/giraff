@@ -139,6 +139,14 @@ jobs:
           APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
         run: bundle exec fastlane build
 
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-log
+          path: ~/Library/Logs/gym/App-App.log
+          retention-days: 3
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:

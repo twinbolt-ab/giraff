@@ -8,6 +8,7 @@ platform :ios do
       scheme: "App",
       clean: true,
       export_method: "app-store",
+      disable_xcpretty: true,
       xcargs: "DEVELOPMENT_TEAM=YG929B6RG3 CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='Stuga App Store'",
       export_options: {
         signingStyle: "manual",
