@@ -61,14 +61,17 @@ export function useFloorNavigation({
     [validFloorIds]
   )
 
-  // Check if there are rooms without a valid floor that have controllable devices
+  // Check if there are rooms without a valid floor that have controllable devices.
+  // Only meaningful when floors exist — without floors, all rooms are shown by default.
   const hasUnassignedRooms = useMemo(() => {
+    if (floors.length === 0) return false
+
     return rooms.some((room) => {
       if (!isRoomUnassigned(room)) return false
       const hasControllableDevices = room.devices.some((d) => isEntityVisible(d.entity_id))
       return hasControllableDevices
     })
-  }, [rooms, isEntityVisible, isRoomUnassigned])
+  }, [rooms, floors.length, isEntityVisible, isRoomUnassigned])
 
   // Derive selected floor from data - user selection takes precedence, otherwise auto-select
   const selectedFloorId = useMemo(() => {
