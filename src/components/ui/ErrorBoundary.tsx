@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw, Copy, Check, ExternalLink } from 'lucide-react'
 import { logger } from '@/lib/logger'
 import { copyErrorReport, GITHUB_ISSUES_URL, logError } from '@/lib/crashlytics'
+import { openExternalUrl } from '@/lib/browser'
 
 interface Props {
   children: ReactNode
@@ -51,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleOpenIssues = () => {
-    window.open(GITHUB_ISSUES_URL, '_blank')
+    void openExternalUrl(GITHUB_ISSUES_URL)
   }
 
   render() {

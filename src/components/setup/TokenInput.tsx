@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { ExternalLink } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { openExternalUrl } from '@/lib/browser'
 
 interface Props {
   token: string
@@ -31,15 +32,14 @@ export function TokenInput({ token, url, onTokenChange, onSwitchToOAuth }: Props
           </button>
         </div>
         <p className="text-sm text-muted">
-          <a
-            href={url ? `${url}/profile/security` : '#'}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => url && void openExternalUrl(`${url}/profile/security`)}
             className="text-accent hover:underline inline-flex items-center gap-1"
           >
             {t.setup.token.goToProfile}
             <ExternalLink className="w-3.5 h-3.5" />
-          </a>{' '}
+          </button>{' '}
           {t.setup.token.hint}
         </p>
         <textarea

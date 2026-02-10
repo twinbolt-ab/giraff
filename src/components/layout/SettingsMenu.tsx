@@ -25,6 +25,7 @@ import {
   MessageSquare,
 } from 'lucide-react'
 import { t } from '@/lib/i18n'
+import { openExternalUrl } from '@/lib/browser'
 import { ConnectionSettingsModal } from '@/components/settings/ConnectionSettingsModal'
 import { DomainConfigModal } from '@/components/settings/DomainConfigModal'
 import { DeveloperMenuModal } from '@/components/settings/DeveloperMenuModal'
@@ -413,7 +414,7 @@ export function SettingsMenu({
                 title={t.feedback.title}
                 description={t.feedback.description}
                 onClick={() =>
-                  window.open('https://github.com/twinbolt-ab/stuga/discussions', '_blank')
+                  void openExternalUrl('https://github.com/twinbolt-ab/stuga/discussions')
                 }
               />
 

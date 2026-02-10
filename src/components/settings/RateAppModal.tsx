@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useMotionValue, useDragControls, PanInfo } fro
 import { X, Star } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { t } from '@/lib/i18n'
+import { openExternalUrl } from '@/lib/browser'
 import { getStorage } from '@/lib/storage'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { logRateAppAction } from '@/lib/analytics'
@@ -62,7 +63,7 @@ export function RateAppModal({ isOpen, onClose, onDismissed }: RateAppModalProps
     const platform = Capacitor.getPlatform()
     const url = platform === 'ios' ? APP_STORE_URL : PLAY_STORE_URL
 
-    window.open(url, '_blank')
+    await openExternalUrl(url)
     onDismissed()
   }
 

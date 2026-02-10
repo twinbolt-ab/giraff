@@ -19,6 +19,7 @@ import { useIsClient } from '@/lib/hooks/useIsClient'
 import { EditModal } from '@/components/ui/EditModal'
 import type { DiagnosticResult, ConnectionErrorType } from '@/lib/connection-diagnostics'
 import { copyErrorReport, GITHUB_ISSUES_URL } from '@/lib/crashlytics'
+import { openExternalUrl } from '@/lib/browser'
 
 const DRAG_CLOSE_THRESHOLD = 150
 
@@ -163,7 +164,7 @@ function TroubleshootingHelpContent({
   }
 
   const handleOpenIssues = () => {
-    window.open(GITHUB_ISSUES_URL, '_blank')
+    void openExternalUrl(GITHUB_ISSUES_URL)
   }
 
   return (
