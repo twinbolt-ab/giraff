@@ -3,6 +3,12 @@ import { logSettingChange } from '../analytics'
 import * as orderStorage from '../services/order-storage'
 import { getStorage } from '../storage'
 import { STORAGE_KEYS } from '../constants'
+import { DEFAULT_ENABLED_DOMAINS, type ConfigurableDomain } from '@/types/ha'
+import {
+  getEnabledDomainsSync,
+  setEnabledDomains as saveEnabledDomains,
+  isEntityVisible as checkEntityVisible,
+} from '../config'
 
 export interface SyncResult {
   rooms: number
@@ -13,6 +19,12 @@ interface SettingsContextValue {
   // Custom order feature (replaces reorderingDisabled + roomOrderSyncToHA)
   customOrderEnabled: boolean
   setCustomOrderEnabled: (value: boolean) => Promise<SyncResult | void>
+  // Enabled domains (device types)
+  enabledDomains: ConfigurableDomain[]
+  setEnabledDomains: (domains: ConfigurableDomain[]) => void
+  toggleDomain: (domain: ConfigurableDomain) => void
+  resetDomainsToDefaults: () => void
+  isEntityVisible: (entityId: string) => boolean
 }
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
@@ -24,6 +36,11 @@ interface SettingsProviderProps {
 export function SettingsProvider({ children }: SettingsProviderProps) {
   // Custom order enabled setting (default true)
   const [customOrderEnabled, setCustomOrderEnabledState] = useState(true)
+
+  // Enabled domains setting
+  const [enabledDomains, setEnabledDomainsState] = useState<ConfigurableDomain[]>(() =>
+    getEnabledDomainsSync()
+  )
 
   // Load settings on mount
   useEffect(() => {
@@ -47,28 +64,61 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
     }
   }, [])
 
-  const setCustomOrderEnabled = useCallback(
-    async (value: boolean): Promise<SyncResult | void> => {
-      const storage = getStorage()
+  const setCustomOrderEnabled = useCallback(async (value: boolean): Promise<SyncResult | void> => {
+    const storage = getStorage()
 
-      if (value) {
-        // Enabling custom order: enable HA sync
-        await storage.setItem(STORAGE_KEYS.CUSTOM_ORDER_ENABLED, 'true')
-        const result = await orderStorage.setRoomOrderHASync(true)
-        setCustomOrderEnabledState(value)
-        void logSettingChange('custom_order_enabled', value)
-        return result ?? { rooms: 0, devices: 0 }
-      } else {
-        // Disabling custom order: clean up all order labels from HA, then disable sync
-        const { cleanupAllOrderLabels } = await import('../metadata/cleanup')
-        await cleanupAllOrderLabels()
-        await orderStorage.setRoomOrderHASync(false)
-        await storage.setItem(STORAGE_KEYS.CUSTOM_ORDER_ENABLED, 'false')
-        setCustomOrderEnabledState(value)
-        void logSettingChange('custom_order_enabled', value)
+    if (value) {
+      // Enabling custom order: enable HA sync
+      await storage.setItem(STORAGE_KEYS.CUSTOM_ORDER_ENABLED, 'true')
+      const result = await orderStorage.setRoomOrderHASync(true)
+      setCustomOrderEnabledState(value)
+      void logSettingChange('custom_order_enabled', value)
+      return result ?? { rooms: 0, devices: 0 }
+    } else {
+      // Disabling custom order: clean up all order labels from HA, then disable sync
+      const { cleanupAllOrderLabels } = await import('../metadata/cleanup')
+      await cleanupAllOrderLabels()
+      await orderStorage.setRoomOrderHASync(false)
+      await storage.setItem(STORAGE_KEYS.CUSTOM_ORDER_ENABLED, 'false')
+      setCustomOrderEnabledState(value)
+      void logSettingChange('custom_order_enabled', value)
+    }
+  }, [])
+
+  // Save domains and update state
+  const setEnabledDomains = useCallback((domains: ConfigurableDomain[]) => {
+    void saveEnabledDomains(domains)
+    setEnabledDomainsState(domains)
+  }, [])
+
+  // Toggle a domain on/off
+  const toggleDomain = useCallback(
+    (domain: ConfigurableDomain) => {
+      const isCurrentlyEnabled = enabledDomains.includes(domain)
+      const newDomains = isCurrentlyEnabled
+        ? enabledDomains.filter((d) => d !== domain)
+        : [...enabledDomains, domain]
+
+      // Ensure at least one domain is enabled
+      if (newDomains.length > 0) {
+        setEnabledDomains(newDomains)
+        void logSettingChange('domain_config', `${domain}:${!isCurrentlyEnabled}`)
       }
     },
-    []
+    [enabledDomains, setEnabledDomains]
+  )
+
+  // Reset to defaults
+  const resetDomainsToDefaults = useCallback(() => {
+    setEnabledDomains(DEFAULT_ENABLED_DOMAINS)
+  }, [setEnabledDomains])
+
+  // Check if an entity should be visible
+  const isEntityVisible = useCallback(
+    (entityId: string): boolean => {
+      return checkEntityVisible(entityId, enabledDomains)
+    },
+    [enabledDomains]
   )
 
   return (
@@ -76,6 +126,11 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
       value={{
         customOrderEnabled,
         setCustomOrderEnabled,
+        enabledDomains,
+        setEnabledDomains,
+        toggleDomain,
+        resetDomainsToDefaults,
+        isEntityVisible,
       }}
     >
       {children}
