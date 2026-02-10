@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.3.35] - 2026-02-10
+
+This is a small maintenance release focused on bug fixes and reliability.
+
+**Bug Fixes**
+- Fixed device type settings not saving properly when navigating between screens
+- Fixed external links not opening correctly on iOS and Android
+- Removed an empty "Other" tab that could appear when no floors are set up
+- Fixed redirect issues with certain web links
+
+
 ## [0.3.34] - 2026-02-10
 
 This release focuses on stability and fixing a handful of annoying bugs.

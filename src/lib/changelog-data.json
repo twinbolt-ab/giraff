@@ -1,6 +1,20 @@
 {
-  "generatedAt": "2026-02-10T13:24:03.166Z",
+  "generatedAt": "2026-02-10T13:31:33.983Z",
   "entries": [
+    {
+      "version": "0.3.35",
+      "date": "2026-02-10",
+      "summary": "This is a small maintenance release focused on bug fixes and reliability.",
+      "improvements": [],
+      "bugFixes": [
+        "Fixed device type settings not saving properly when navigating between screens",
+        "Fixed external links not opening correctly on iOS and Android",
+        "Removed an empty \"Other\" tab that could appear when no floors are set up",
+        "Fixed redirect issues with certain web links"
+      ],
+      "newFeatures": [],
+      "technical": []
+    },
     {
       "version": "0.3.34",
       "date": "2026-02-10",
