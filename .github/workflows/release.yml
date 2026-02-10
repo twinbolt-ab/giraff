@@ -104,10 +104,6 @@ jobs:
       - name: Sync iOS platform
         run: npx cap sync ios
 
-      - name: Install CocoaPods
-        working-directory: ios/App
-        run: pod install
-
       - name: Setup App Store Connect API key
         run: |
           mkdir -p ~/private_keys
@@ -141,9 +137,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-        run: |
-          bundle install
-          bundle exec fastlane build
+        run: bundle exec fastlane build
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -350,6 +344,4 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
-        run: |
-          bundle install
-          bundle exec fastlane upload
+        run: bundle exec fastlane upload
