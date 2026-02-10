@@ -3,13 +3,20 @@ default_platform(:ios)
 platform :ios do
   desc "Build release IPA"
   lane :build do
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "App.xcodeproj",
+      team_id: "YG929B6RG3",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "Stuga App Store",
+      targets: ["App"]
+    )
     build_app(
       project: "App.xcodeproj",
       scheme: "App",
       clean: true,
       export_method: "app-store",
       disable_xcpretty: true,
-      xcargs: "DEVELOPMENT_TEAM=YG929B6RG3 CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY='Apple Distribution' PROVISIONING_PROFILE_SPECIFIER='Stuga App Store'",
       export_options: {
         signingStyle: "manual",
         teamID: "YG929B6RG3",
