@@ -1,6 +1,20 @@
 {
-  "generatedAt": "2026-02-10T11:53:36.711Z",
+  "generatedAt": "2026-02-10T12:23:23.253Z",
   "entries": [
+    {
+      "version": "0.3.32",
+      "date": "2026-02-10",
+      "summary": "This release cleans up a few rough edges and fixes some annoying bugs.",
+      "improvements": [
+        "The \"Other\" tab no longer shows up when you don't have any floors set up"
+      ],
+      "bugFixes": [
+        "Device type settings (like setting a light as a fan) now save properly and stick around as you navigate",
+        "Links to external sites now open correctly on iOS and Android instead of getting stuck"
+      ],
+      "newFeatures": [],
+      "technical": []
+    },
     {
       "version": "0.3.31",
       "date": "2026-02-10",

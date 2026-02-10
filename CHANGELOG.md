@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.32] - 2026-02-10
+
+This release cleans up a few rough edges and fixes some annoying bugs.
+
+**Improvements**
+- The "Other" tab no longer shows up when you don't have any floors set up
+
+**Bug Fixes**
+- Device type settings (like setting a light as a fan) now save properly and stick around as you navigate
+- Links to external sites now open correctly on iOS and Android instead of getting stuck
+
+
 ## [0.3.31] - 2026-02-10
 
 This release squashes a handful of bugs and tidies things up.
