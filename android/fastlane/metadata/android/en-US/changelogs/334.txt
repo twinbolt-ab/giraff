@@ -1,0 +1,3 @@
+• Fixed device settings not saving when switching between screens
+• Fixed links not opening correctly on iOS and Android
+• Removed empty "Other" tab that could appear when no floors are set up
