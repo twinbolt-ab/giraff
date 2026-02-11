@@ -364,7 +364,16 @@ jobs:
       - name: Setup App Store Connect API key
         run: |
           mkdir -p $RUNNER_TEMP/private_keys
-          echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > $RUNNER_TEMP/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8"
+          echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > "$KEY_PATH"
+          cat > "$RUNNER_TEMP/private_keys/api_key.json" << APIEOF
+          {
+            "key_id": "${{ secrets.APP_STORE_CONNECT_KEY_ID }}",
+            "issuer_id": "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}",
+            "key_filepath": "$KEY_PATH",
+            "in_house": false
+          }
+          APIEOF
 
       - name: Copy IPA to fastlane build dir
         run: |
@@ -374,7 +383,5 @@ jobs:
       - name: Upload to App Store
         working-directory: ios/App
         env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_PATH: ${{ runner.temp }}/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8
+          APP_STORE_CONNECT_API_KEY_PATH: ${{ runner.temp }}/private_keys/api_key.json
         run: bundle exec fastlane upload
