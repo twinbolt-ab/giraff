@@ -227,6 +227,7 @@ jobs:
           fi
 
       - name: Post to Discussions
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -241,6 +242,11 @@ jobs:
 
           # Extract announcement (skip first line which is "Release vX.X.X")
           ANNOUNCEMENT=$(tail -n +3 /tmp/tag_message.txt)
+
+          if [[ -z "$(echo "$ANNOUNCEMENT" | tr -d '[:space:]')" ]]; then
+            echo "Warning: Empty announcement body, skipping discussion"
+            exit 0
+          fi
 
           # Get repository and category IDs for the GraphQL mutation
           REPO_INFO=$(gh api graphql -f query='
