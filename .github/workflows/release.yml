@@ -364,13 +364,12 @@ jobs:
       - name: Setup App Store Connect API key
         run: |
           mkdir -p $RUNNER_TEMP/private_keys
-          KEY_PATH="$RUNNER_TEMP/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_KEY_ID }}.p8"
-          echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" > "$KEY_PATH"
+          KEY_CONTENT=$(echo "${{ secrets.APP_STORE_CONNECT_API_KEY }}" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))")
           cat > "$RUNNER_TEMP/private_keys/api_key.json" << APIEOF
           {
             "key_id": "${{ secrets.APP_STORE_CONNECT_KEY_ID }}",
             "issuer_id": "${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}",
-            "key_filepath": "$KEY_PATH",
+            "key": $KEY_CONTENT,
             "in_house": false
           }
           APIEOF
