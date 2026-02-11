@@ -65,7 +65,8 @@ platform :ios do
       ipa: "./build/Stuga.ipa",
       skip_screenshots: true,
       skip_metadata: false,
-      force: true
+      force: true,
+      precheck_include_in_app_purchases: false
     )
   end
 
